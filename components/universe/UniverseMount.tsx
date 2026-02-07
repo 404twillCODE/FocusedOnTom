@@ -15,10 +15,11 @@ interface UniverseMountProps {
 }
 
 /**
- * R3F Canvas mount. Lazy-loads the 3D scene.
- * Respects qualityTier (DPR, node count), reducedMotion (frameloop),
- * and exploreMode (guided path vs orbit controls).
- * Use pointer-events: none on the wrapper when used as background so UI stays interactive.
+ * Universe navigation engine. Lazy-loads the R3F canvas.
+ * - guided: cinematic camera path (hero → skills → projects → lab → lifestyle), node click moves camera.
+ * - free: OrbitControls for full exploration.
+ * Respects qualityTier (DPR, star/node density), reducedMotion (frameloop).
+ * pointer-events: auto only in free mode so background UI stays clickable when guided.
  */
 export function UniverseMount({ className }: UniverseMountProps) {
   const qualityTier = useAppStore((s) => s.qualityTier);

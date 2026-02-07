@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { motion } from "framer-motion";
 import { useEffect, useRef } from "react";
 import { tokens } from "@/tokens/tokens";
 
@@ -9,6 +9,9 @@ const WORDMARK = "FocusedOnTom";
 /** Hexagon path (flat top), size ~50 viewBox units. */
 const HEX_PATH =
   "M 50 0 L 93.3 25 L 93.3 75 L 50 100 L 6.7 75 L 6.7 25 Z";
+
+/** Circle r=45 circumference ≈ 2 * π * 45 ≈ 282.7 */
+const CIRCLE_LENGTH = 2 * Math.PI * 45;
 
 interface TomSymbolProps {
   /** "slow" = first visit (~3s assembly), "fast" = return visit (~1.2s) */
@@ -48,7 +51,18 @@ export function TomSymbol({
   }, [totalAssembly, onAssemblyComplete]);
 
   return (
-    <div className="relative flex flex-col items-center justify-center">
+    <motion.div
+      className="relative flex flex-col items-center justify-center"
+      animate={
+        dissolve
+          ? { opacity: 0, scale: 0.92 }
+          : { opacity: 1, scale: 1 }
+      }
+      transition={{
+        duration: 0.55,
+        ease: tokens.motion.ease,
+      }}
+    >
       {/* Core dot → scale + glow pulse */}
       <motion.div
         className="absolute h-3 w-3 rounded-full bg-mint"
@@ -123,9 +137,9 @@ export function TomSymbol({
           fill="none"
           stroke="currentColor"
           strokeWidth="1.5"
-          strokeDasharray="283"
+          strokeDasharray={CIRCLE_LENGTH}
           strokeLinecap="round"
-          initial={{ strokeDashoffset: 283 }}
+          initial={{ strokeDashoffset: CIRCLE_LENGTH }}
           animate={{ strokeDashoffset: 0 }}
           transition={{
             delay: ringDelay,
@@ -163,19 +177,6 @@ export function TomSymbol({
           </motion.span>
         ))}
       </motion.div>
-
-      {/* Dissolve overlay: scale down + fade when dissolve is true */}
-      {dissolve && (
-        <motion.div
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
-          initial={false}
-          animate={{ opacity: 0, scale: 0.95 }}
-          transition={{
-            duration: 0.5,
-            ease: tokens.motion.ease,
-          }}
-        />
-      )}
-    </div>
+    </motion.div>
   );
 }

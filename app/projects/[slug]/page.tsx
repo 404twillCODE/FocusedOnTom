@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { AppShell } from "@/components/shell/AppShell";
-import { PageTransition } from "@/components/motion/PageTransition";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { getProjectBySlug, getProjectSlugs } from "@/lib/data/projects";
 import { ROUTES } from "@/lib/routes";
@@ -23,7 +22,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   return (
     <AppShell>
-      <PageTransition className="mx-auto max-w-6xl px-4 py-12">
+      <div className="mx-auto max-w-6xl px-4 py-12">
         <FadeIn>
           <Button variant="ghost" size="sm" className="text-textMuted" asChild>
             <Link href={ROUTES.projects}>← Projects</Link>
@@ -42,7 +41,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             <p className="mt-2 text-sm text-textMuted">{project.year}</p>
           </FadeIn>
         )}
-      </PageTransition>
+      </div>
     </AppShell>
   );
 }

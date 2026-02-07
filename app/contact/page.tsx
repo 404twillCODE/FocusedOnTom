@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/shell/AppShell";
-import { PageTransition } from "@/components/motion/PageTransition";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { Heading } from "@/components/ui/Heading";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export default function ContactPage() {
   return (
     <AppShell>
-      <PageTransition className="mx-auto max-w-6xl px-4 py-12">
+      <div className="mx-auto max-w-6xl px-4 py-12">
         <FadeIn>
           <Heading as="h1">Contact</Heading>
         </FadeIn>
@@ -22,7 +21,7 @@ export default function ContactPage() {
             <Button type="submit" className="bg-mint text-bg hover:bg-mint/90">Send (placeholder)</Button>
           </form>
         </FadeIn>
-      </PageTransition>
+      </div>
     </AppShell>
   );
 }

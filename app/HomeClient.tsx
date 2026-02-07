@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/shell/AppShell";
-import { PageTransition } from "@/components/motion/PageTransition";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { UniverseMount } from "@/components/universe/UniverseMount";
 import { Heading } from "@/components/ui/Heading";
@@ -62,18 +61,16 @@ export function HomeClient() {
           )}
           <div className="relative z-10">
             <AppShell>
-              <PageTransition className="mx-auto max-w-6xl px-4 py-12">
-                <section className="space-y-8">
-                  <FadeIn>
-                    <Heading as="h1">FocusedOnTom</Heading>
-                  </FadeIn>
-                  <FadeIn delay={0.1}>
-                    <p className="max-w-xl text-lg text-textMuted">
-                      Cinematic portfolio. Projects, lab, and more.
-                    </p>
-                  </FadeIn>
-                </section>
-              </PageTransition>
+              <section className="mx-auto max-w-6xl space-y-8 px-4 py-12">
+                <FadeIn>
+                  <Heading as="h1">FocusedOnTom</Heading>
+                </FadeIn>
+                <FadeIn delay={0.1}>
+                  <p className="max-w-xl text-lg text-textMuted">
+                    Cinematic portfolio. Projects, lab, and more.
+                  </p>
+                </FadeIn>
+              </section>
             </AppShell>
           </div>
         </div>

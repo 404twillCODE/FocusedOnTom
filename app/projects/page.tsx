@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/AppShell";
-import { PageTransition } from "@/components/motion/PageTransition";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { getProjects } from "@/lib/data/projects";
 import { ROUTES } from "@/lib/routes";
@@ -13,7 +12,7 @@ export default function ProjectsPage() {
 
   return (
     <AppShell>
-      <PageTransition className="mx-auto max-w-6xl px-4 py-12">
+      <div className="mx-auto max-w-6xl px-4 py-12">
         <FadeIn>
           <Heading as="h1">Projects</Heading>
         </FadeIn>
@@ -33,7 +32,7 @@ export default function ProjectsPage() {
             </FadeIn>
           ))}
         </ul>
-      </PageTransition>
+      </div>
     </AppShell>
   );
 }

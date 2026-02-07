@@ -34,7 +34,10 @@ export interface RunResult {
 
 export interface TerminalContext {
   setQualityMode: (mode: "auto" | "high" | "medium" | "low") => void;
+  setPerfOn: () => void;
+  setPerfOff: () => void;
   setExploreMode: (mode: "guided" | "free") => void;
   setDevMode: (value: boolean) => void;
   getDevMode: () => boolean;
+  getQualityMode: () => string;
 }

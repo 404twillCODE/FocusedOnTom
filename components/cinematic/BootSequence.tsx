@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useRef } from "react";
+import { motion } from "framer-motion";
 import { tokens } from "@/tokens/tokens";
+import { TomSymbol } from "@/components/brand/TomSymbol";
 
 const LINES = [
   "Initializing TomOS…",
@@ -10,15 +11,27 @@ const LINES = [
   "Establishing System Focus…",
 ] as const;
 
+const LINE_STAGGER_MS = 300;
+const LINE_FADE_DUR = 0.3;
+
+/** First visit: ~6s total. Boot text → hold → symbol (slow) → hold → dissolve → overlay fade. */
 const FIRST_VISIT = {
-  lineDelayMs: 2000,
-  symbolPhaseMs: 450,
-  fadeOutMs: 500,
+  showBootText: true,
+  bootHoldAfterMs: 900,
+  symbolVariant: "slow" as const,
+  symbolHoldAfterMs: 400,
+  dissolveMs: 550,
+  overlayFadeMs: 500,
 };
+
+/** Return visit: ~2s. No boot text, symbol (fast) → hold → dissolve → overlay fade. */
 const RETURN_VISIT = {
-  lineDelayMs: 600,
-  symbolPhaseMs: 200,
-  fadeOutMs: 400,
+  showBootText: false,
+  bootHoldAfterMs: 0,
+  symbolVariant: "fast" as const,
+  symbolHoldAfterMs: 300,
+  dissolveMs: 450,
+  overlayFadeMs: 450,
 };
 
 interface BootSequenceProps {
@@ -27,46 +40,39 @@ interface BootSequenceProps {
   onComplete: () => void;
 }
 
-export function BootSequence({ isReturnVisit, reducedMotion = false, onComplete }: BootSequenceProps) {
+export function BootSequence({
+  isReturnVisit,
+  reducedMotion = false,
+  onComplete,
+}: BootSequenceProps) {
   const config = isReturnVisit ? RETURN_VISIT : FIRST_VISIT;
   const [visibleLines, setVisibleLines] = useState(0);
-  const [symbolPhase, setSymbolPhase] = useState<0 | 1 | 2 | 3>(0);
-  const [fadeOut, setFadeOut] = useState(false);
+  const [showSymbol, setShowSymbol] = useState(config.showBootText ? false : true);
+  const [dissolve, setDissolve] = useState(false);
+  const [overlayFade, setOverlayFade] = useState(false);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  // Lock scroll while boot is active
   useEffect(() => {
-    if (reducedMotion) return;
-    const t1 = setTimeout(() => setVisibleLines(1), 0);
-    const t2 = setTimeout(() => setVisibleLines(2), config.lineDelayMs);
-    const t3 = setTimeout(() => setVisibleLines(3), config.lineDelayMs * 2);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
+      document.body.style.overflow = prev;
     };
-  }, [config.lineDelayMs, reducedMotion]);
+  }, []);
 
+  // Clear timers on unmount to avoid layout jank or state updates after unmount
   useEffect(() => {
-    if (reducedMotion) return;
-    const linesDone = config.lineDelayMs * 3;
-    const t4 = setTimeout(() => setSymbolPhase(1), linesDone);
-    const t5 = setTimeout(() => setSymbolPhase(2), linesDone + config.symbolPhaseMs);
-    const t6 = setTimeout(() => setSymbolPhase(3), linesDone + config.symbolPhaseMs * 2);
-    const t7 = setTimeout(
-      () => setFadeOut(true),
-      linesDone + config.symbolPhaseMs * 3
-    );
-    const t8 = setTimeout(
-      onComplete,
-      linesDone + config.symbolPhaseMs * 3 + config.fadeOutMs
-    );
     return () => {
-      clearTimeout(t4);
-      clearTimeout(t5);
-      clearTimeout(t6);
-      clearTimeout(t7);
-      clearTimeout(t8);
+      timers.current.forEach(clearTimeout);
+      timers.current = [];
     };
-  }, [config.lineDelayMs, config.symbolPhaseMs, config.fadeOutMs, onComplete, reducedMotion]);
+  }, []);
+
+  const addTimer = (fn: () => void, ms: number) => {
+    const id = setTimeout(fn, ms);
+    timers.current.push(id);
+  };
 
   if (reducedMotion) {
     return (
@@ -80,87 +86,80 @@ export function BootSequence({ isReturnVisit, reducedMotion = false, onComplete 
     );
   }
 
+  // Timeline: boot text (first visit only) → symbol → dissolve → overlay fade → onComplete
+  useEffect(() => {
+    if (config.showBootText) {
+      addTimer(() => setVisibleLines(1), 0);
+      addTimer(() => setVisibleLines(2), LINE_STAGGER_MS);
+      addTimer(() => setVisibleLines(3), LINE_STAGGER_MS * 2);
+      const symbolStart =
+        LINE_STAGGER_MS * 2 + LINE_STAGGER_MS + config.bootHoldAfterMs;
+      addTimer(() => setShowSymbol(true), symbolStart);
+    }
+
+    const symbolStartMs = config.showBootText
+      ? LINE_STAGGER_MS * 3 + config.bootHoldAfterMs
+      : 0;
+
+    // Symbol assembly duration: slow ~2.8s, fast ~1.3s
+    const symbolAssemblyMs = config.symbolVariant === "slow" ? 2800 : 1300;
+    const dissolveStart = symbolStartMs + symbolAssemblyMs + config.symbolHoldAfterMs;
+    addTimer(() => setDissolve(true), dissolveStart);
+
+    const overlayFadeStart = dissolveStart + config.dissolveMs;
+    addTimer(() => setOverlayFade(true), overlayFadeStart);
+
+    const completeAt = overlayFadeStart + config.overlayFadeMs;
+    addTimer(onComplete, completeAt);
+  }, [config.showBootText, config.bootHoldAfterMs, config.symbolVariant, config.symbolHoldAfterMs, config.dissolveMs, config.overlayFadeMs, onComplete]);
+
   return (
     <motion.div
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-bg"
       initial={false}
-      animate={{ opacity: fadeOut ? 0 : 1 }}
+      animate={{ opacity: overlayFade ? 0 : 1 }}
       transition={{
-        duration: config.fadeOutMs / 1000,
+        duration: config.overlayFadeMs / 1000,
         ease: tokens.motion.ease,
       }}
-      style={{ pointerEvents: fadeOut ? "none" : "auto" }}
+      style={{
+        pointerEvents: overlayFade ? "none" : "auto",
+      }}
     >
-      <div className="flex flex-col gap-3 font-mono text-sm text-textMuted">
-        {LINES.map((line, i) => (
-          <motion.p
-            key={line}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{
-              opacity: visibleLines > i ? 1 : 0,
-              y: visibleLines > i ? 0 : 4,
-            }}
-            transition={{
-              duration: 0.3,
-              ease: tokens.motion.ease,
-            }}
-          >
-            {line}
-          </motion.p>
-        ))}
-      </div>
-
-      <div className="mt-12 flex h-24 w-24 items-center justify-center">
-        <AnimatePresence mode="wait">
-          {symbolPhase === 0 && (
-            <motion.div
-              key="dot"
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.2, ease: tokens.motion.ease }}
-              className="h-2 w-2 rounded-full bg-mint"
-            />
-          )}
-          {symbolPhase === 1 && (
-            <motion.div
-              key="hex"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.2, ease: tokens.motion.ease }}
-              className="h-12 w-12 border border-mint"
-              style={{
-                clipPath:
-                  "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)",
+      {/* Step 1 — Boot text (first visit only) */}
+      {config.showBootText && (
+        <div className="flex flex-col gap-3 font-mono text-sm text-textMuted">
+          {LINES.map((line, i) => (
+            <motion.p
+              key={line}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{
+                opacity: visibleLines > i ? 1 : 0,
+                y: visibleLines > i ? 0 : 6,
               }}
-            />
-          )}
-          {symbolPhase === 2 && (
-            <motion.div
-              key="ring"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.2, ease: tokens.motion.ease }}
-              className="h-14 w-14 rounded-full border border-mint/80"
-              style={{ borderStyle: "dashed" }}
-            />
-          )}
-          {symbolPhase === 3 && (
-            <motion.span
-              key="wordmark"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25, ease: tokens.motion.ease }}
-              className="font-semibold tracking-tight text-mint"
+              transition={{
+                duration: LINE_FADE_DUR,
+                ease: tokens.motion.ease,
+              }}
             >
-              FocusedOnTom
-            </motion.span>
-          )}
-        </AnimatePresence>
-      </div>
+              {line}
+            </motion.p>
+          ))}
+        </div>
+      )}
+
+      {/* Step 2 — Symbol assembly */}
+      {showSymbol && (
+        <div className="mt-12 sm:mt-16">
+          <TomSymbol
+            variant={config.symbolVariant}
+            dissolve={dissolve}
+          />
+        </div>
+      )}
+
+      {/* Spacer when boot text skipped (return visit) so symbol is centered */}
+      {!config.showBootText && !showSymbol && <div className="min-h-[200px]" />}
     </motion.div>
   );
 }

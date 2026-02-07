@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { QualityTier } from "@/lib/types/content";
-import { GuidedMode } from "./GuidedMode";
-import { FreeMode } from "./FreeMode";
+import { CameraController } from "./CameraController";
 
 const NODES_BY_TIER: Record<QualityTier, number> = {
   1: 6,
@@ -13,7 +12,11 @@ const NODES_BY_TIER: Record<QualityTier, number> = {
   3: 16,
 };
 
-const STAR_COUNT = 800;
+const STARS_BY_TIER: Record<QualityTier, number> = {
+  1: 280,
+  2: 550,
+  3: 900,
+};
 
 /** Deterministic positions on a sphere for nodes (seed-based). */
 function nodePositions(count: number): [number, number, number][] {
@@ -31,11 +34,12 @@ function nodePositions(count: number): [number, number, number][] {
   return out;
 }
 
-/** Star field as Points. */
-function StarField() {
+/** Star field; density scales with quality tier. */
+function StarField({ qualityTier }: { qualityTier: QualityTier }) {
+  const count = STARS_BY_TIER[qualityTier];
   const positions = useMemo(() => {
-    const pos = new Float32Array(STAR_COUNT * 3);
-    for (let i = 0; i < STAR_COUNT; i++) {
+    const pos = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
       const r = 20 + Math.random() * 30;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
@@ -44,15 +48,12 @@ function StarField() {
       pos[i * 3 + 2] = r * Math.cos(phi);
     }
     return pos;
-  }, []);
+  }, [count]);
 
   return (
     <points>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          args={[positions, 3]}
-        />
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
         size={0.06}
@@ -66,8 +67,14 @@ function StarField() {
   );
 }
 
-/** Nodes (spheres) + lines between adjacent pairs. */
-function NodesAndLines({ qualityTier }: { qualityTier: QualityTier }) {
+/** Nodes (spheres) + lines; nodes are clickable to move camera. */
+function NodesAndLines({
+  qualityTier,
+  nodeTargetRef,
+}: {
+  qualityTier: QualityTier;
+  nodeTargetRef: React.MutableRefObject<THREE.Vector3 | null>;
+}) {
   const count = NODES_BY_TIER[qualityTier];
   const positions = useMemo(() => nodePositions(count), [count]);
 
@@ -87,7 +94,21 @@ function NodesAndLines({ qualityTier }: { qualityTier: QualityTier }) {
   return (
     <>
       {positions.map((pos, i) => (
-        <mesh key={i} position={pos}>
+        <mesh
+          key={i}
+          position={pos}
+          onClick={(e) => {
+            e.stopPropagation();
+            nodeTargetRef.current = e.point.clone();
+          }}
+          onPointerOver={(e) => {
+            e.stopPropagation();
+            document.body.style.cursor = "pointer";
+          }}
+          onPointerOut={() => {
+            document.body.style.cursor = "default";
+          }}
+        >
           <sphereGeometry args={[0.06, 12, 8]} />
           <meshBasicMaterial color="#2ef2a2" transparent opacity={0.9} />
         </mesh>
@@ -95,10 +116,7 @@ function NodesAndLines({ qualityTier }: { qualityTier: QualityTier }) {
       {lineSegments.map((arr, i) => (
         <line key={i}>
           <bufferGeometry>
-            <bufferAttribute
-              attach="attributes-position"
-              args={[arr, 3]}
-            />
+            <bufferAttribute attach="attributes-position" args={[arr, 3]} />
           </bufferGeometry>
           <lineBasicMaterial color="#a78bfa" transparent opacity={0.4} />
         </line>
@@ -124,12 +142,14 @@ function SceneBackground() {
 }
 
 export function UniverseScene({ qualityTier, exploreMode }: UniverseSceneProps) {
+  const nodeTargetRef = useRef<THREE.Vector3 | null>(null);
+
   return (
     <>
       <SceneBackground />
-      <StarField />
-      <NodesAndLines qualityTier={qualityTier} />
-      {exploreMode === "guided" ? <GuidedMode /> : <FreeMode />}
+      <StarField qualityTier={qualityTier} />
+      <NodesAndLines qualityTier={qualityTier} nodeTargetRef={nodeTargetRef} />
+      <CameraController mode={exploreMode} nodeTargetRef={nodeTargetRef} />
     </>
   );
 }

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { ROUTES } from "@/lib/routes";
+import { useTransitioning } from "@/components/transition/TransitionContext";
 import { GlassPanel } from "./GlassPanel";
 import { SettingsPanel } from "./SettingsPanel";
 import { Button } from "@/components/ui/button";
@@ -21,14 +22,20 @@ const navItems = [
 export function TopNav() {
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const isTransitioning = useTransitioning();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       <GlassPanel
         variant="panel"
         glow="none"
-        className="mx-4 mt-4 border border-border/80 bg-panel/80 backdrop-blur-[var(--blur)]"
-        style={{ WebkitBackdropFilter: "blur(var(--blur))" }}
+        className={cn(
+          "mx-4 mt-4 border border-border/80 bg-panel/80 backdrop-blur-[var(--blur)] transition-all duration-300",
+          isTransitioning && "opacity-90 backdrop-blur-[24px]"
+        )}
+        style={{
+          WebkitBackdropFilter: isTransitioning ? "blur(24px)" : "blur(var(--blur))",
+        }}
       >
         <nav className="flex h-12 items-center justify-between px-4">
           <Link href={ROUTES.home} className="flex items-center gap-3">

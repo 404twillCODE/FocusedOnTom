@@ -1,5 +1,4 @@
 import { AppShell } from "@/components/shell/AppShell";
-import { PageTransition } from "@/components/motion/PageTransition";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { getExperiments } from "@/lib/data/experiments";
 import { GlassPanel } from "@/components/shell/GlassPanel";
@@ -11,7 +10,7 @@ export default function LabPage() {
 
   return (
     <AppShell>
-      <PageTransition className="mx-auto max-w-6xl px-4 py-12">
+      <div className="mx-auto max-w-6xl px-4 py-12">
         <FadeIn>
           <Heading as="h1">Lab</Heading>
         </FadeIn>
@@ -35,7 +34,7 @@ export default function LabPage() {
             </FadeIn>
           ))}
         </ul>
-      </PageTransition>
+      </div>
     </AppShell>
   );
 }
