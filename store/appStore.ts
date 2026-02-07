@@ -5,7 +5,7 @@ import type { QualityTier } from "@/lib/types/content";
 export type QualityMode = "auto" | "high" | "medium" | "low";
 export type ExploreMode = "guided" | "free";
 
-interface AppState {
+export interface AppState {
   hasVisited: boolean;
   qualityTier: QualityTier;
   qualityMode: QualityMode;
@@ -34,7 +34,7 @@ const STORAGE_KEY = "focusedontom-app";
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       hasVisited: false,
       qualityTier: 2,
       qualityMode: "auto",
@@ -86,7 +86,7 @@ export const useAppStore = create<AppState>()(
       toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
       setExploreMode: (mode) => set({ exploreMode: mode }),
       setDevMode: (value) => set({ devMode: value }),
-      getQualityMode: () => useAppStore.getState().qualityMode,
+      getQualityMode: () => get().qualityMode,
     }),
     {
       name: STORAGE_KEY,

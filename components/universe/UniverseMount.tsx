@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useAppStore } from "@/store/appStore";
+import { useAppStore, type AppState } from "@/store/appStore";
 import { cn } from "@/lib/cn";
 
 const UniverseCanvasInner = dynamic(
@@ -22,9 +22,9 @@ interface UniverseMountProps {
  * pointer-events: auto only in free mode so background UI stays clickable when guided.
  */
 export function UniverseMount({ className }: UniverseMountProps) {
-  const qualityTier = useAppStore((s) => s.qualityTier);
-  const reducedMotion = useAppStore((s) => s.reducedMotion);
-  const exploreMode = useAppStore((s) => s.exploreMode);
+  const qualityTier = useAppStore((s: AppState) => s.qualityTier);
+  const reducedMotion = useAppStore((s: AppState) => s.reducedMotion);
+  const exploreMode = useAppStore((s: AppState) => s.exploreMode);
 
   return (
     <div

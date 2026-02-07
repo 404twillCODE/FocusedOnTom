@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAppStore } from "@/store/appStore";
+import { useAppStore, type AppState } from "@/store/appStore";
 import { GlassPanel } from "./GlassPanel";
 import { cn } from "@/lib/cn";
 import type { QualityTier } from "@/lib/types/content";
@@ -20,9 +20,9 @@ const STARS_BY_TIER: Record<QualityTier, number> = {
 };
 
 export function DebugOverlay() {
-  const devMode = useAppStore((s) => s.devMode);
-  const qualityTier = useAppStore((s) => s.qualityTier);
-  const exploreMode = useAppStore((s) => s.exploreMode);
+  const devMode = useAppStore((s: AppState) => s.devMode);
+  const qualityTier = useAppStore((s: AppState) => s.qualityTier);
+  const exploreMode = useAppStore((s: AppState) => s.exploreMode);
 
   const [fps, setFps] = useState(0);
 
@@ -49,8 +49,9 @@ export function DebugOverlay() {
 
   if (!devMode) return null;
 
-  const nodes = NODES_BY_TIER[qualityTier];
-  const stars = STARS_BY_TIER[qualityTier];
+  const tier = qualityTier as QualityTier;
+  const nodes = NODES_BY_TIER[tier];
+  const stars = STARS_BY_TIER[tier];
 
   return (
     <GlassPanel

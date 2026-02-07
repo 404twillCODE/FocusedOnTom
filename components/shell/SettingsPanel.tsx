@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { GlassPanel } from "./GlassPanel";
-import { useAppStore, type QualityMode } from "@/store/appStore";
+import { useAppStore, type AppState, type QualityMode } from "@/store/appStore";
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/button";
 
@@ -25,10 +25,10 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
-  const qualityMode = useAppStore((s) => s.qualityMode);
-  const setQualityMode = useAppStore((s) => s.setQualityMode);
-  const reducedMotion = useAppStore((s) => s.reducedMotion);
-  const setReducedMotion = useAppStore((s) => s.setReducedMotion);
+  const qualityMode = useAppStore((s: AppState) => s.qualityMode);
+  const setQualityMode = useAppStore((s: AppState) => s.setQualityMode);
+  const reducedMotion = useAppStore((s: AppState) => s.reducedMotion);
+  const setReducedMotion = useAppStore((s: AppState) => s.setReducedMotion);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

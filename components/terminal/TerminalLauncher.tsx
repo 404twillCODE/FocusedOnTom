@@ -1,7 +1,7 @@
 "use client";
 
 import { Terminal } from "lucide-react";
-import { useAppStore } from "@/store/appStore";
+import { useAppStore, type AppState } from "@/store/appStore";
 import {
   Tooltip,
   TooltipContent,
@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/cn";
 
 export function TerminalLauncher() {
-  const toggleTerminal = useAppStore((s) => s.toggleTerminal);
+  const toggleTerminal = useAppStore((s: AppState) => s.toggleTerminal);
 
   return (
     <TooltipProvider>

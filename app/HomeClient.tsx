@@ -7,7 +7,7 @@ import { UniverseMount } from "@/components/universe/UniverseMount";
 import { Heading } from "@/components/ui/Heading";
 import { BootSequence } from "@/components/cinematic/BootSequence";
 import { LenisProvider } from "@/components/cinematic/LenisProvider";
-import { useAppStore } from "@/store/appStore";
+import { useAppStore, type AppState } from "@/store/appStore";
 import { determineQualityTier } from "@/lib/perf/quality";
 import { getPrefersReducedMotion } from "@/lib/perf/reducedMotion";
 
@@ -15,12 +15,12 @@ export function HomeClient() {
   const [introComplete, setIntroComplete] = useState(false);
   const [ready, setReady] = useState(false);
 
-  const hasVisited = useAppStore((s) => s.hasVisited);
-  const setHasVisited = useAppStore((s) => s.setHasVisited);
-  const setQualityTier = useAppStore((s) => s.setQualityTier);
-  const qualityMode = useAppStore((s) => s.qualityMode);
-  const reducedMotion = useAppStore((s) => s.reducedMotion);
-  const setReducedMotion = useAppStore((s) => s.setReducedMotion);
+  const hasVisited = useAppStore((s: AppState) => s.hasVisited);
+  const setHasVisited = useAppStore((s: AppState) => s.setHasVisited);
+  const setQualityTier = useAppStore((s: AppState) => s.setQualityTier);
+  const qualityMode = useAppStore((s: AppState) => s.qualityMode);
+  const reducedMotion = useAppStore((s: AppState) => s.reducedMotion);
+  const setReducedMotion = useAppStore((s: AppState) => s.setReducedMotion);
 
   useEffect(() => {
     setReducedMotion(getPrefersReducedMotion());

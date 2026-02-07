@@ -11,7 +11,7 @@ import {
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAppStore } from "@/store/appStore";
+import { useAppStore, type AppState } from "@/store/appStore";
 import { CommandSuggestions } from "./CommandSuggestions";
 import { cn } from "@/lib/cn";
 import {
@@ -25,7 +25,7 @@ import type { CommandOutput } from "@/lib/terminal/types";
 const PROMPT = ">";
 const MAX_SUGGESTIONS = 8;
 
-const PANEL_EASING = [0.32, 0.72, 0, 1];
+const PANEL_EASING = [0.32, 0.72, 0, 1] as const;
 const PANEL_DURATION = 0.35;
 const OUTPUT_STAGGER = 0.04;
 
@@ -35,13 +35,13 @@ interface HistoryEntry {
 }
 
 export function TerminalPanel() {
-  const terminalOpen = useAppStore((s) => s.terminalOpen);
-  const setTerminalOpen = useAppStore((s) => s.setTerminalOpen);
-  const setQualityMode = useAppStore((s) => s.setQualityMode);
-  const setPerfOn = useAppStore((s) => s.setPerfOn);
-  const setPerfOff = useAppStore((s) => s.setPerfOff);
-  const setExploreMode = useAppStore((s) => s.setExploreMode);
-  const setDevMode = useAppStore((s) => s.setDevMode);
+  const terminalOpen = useAppStore((s: AppState) => s.terminalOpen);
+  const setTerminalOpen = useAppStore((s: AppState) => s.setTerminalOpen);
+  const setQualityMode = useAppStore((s: AppState) => s.setQualityMode);
+  const setPerfOn = useAppStore((s: AppState) => s.setPerfOn);
+  const setPerfOff = useAppStore((s: AppState) => s.setPerfOff);
+  const setExploreMode = useAppStore((s: AppState) => s.setExploreMode);
+  const setDevMode = useAppStore((s: AppState) => s.setDevMode);
 
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);

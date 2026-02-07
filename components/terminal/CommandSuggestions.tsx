@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 
 const MAX_ITEMS = 8;
 const DROPDOWN_DURATION = 0.15;
-const DROPDOWN_EASING = [0.32, 0.72, 0, 1];
+const DROPDOWN_EASING = [0.32, 0.72, 0, 1] as const;
 
 interface CommandSuggestionsProps {
   /** Only render when all three are true (parent responsibility). */
