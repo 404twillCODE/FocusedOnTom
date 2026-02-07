@@ -1,0 +1,5 @@
+[
+  { "id": "ts", "label": "TypeScript", "category": "Language" },
+  { "id": "react", "label": "React", "category": "UI" },
+  { "id": "next", "label": "Next.js", "category": "Framework" }
+]

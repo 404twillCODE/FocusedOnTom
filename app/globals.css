@@ -1,26 +1,97 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../tokens/tokens.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* FocusedOnTom theme: map tokens to Tailwind utilities */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg2: var(--bg2);
+  --color-panel: var(--panel);
+  --color-panel-solid: var(--panelSolid);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--textMuted);
+  --color-mint: var(--mint);
+  --color-ice: var(--ice);
+  --color-purple: var(--purple);
+  /* shadcn compatibility */
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-muted: var(--panelSolid);
+  --color-muted-foreground: var(--textMuted);
+  --color-card: var(--panel);
+  --color-card-foreground: var(--text);
+  --color-primary: var(--mint);
+  --color-primary-foreground: var(--bg);
+  --color-secondary: var(--panelSolid);
+  --color-secondary-foreground: var(--text);
+  --color-accent: var(--panelSolid);
+  --color-accent-foreground: var(--text);
+  --color-popover: var(--panelSolid);
+  --color-popover-foreground: var(--text);
+  --color-input: var(--border);
+  --color-ring: var(--mint);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-chart-1: var(--mint);
+  --color-chart-2: var(--ice);
+  --color-chart-3: var(--purple);
+  --color-chart-4: var(--mint);
+  --color-chart-5: var(--ice);
+  --color-sidebar: var(--panelSolid);
+  --color-sidebar-foreground: var(--text);
+  --color-sidebar-primary: var(--mint);
+  --color-sidebar-primary-foreground: var(--bg);
+  --color-sidebar-accent: var(--panel);
+  --color-sidebar-accent-foreground: var(--text);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--mint);
+  --font-sans: var(--font-space-grotesk), var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --radius-sm: calc(var(--radius-panel) - 4px);
+  --radius-md: calc(var(--radius-panel) - 2px);
+  --radius-lg: var(--radius-panel);
+  --radius-xl: calc(var(--radius-panel) + 4px);
+  --radius-2xl: calc(var(--radius-panel) + 8px);
+  --radius-3xl: calc(var(--radius-panel) + 12px);
+  --radius-4xl: calc(var(--radius-panel) + 16px);
+}
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --radius: var(--radius-panel);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    position: relative;
+    min-height: 100vh;
+    color: var(--text);
+    font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
+    background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Subtle noise overlay (CSS-only) */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Ensure main content sits above noise */
+main {
+  position: relative;
+  z-index: 1;
 }
