@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { ExternalLink, Github, Server, Car } from "lucide-react";
+import { ExternalLink, Code2, Server, Car } from "lucide-react";
 import { GridCardBackground } from "@/components/GridCardBackground";
 
 const projects = [
@@ -142,7 +142,7 @@ export default function DevPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/60 px-4 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:border-[var(--ice)]/50 hover:text-[var(--ice)]"
                       >
-                        <Github className="h-4 w-4" />
+                        <Code2 className="h-4 w-4" />
                         Code
                       </a>
                     )}
