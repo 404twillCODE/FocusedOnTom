@@ -1,9 +1,0 @@
-[
-  {
-    "slug": "example",
-    "title": "Example Project",
-    "description": "A sample project entry.",
-    "year": 2025,
-    "tags": ["Next.js", "TypeScript"]
-  }
-]

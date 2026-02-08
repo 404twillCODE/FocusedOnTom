@@ -1,133 +1,72 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "../tokens/tokens.css";
-
-@custom-variant dark (&:is(.dark *));
-
-/* FocusedOnTom theme: map tokens to Tailwind utilities */
-@theme inline {
-  --color-bg: var(--bg);
-  --color-bg2: var(--bg2);
-  --color-panel: var(--panel);
-  --color-panel-solid: var(--panelSolid);
-  --color-border: var(--border);
-  --color-text: var(--text);
-  --color-text-muted: var(--textMuted);
-  --color-mint: var(--mint);
-  --color-ice: var(--ice);
-  --color-purple: var(--purple);
-  /* shadcn compatibility */
-  --color-background: var(--bg);
-  --color-foreground: var(--text);
-  --color-muted: var(--panelSolid);
-  --color-muted-foreground: var(--textMuted);
-  --color-card: var(--panel);
-  --color-card-foreground: var(--text);
-  --color-primary: var(--mint);
-  --color-primary-foreground: var(--bg);
-  --color-secondary: var(--panelSolid);
-  --color-secondary-foreground: var(--text);
-  --color-accent: var(--panelSolid);
-  --color-accent-foreground: var(--text);
-  --color-popover: var(--panelSolid);
-  --color-popover-foreground: var(--text);
-  --color-input: var(--border);
-  --color-ring: var(--mint);
-  --color-destructive: oklch(0.577 0.245 27.325);
-  --color-chart-1: var(--mint);
-  --color-chart-2: var(--ice);
-  --color-chart-3: var(--purple);
-  --color-chart-4: var(--mint);
-  --color-chart-5: var(--ice);
-  --color-sidebar: var(--panelSolid);
-  --color-sidebar-foreground: var(--text);
-  --color-sidebar-primary: var(--mint);
-  --color-sidebar-primary-foreground: var(--bg);
-  --color-sidebar-accent: var(--panel);
-  --color-sidebar-accent-foreground: var(--text);
-  --color-sidebar-border: var(--border);
-  --color-sidebar-ring: var(--mint);
-  --font-sans: var(--font-space-grotesk), var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --radius-sm: calc(var(--radius-panel) - 4px);
-  --radius-md: calc(var(--radius-panel) - 2px);
-  --radius-lg: var(--radius-panel);
-  --radius-xl: calc(var(--radius-panel) + 4px);
-  --radius-2xl: calc(var(--radius-panel) + 8px);
-  --radius-3xl: calc(var(--radius-panel) + 12px);
-  --radius-4xl: calc(var(--radius-panel) + 16px);
-}
 
 :root {
-  --radius: var(--radius-panel);
+  --bg: #040a12;
+  --bg2: #08101c;
+  --bg3: #0c1624;
+  --text: rgba(255, 255, 255, 0.94);
+  --textMuted: rgba(255, 255, 255, 0.58);
+  --ice: #7dd3fc;
+  --iceSoft: rgba(125, 211, 252, 0.18);
+  --iceGlow: rgba(125, 211, 252, 0.25);
+  --accent: #7dd3fc;
+  --accentSoft: rgba(125, 211, 252, 0.15);
+  --border: rgba(255, 255, 255, 0.07);
+  --radius: 14px;
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
   body {
-    position: relative;
     min-height: 100vh;
     color: var(--text);
-    font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
-    background: linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+    font-family: var(--font-space-grotesk), system-ui, sans-serif;
+    background: var(--bg);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-
-  /* Subtle noise overlay (CSS-only) */
-  body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    opacity: 0.4;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    line-height: 1.6;
   }
 }
 
-/* Ensure main content sits above noise */
-main {
-  position: relative;
-  z-index: 1;
+/* Slightly larger, readable body text in sections */
+.prose-custom {
+  font-size: 1.0625rem;
+  letter-spacing: 0.01em;
 }
 
-/* Terminal input: cursor glow pulse when focused (typing indicator) */
-@keyframes terminal-cursor-glow {
-  0%,
-  100% {
-    box-shadow: 0 0 0 1px rgba(46, 242, 162, 0.12), 0 0 16px rgba(46, 242, 162, 0.06);
-  }
-  50% {
-    box-shadow: 0 0 0 1px rgba(46, 242, 162, 0.2), 0 0 20px rgba(46, 242, 162, 0.12);
-  }
+/* Site background: grid + glow animate */
+@keyframes grid-breathe {
+  0%, 100% { opacity: 0.035; }
+  50% { opacity: 0.06; }
 }
 
-.terminal-input-glow {
-  animation: terminal-cursor-glow 2s ease-in-out infinite;
-}
-
-/* Holding page: lightweight constellation background (CSS-only) */
-.holding-constellation {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  background-image:
-    radial-gradient(2px 2px at 15% 25%, rgba(125, 211, 252, 0.5), transparent),
-    radial-gradient(2px 2px at 85% 15%, rgba(46, 242, 162, 0.35), transparent),
-    radial-gradient(1.5px 1.5px at 50% 50%, rgba(255, 255, 255, 0.4), transparent),
-    radial-gradient(2px 2px at 70% 80%, rgba(167, 139, 250, 0.3), transparent),
-    radial-gradient(1.5px 1.5px at 25% 70%, rgba(125, 211, 252, 0.4), transparent),
-    radial-gradient(2px 2px at 90% 55%, rgba(46, 242, 162, 0.25), transparent);
-  background-size: 100% 100%;
-  animation: constellation-pulse 5s ease-in-out infinite;
-}
-
-@keyframes constellation-pulse {
-  0%, 100% { opacity: 0.7; }
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
+}
+
+.bg-grid-breathe {
+  animation: grid-breathe 8s ease-in-out infinite;
+}
+
+.bg-glow-pulse {
+  animation: glow-pulse 12s ease-in-out infinite;
+}
+
+/* Nodexity card (dev page) — keep if still used */
+@keyframes node-twinkle {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes node-line-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 0.45; }
+}
+
+.animate-node-twinkle {
+  animation: node-twinkle 3s ease-in-out infinite;
+}
+
+.animate-node-line {
+  animation: node-line-pulse 4s ease-in-out infinite;
 }
