@@ -13,9 +13,9 @@ const NODES_BY_TIER: Record<QualityTier, number> = {
 };
 
 const STARS_BY_TIER: Record<QualityTier, number> = {
-  1: 280,
-  2: 550,
-  3: 900,
+  1: 120,
+  2: 250,
+  3: 450,
 };
 
 /** Deterministic positions on a sphere for nodes (seed-based). */
@@ -34,21 +34,32 @@ function nodePositions(count: number): [number, number, number][] {
   return out;
 }
 
-/** Star field; density scales with quality tier. */
+/** Seeded random for deterministic star positions (no animation required). */
+function seeded(seed: number) {
+  return () => {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    const t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    return ((t + (t ^ (t >>> 7)) >>> 0) / 4294967296) as number;
+  };
+}
+
+/** Star field; density scales with quality tier. Renders behind nodes/lines, above base. */
 function StarField({ qualityTier }: { qualityTier: QualityTier }) {
   const count = STARS_BY_TIER[qualityTier];
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
+    const rnd = seeded(qualityTier * 12345);
     for (let i = 0; i < count; i++) {
-      const r = 20 + Math.random() * 30;
-      const theta = Math.random() * Math.PI * 2;
-      const phi = Math.acos(2 * Math.random() - 1);
+      const r = 18 + rnd() * 28;
+      const theta = rnd() * Math.PI * 2;
+      const phi = Math.acos(2 * rnd() - 1);
       pos[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
       pos[i * 3 + 2] = r * Math.cos(phi);
     }
     return pos;
-  }, [count]);
+  }, [count, qualityTier]);
 
   return (
     <points>
@@ -56,10 +67,10 @@ function StarField({ qualityTier }: { qualityTier: QualityTier }) {
         <bufferAttribute attach="attributes-position" args={[positions, 3]} />
       </bufferGeometry>
       <pointsMaterial
-        size={0.06}
+        size={0.055}
         transparent
-        opacity={0.85}
-        color="#7dd3fc"
+        opacity={0.92}
+        color="#8dd8fc"
         sizeAttenuation
         depthWrite={false}
       />

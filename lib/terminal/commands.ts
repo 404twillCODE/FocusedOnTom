@@ -332,7 +332,7 @@ export function runCommand(
       outputs.push(text(tom.projectsList()));
       outputs.push(link("View all →", ROUTES.projects));
       list.forEach((p) => {
-        outputs.push(link(`  ${p.slug} — ${p.title}`, ROUTES.project(p.slug)));
+        outputs.push(link(`  ${p.slug} — ${p.name}`, ROUTES.project(p.slug)));
       });
       return { outputs, navigate: ROUTES.projects };
     }
@@ -375,8 +375,8 @@ export function runCommand(
       const path = target.startsWith("/") ? target : `/${target}`;
       const project = getProjectBySlug(target);
       if (project) {
-        outputs.push(text(tom.openProject(project.title)));
-        outputs.push(link(project.title, ROUTES.project(project.slug)));
+        outputs.push(text(tom.openProject(project.name)));
+        outputs.push(link(project.name, ROUTES.project(project.slug)));
         return { outputs, navigate: ROUTES.project(project.slug) };
       }
       const known: string[] = [ROUTES.home, ROUTES.projects, ROUTES.lab, ROUTES.lifestyle, ROUTES.contact];

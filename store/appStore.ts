@@ -12,17 +12,18 @@ export interface AppState {
   /** Saved quality when perf mode is on; restored when perf off. */
   previousQualityMode: QualityMode | null;
   reducedMotion: boolean;
+  /** Film grain overlay (single layer). Off when reduced motion. */
+  grainEnabled: boolean;
   terminalOpen: boolean;
   exploreMode: ExploreMode;
   devMode: boolean;
   setHasVisited: (visited: boolean) => void;
   setQualityTier: (tier: QualityTier) => void;
   setQualityMode: (mode: QualityMode) => void;
-  /** Turn on reduced-visuals (low) and save current quality to restore later. */
   setPerfOn: () => void;
-  /** Restore quality to the value saved when perf was turned on. */
   setPerfOff: () => void;
   setReducedMotion: (value: boolean) => void;
+  setGrainEnabled: (value: boolean) => void;
   setTerminalOpen: (open: boolean) => void;
   toggleTerminal: () => void;
   setExploreMode: (mode: ExploreMode) => void;
@@ -40,6 +41,7 @@ export const useAppStore = create<AppState>()(
       qualityMode: "auto",
       previousQualityMode: null,
       reducedMotion: false,
+      grainEnabled: true,
       terminalOpen: false,
       exploreMode: "guided",
       devMode: false,
@@ -82,6 +84,7 @@ export const useAppStore = create<AppState>()(
           };
         }),
       setReducedMotion: (value) => set({ reducedMotion: value }),
+      setGrainEnabled: (value) => set({ grainEnabled: value }),
       setTerminalOpen: (open) => set({ terminalOpen: open }),
       toggleTerminal: () => set((s) => ({ terminalOpen: !s.terminalOpen })),
       setExploreMode: (mode) => set({ exploreMode: mode }),
@@ -94,6 +97,7 @@ export const useAppStore = create<AppState>()(
         hasVisited: s.hasVisited,
         qualityMode: s.qualityMode,
         previousQualityMode: s.previousQualityMode,
+        grainEnabled: s.grainEnabled,
       }),
     }
   )

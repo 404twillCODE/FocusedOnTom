@@ -7,7 +7,7 @@ import { GlassPanel } from "@/components/shell/GlassPanel";
 
 const NODES = [
   { id: "core", label: "Tom Core", path: ROUTES.home },
-  { id: "skills", label: "Skills", path: ROUTES.home },
+  { id: "skills", label: "Skills", path: ROUTES.skills },
   { id: "projects", label: "Projects", path: ROUTES.projects },
   { id: "lab", label: "Lab", path: ROUTES.lab },
   { id: "lifestyle", label: "Lifestyle", path: ROUTES.lifestyle },

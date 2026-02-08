@@ -3,10 +3,8 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/shell/AppShell";
 import { FadeIn } from "@/components/motion/FadeIn";
-import { UniverseMount } from "@/components/universe/UniverseMount";
 import { Heading } from "@/components/ui/Heading";
 import { BootSequence } from "@/components/cinematic/BootSequence";
-import { LenisProvider } from "@/components/cinematic/LenisProvider";
 import { useAppStore, type AppState } from "@/store/appStore";
 import { determineQualityTier } from "@/lib/perf/quality";
 import { getPrefersReducedMotion } from "@/lib/perf/reducedMotion";
@@ -52,29 +50,22 @@ export function HomeClient() {
           onComplete={handleIntroComplete}
         />
       )}
-      <LenisProvider active={introComplete && !reducedMotion}>
-        <div className="relative min-h-screen">
-          {introComplete && (
-            <div className="fixed inset-0 z-0">
-              <UniverseMount className="h-full w-full" />
-            </div>
-          )}
-          <div className="relative z-10">
-            <AppShell>
-              <section className="mx-auto max-w-6xl space-y-8 px-4 py-12">
-                <FadeIn>
-                  <Heading as="h1">FocusedOnTom</Heading>
-                </FadeIn>
-                <FadeIn delay={0.1}>
-                  <p className="max-w-xl text-lg text-textMuted">
-                    Cinematic portfolio. Projects, lab, and more.
-                  </p>
-                </FadeIn>
-              </section>
-            </AppShell>
-          </div>
+      <div className="relative min-h-screen">
+        <div className="relative z-10">
+          <AppShell>
+            <section className="mx-auto max-w-6xl space-y-8 px-4 py-12">
+              <FadeIn>
+                <Heading as="h1">FocusedOnTom</Heading>
+              </FadeIn>
+              <FadeIn delay={0.1}>
+                <p className="max-w-xl text-lg text-textMuted">
+                  Cinematic portfolio. Projects, lab, and more.
+                </p>
+              </FadeIn>
+            </section>
+          </AppShell>
         </div>
-      </LenisProvider>
+      </div>
     </>
   );
 }

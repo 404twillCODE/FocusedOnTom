@@ -1,9 +1,209 @@
 [
   {
-    "slug": "example",
-    "title": "Example Project",
-    "description": "A sample project entry.",
+    "slug": "tomos-portfolio",
+    "name": "TomOS Portfolio",
+    "tagline": "Cinematic interactive portfolio and personal OS.",
+    "category": "Web",
+    "status": "Live",
+    "tech": ["Next.js", "React", "TypeScript", "R3F", "Framer Motion"],
     "year": 2025,
-    "tags": ["Next.js", "TypeScript"]
+    "featured": true,
+    "overview": "FocusedOnTom is a premium cinematic portfolio that feels like a story-driven operating system. The experience blends a 3D universe background, an in-app terminal, and adaptive quality so it stays smooth on any device.",
+    "problem": "Portfolios often feel like static brochures. I wanted a space that could convey craft, personality, and depth without sacrificing performance or accessibility.",
+    "solution": "A hybrid 3D + 2D interface (TomOS) with a boot sequence, galaxy-style project navigation, and a terminal for power users. Quality tiers and reduced-motion support keep it inclusive.",
+    "highlights": [
+      "TomOS boot sequence and universe background",
+      "Project Galaxy with deterministic node layout and connection lines",
+      "Terminal with autocomplete and personality-driven responses",
+      "Adaptive quality (tier 1–3) and performance mode",
+      "Full reduced-motion and keyboard accessibility"
+    ],
+    "stackDetails": [
+      { "name": "Next.js (App Router)", "notes": "SSR, static generation, and client islands." },
+      { "name": "React Three Fiber", "notes": "3D scene with quality scaling and guided/free camera." },
+      { "name": "Framer Motion", "notes": "Page transitions, section reveals, and reduced-motion support." },
+      { "name": "Zustand", "notes": "Persisted app state (quality, terminal, visited)." }
+    ],
+    "links": [
+      { "label": "View source", "href": "#" },
+      { "label": "Live site", "href": "/" }
+    ],
+    "gallery": [
+      { "type": "image", "src": "/placeholder.jpg", "caption": "Hero and universe background." },
+      { "type": "image", "src": "/placeholder.jpg", "caption": "Project Galaxy view with nodes and connections." },
+      { "type": "image", "src": "/placeholder.jpg", "caption": "Terminal and command palette." }
+    ],
+    "roadmap": [
+      "Cinematic zoom from galaxy node to project page",
+      "More terminal commands and themes",
+      "Lifestyle and lab content expansion"
+    ]
+  },
+  {
+    "slug": "design-system-lab",
+    "name": "Design System Lab",
+    "tagline": "Tokens, components, and motion primitives.",
+    "category": "Web",
+    "status": "Live",
+    "tech": ["TypeScript", "React", "Tailwind", "Framer Motion"],
+    "year": 2025,
+    "featured": true,
+    "overview": "Internal design system that powers FocusedOnTom: cosmic color tokens, glass panels, and reusable motion primitives. Built for consistency and theming.",
+    "problem": "Ad-hoc styles and duplicated motion logic make it hard to keep the product feeling cohesive and accessible.",
+    "solution": "A single token layer (CSS + JS), shared GlassPanel and typography components, and motion helpers that respect reduced-motion preferences.",
+    "highlights": [
+      "Mint / ice / purple cosmic palette with glows",
+      "GlassPanel with panel/solid variants and optional glow",
+      "FadeIn and PageTransition with reduced-motion variants",
+      "Tailwind theme wired to design tokens"
+    ],
+    "stackDetails": [
+      { "name": "tokens.css", "notes": "Colors, radii, blur, glows, motion durations." },
+      { "name": "tokens.ts", "notes": "JS mirror for Framer Motion and R3F." },
+      { "name": "GlassPanel", "notes": "Backdrop blur and border with glow options." }
+    ],
+    "links": [
+      { "label": "Tokens", "href": "#" }
+    ],
+    "gallery": [
+      { "type": "image", "src": "/placeholder.jpg", "caption": "Token palette and panel variants." }
+    ],
+    "roadmap": [
+      "Dark/light theme toggle",
+      "More motion presets",
+      "Documentation site"
+    ]
+  },
+  {
+    "slug": "terminal-cli",
+    "name": "Terminal CLI",
+    "tagline": "VS Code–style command palette and shell.",
+    "category": "Web",
+    "status": "Building",
+    "tech": ["TypeScript", "React", "cmdk"],
+    "year": 2025,
+    "featured": false,
+    "overview": "In-app terminal that mimics a dev-friendly CLI: commands, autocomplete, history, and a bit of personality. Built to feel like part of TomOS rather than a separate tool.",
+    "problem": "Users expect quick navigation and discovery; a traditional nav alone doesn’t offer that sense of power and play.",
+    "solution": "A launcher (keyboard or UI) opens a terminal panel. Commands like open, projects, and help are available with suggestions and optional navigation.",
+    "highlights": [
+      "Command suggestions and autocomplete",
+      "History and personality responses",
+      "Open command for routes and project slugs",
+      "Glass panel styling consistent with shell"
+    ],
+    "stackDetails": [
+      { "name": "cmdk", "notes": "Command palette primitive." },
+      { "name": "commands.ts", "notes": "Command definitions and handlers." },
+      { "name": "personality.ts", "notes": "Copy and tone for terminal output." }
+    ],
+    "links": [],
+    "gallery": [
+      { "type": "image", "src": "/placeholder.jpg", "caption": "Terminal open with suggestions." }
+    ],
+    "roadmap": [
+      "More commands (theme, quality, clear)",
+      "Persisted history",
+      "Keyboard-first shortcuts doc"
+    ]
+  },
+  {
+    "slug": "universe-scene",
+    "name": "Universe Scene",
+    "tagline": "3D galaxy background with quality tiers.",
+    "category": "Web",
+    "status": "Live",
+    "tech": ["React", "R3F", "Three.js", "TypeScript"],
+    "year": 2025,
+    "featured": true,
+    "overview": "The R3F-powered background that gives the portfolio its cosmic feel. Starfield, navigable nodes, and a camera that can switch between guided path and free orbit.",
+    "problem": "3D can be heavy; it had to scale down on low-end devices and respect reduced motion.",
+    "solution": "Quality tiers control DPR, particle count, and post-processing. Guided views drive the camera to named positions; free mode enables full orbit. Reduced motion can pause or simplify the scene.",
+    "highlights": [
+      "Quality tiers 1–3 with automatic detection",
+      "Guided camera views (hero, skills, projects, lab, lifestyle)",
+      "Free exploration mode with orbit controls",
+      "Lazy-loaded canvas and optional placeholder"
+    ],
+    "stackDetails": [
+      { "name": "React Three Fiber", "notes": "Canvas and scene graph." },
+      { "name": "UniverseMount", "notes": "Lazy load and quality/reducedMotion props." },
+      { "name": "CameraController", "notes": "Guided transitions and free orbit." }
+    ],
+    "links": [],
+    "gallery": [
+      { "type": "image", "src": "/placeholder.jpg", "caption": "Guided view: hero." },
+      { "type": "image", "src": "/placeholder.jpg", "caption": "Free orbit mode." }
+    ],
+    "roadmap": [
+      "More node types and interactions",
+      "Optional sound design",
+      "Performance tuning for mobile"
+    ]
+  },
+  {
+    "slug": "motion-toolkit",
+    "name": "Motion Toolkit",
+    "tagline": "Page transitions and reduced-motion support.",
+    "category": "Web",
+    "status": "Live",
+    "tech": ["Framer Motion", "React", "TypeScript"],
+    "year": 2025,
+    "featured": false,
+    "overview": "Reusable motion components and patterns: fade-in, page transition, and scroll-triggered section reveals. All respect prefers-reduced-motion and app-level reducedMotion state.",
+    "problem": "Animation can exclude users who prefer reduced motion; it also had to feel consistent across the product.",
+    "solution": "Centralized reducedMotion from store and media query, and components that shorten or remove motion when appropriate.",
+    "highlights": [
+      "FadeIn with optional delay and reduced-motion skip",
+      "PageTransition with drift and duration reduction",
+      "Section reveal on scroll (used in project pages)",
+      "Single source for motion tokens"
+    ],
+    "stackDetails": [
+      { "name": "Framer Motion", "notes": "Declarative animations." },
+      { "name": "tokens.motion", "notes": "Duration and easing in JS." },
+      { "name": "reducedMotion.ts", "notes": "Detect and subscribe to preference." }
+    ],
+    "links": [],
+    "gallery": [
+      { "type": "image", "src": "/placeholder.jpg", "caption": "Section reveal example." }
+    ],
+    "roadmap": [
+      "More presets (stagger, parallax)",
+      "Reduced-motion documentation"
+    ]
+  },
+  {
+    "slug": "api-gateway",
+    "name": "API Gateway",
+    "tagline": "Lightweight proxy and rate limiting.",
+    "category": "Backend",
+    "status": "Archived",
+    "tech": ["Node.js", "TypeScript", "Redis"],
+    "year": 2024,
+    "featured": false,
+    "overview": "A small API gateway side project: reverse proxy, rate limiting, and optional caching. Used as a learning exercise for Node and Redis.",
+    "problem": "I wanted to understand gateway patterns and rate limiting without adopting a heavy framework.",
+    "solution": "Minimal Node + TypeScript service with configurable routes, Redis-backed rate limits, and simple health checks.",
+    "highlights": [
+      "Route-based proxy and rewrite rules",
+      "Redis-backed rate limiting per key",
+      "Health and readiness endpoints",
+      "Docker-friendly deployment"
+    ],
+    "stackDetails": [
+      { "name": "Node.js", "notes": "HTTP server and proxy logic." },
+      { "name": "Redis", "notes": "Rate limit counters and optional cache." },
+      { "name": "TypeScript", "notes": "Config and type-safe handlers." }
+    ],
+    "links": [
+      { "label": "Repo (private)", "href": "#" }
+    ],
+    "gallery": [
+      { "type": "image", "src": "/placeholder.jpg", "caption": "Architecture sketch." }
+    ],
+    "roadmap": [
+      "Archived; no active roadmap."
+    ]
   }
 ]

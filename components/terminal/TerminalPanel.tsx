@@ -249,17 +249,17 @@ export function TerminalPanel() {
           aria-modal="true"
           aria-label="Terminal"
         >
-          {/* Very faint scanline overlay */}
+          {/* Very faint scanline (cosmetic only; does not affect readability) */}
           <div
-            className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-[0.4]"
+            className="pointer-events-none absolute inset-0 rounded-[inherit] opacity-[0.12]"
             aria-hidden
             style={{
               backgroundImage: `repeating-linear-gradient(
                 0deg,
                 transparent 0px,
                 transparent 2px,
-                rgba(0,0,0,0.04) 2px,
-                rgba(0,0,0,0.04) 4px
+                rgba(0,0,0,0.03) 2px,
+                rgba(0,0,0,0.03) 4px
               )`,
             }}
           />

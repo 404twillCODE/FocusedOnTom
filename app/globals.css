@@ -78,19 +78,34 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Subtle noise overlay (CSS-only) */
+  /*
+   * Single film-grain overlay (do not add another global noise/grain layer).
+   * Sits above body background, below universe/gradient/content (z-0).
+   * Toggle via body.grain-off (SettingsPanel); off when prefers-reduced-motion.
+   */
   body::after {
     content: "";
     position: fixed;
     inset: 0;
     z-index: 0;
     pointer-events: none;
-    opacity: 0.4;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+
+  body.grain-off::after {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body::after {
+      opacity: 0;
+    }
   }
 }
 
-/* Ensure main content sits above noise */
+/* Ensure main content sits above grain (grain is z-0; wrapper content is above it) */
 main {
   position: relative;
   z-index: 1;
@@ -130,4 +145,14 @@ main {
 @keyframes constellation-pulse {
   0%, 100% { opacity: 0.7; }
   50% { opacity: 1; }
+}
+
+/* Skill detail panel: subtle gradient sweep (respect reduced-motion via class toggle) */
+@keyframes gradient-sweep {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.animate-gradient-sweep {
+  animation: gradient-sweep 8s ease-in-out infinite;
 }

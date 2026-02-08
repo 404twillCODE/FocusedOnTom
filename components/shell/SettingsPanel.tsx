@@ -29,6 +29,8 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
   const setQualityMode = useAppStore((s: AppState) => s.setQualityMode);
   const reducedMotion = useAppStore((s: AppState) => s.reducedMotion);
   const setReducedMotion = useAppStore((s: AppState) => s.setReducedMotion);
+  const grainEnabled = useAppStore((s: AppState) => s.grainEnabled);
+  const setGrainEnabled = useAppStore((s: AppState) => s.setGrainEnabled);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,6 +63,29 @@ export function SettingsPanel({ open, onOpenChange }: SettingsPanelProps) {
                 </Button>
               ))}
             </div>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-text">Grain</p>
+              <p className="text-xs text-textMuted">Subtle film-grain overlay (off when reduced motion)</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={grainEnabled}
+              onClick={() => setGrainEnabled(!grainEnabled)}
+              className={cn(
+                "relative h-6 w-10 shrink-0 rounded-full border border-border transition-colors",
+                grainEnabled ? "bg-mint/30" : "bg-panel"
+              )}
+            >
+              <span
+                className={cn(
+                  "absolute top-0.5 block h-5 w-5 rounded-full border border-border bg-panel-solid transition-transform",
+                  grainEnabled ? "left-4" : "left-0.5"
+                )}
+              />
+            </button>
           </div>
           <div className="flex items-center justify-between gap-4">
             <div>

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
   { href: ROUTES.home, label: "Home" },
   { href: ROUTES.projects, label: "Projects" },
+  { href: ROUTES.skills, label: "Skills" },
   { href: ROUTES.lab, label: "Lab" },
   { href: ROUTES.lifestyle, label: "Lifestyle" },
   { href: ROUTES.contact, label: "Contact" },
