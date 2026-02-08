@@ -70,3 +70,13 @@
 .animate-node-line {
   animation: node-line-pulse 4s ease-in-out infinite;
 }
+
+/* Skill detail panel: subtle gradient sweep */
+@keyframes gradient-sweep {
+  0% { background-position: 100% 0; }
+  100% { background-position: -100% 0; }
+}
+
+.animate-gradient-sweep {
+  animation: gradient-sweep 8s ease-in-out infinite;
+}
