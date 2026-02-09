@@ -122,7 +122,7 @@ export function ProjectDocumentaryPage({ project, prev, next }: ProjectDocumenta
                   </Tag>
                 ))}
               </motion.div>
-              {project.links.length > 0 && (
+              {project.links && project.links.length > 0 && (
                 <motion.div
                   className="mt-5 flex flex-wrap gap-2"
                   initial={reducedMotion ? false : { opacity: 0 }}
@@ -179,7 +179,7 @@ export function ProjectDocumentaryPage({ project, prev, next }: ProjectDocumenta
                 Highlights
               </Heading>
               <ul className="mt-4 space-y-2">
-                {project.highlights.map((item, i) => (
+                {(project.highlights ?? []).map((item, i) => (
                   <motion.li
                     key={i}
                     className="flex gap-3 text-textMuted"
@@ -200,7 +200,7 @@ export function ProjectDocumentaryPage({ project, prev, next }: ProjectDocumenta
             </SectionReveal>
 
             {/* Stack Breakdown */}
-            {project.stackDetails.length > 0 && (
+            {project.stackDetails && project.stackDetails.length > 0 && (
               <SectionReveal className="mt-12" reducedMotion={reducedMotion}>
                 <Heading as="h2" className="text-2xl md:text-3xl">
                   Stack Breakdown
@@ -219,7 +219,7 @@ export function ProjectDocumentaryPage({ project, prev, next }: ProjectDocumenta
             )}
 
             {/* Gallery */}
-            {project.gallery.length > 0 && (
+            {project.gallery && project.gallery.length > 0 && (
               <SectionReveal className="mt-12" reducedMotion={reducedMotion}>
                 <Heading as="h2" className="text-2xl md:text-3xl">
                   Gallery
@@ -229,7 +229,7 @@ export function ProjectDocumentaryPage({ project, prev, next }: ProjectDocumenta
             )}
 
             {/* Roadmap */}
-            {project.roadmap.length > 0 && (
+            {project.roadmap && project.roadmap.length > 0 && (
               <SectionReveal className="mt-12" reducedMotion={reducedMotion}>
                 <Heading as="h2" className="text-2xl md:text-3xl">
                   Roadmap

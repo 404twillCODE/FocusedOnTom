@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Nav } from "@/components/Nav";
@@ -8,6 +8,12 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
 
 export const metadata: Metadata = {
   title: "Focused on Tom",
@@ -22,7 +28,7 @@ export default function RootLayout({
       <body className={`${spaceGrotesk.variable} font-sans antialiased`}>
         <Background />
         <Nav />
-        <div className="pt-14 min-h-screen">{children}</div>
+        <div className="min-h-screen pt-16 sm:pt-20">{children}</div>
       </body>
     </html>
   );

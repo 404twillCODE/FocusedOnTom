@@ -16,14 +16,19 @@
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+  }
   body {
     min-height: 100vh;
+    min-width: 0;
     color: var(--text);
     font-family: var(--font-space-grotesk), system-ui, sans-serif;
     background: var(--bg);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     line-height: 1.6;
+    overflow-x: hidden;
   }
 }
 
@@ -33,10 +38,24 @@
   letter-spacing: 0.01em;
 }
 
-/* Site background: grid + glow animate */
-@keyframes grid-breathe {
-  0%, 100% { opacity: 0.035; }
-  50% { opacity: 0.06; }
+/* Site background: sparse starry nodes + glow */
+@keyframes starfield-drift {
+  0% { transform: translate(0, 0); }
+  100% { transform: translate(-8%, -4%); }
+}
+
+@keyframes starfield-twinkle {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Twinkle: fully off then back on */
+@keyframes star-twinkle {
+  0%, 30% { opacity: 1; }
+  45% { opacity: 0; }
+  60% { opacity: 0; }
+  75% { opacity: 1; }
+  100% { opacity: 1; }
 }
 
 @keyframes glow-pulse {
@@ -44,8 +63,17 @@
   50% { opacity: 1; }
 }
 
-.bg-grid-breathe {
-  animation: grid-breathe 8s ease-in-out infinite;
+.starfield-layer {
+  animation: starfield-drift 25s ease-in-out infinite alternate;
+}
+
+.starfield-layer--twinkle {
+  animation: starfield-drift 25s ease-in-out infinite alternate,
+    starfield-twinkle 5s ease-in-out infinite;
+}
+
+.star-twinkle {
+  animation: star-twinkle 2.5s ease-in-out infinite;
 }
 
 .bg-glow-pulse {

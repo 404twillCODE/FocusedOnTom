@@ -50,7 +50,7 @@ export function getClusterPositions(skills: SkillCluster[]): ClusterPosition[] {
   const byCluster = new Map<SkillClusterRegion, SkillCluster[]>();
 
   for (const s of skills) {
-    const region = s.cluster ?? "core";
+    const region: SkillClusterRegion = (s.cluster ?? s.region ?? "core") as SkillClusterRegion;
     if (!byCluster.has(region)) byCluster.set(region, []);
     byCluster.get(region)!.push(s);
   }
@@ -88,7 +88,7 @@ export function getClusterPositions(skills: SkillCluster[]): ClusterPosition[] {
 
     const children = list.filter((s) => !s.anchor);
     children.forEach((s, i) => {
-      const radius = orbitRadiusFromWeight(s.weight ?? 3);
+      const radius = orbitRadiusFromWeight(Number(s.weight ?? 3));
       const angle = 2 * Math.PI * (hash(s.id + "angle") + i * 0.25);
       const cx = center.cx + radius * Math.cos(angle);
       const cy = center.cy + radius * 0.6 * Math.sin(angle);

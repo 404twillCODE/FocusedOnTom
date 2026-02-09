@@ -97,7 +97,7 @@ export default function HomePage() {
   return (
     <main className="min-h-screen">
       {/* Hero */}
-      <section className="mx-auto max-w-3xl px-6 pt-28 pb-24 md:pt-36 md:pb-32">
+      <section className="mx-auto max-w-3xl px-4 pt-24 pb-20 sm:px-6 sm:pt-28 sm:pb-24 md:pt-36 md:pb-32">
         <motion.div
           variants={container}
           initial="hidden"
@@ -112,7 +112,7 @@ export default function HomePage() {
           </motion.p>
           <motion.h1
             variants={item}
-            className="mt-4 text-4xl font-semibold leading-[1.15] tracking-tight text-[var(--text)] sm:text-5xl md:text-[2.75rem]"
+            className="mt-4 text-3xl font-semibold leading-[1.15] tracking-tight text-[var(--text)] sm:text-4xl md:text-5xl md:text-[2.75rem]"
           >
             Computer science student with a love for photography and building
             things.
@@ -140,9 +140,9 @@ export default function HomePage() {
       </section>
 
       {/* What I do */}
-      <section className="mx-auto max-w-5xl px-6 py-16 md:py-20">
+      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16 md:py-20">
         <AnimatedSection delay={0}>
-          <h2 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl">
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl sm:text-3xl">
             What I do
           </h2>
           <p className="mt-2 max-w-xl text-[var(--textMuted)] prose-custom">
@@ -178,9 +178,9 @@ export default function HomePage() {
       </section>
 
       {/* Explore — same card style as What I do */}
-      <section className="mx-auto max-w-5xl px-6 py-16 md:py-20">
+      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16 md:py-20">
         <AnimatedSection delay={0}>
-          <h2 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl">
+          <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl sm:text-3xl">
             Explore
           </h2>
           <p className="mt-2 max-w-xl text-[var(--textMuted)] prose-custom">
@@ -225,7 +225,7 @@ export default function HomePage() {
       <section className="mx-auto max-w-5xl px-6 pb-28 pt-8 md:pb-36 md:pt-12">
         <AnimatedSection delay={0}>
           <motion.div
-            className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/60 px-6 py-10 text-center sm:px-10 sm:py-14"
+            className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/60 px-4 py-8 text-center sm:px-10 sm:py-14"
             whileHover="hover"
             variants={{
               hover: {
@@ -235,7 +235,7 @@ export default function HomePage() {
             }}
             transition={{ duration: 0.3 }}
           >
-            <h2 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl">
+            <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl sm:text-3xl">
               Let's work together
             </h2>
             <p className="mx-auto mt-3 max-w-md text-[var(--textMuted)] prose-custom">

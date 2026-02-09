@@ -5,13 +5,13 @@ import { motion } from "framer-motion";
 export default function PhotographyPage() {
   return (
     <main className="min-h-screen">
-      <section className="mx-auto max-w-5xl px-6 pt-24 pb-12">
+      <section className="mx-auto max-w-5xl px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <h1 className="text-3xl font-semibold tracking-tight text-[var(--text)] sm:text-4xl">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl sm:text-4xl">
             Photography
           </h1>
           <p className="mt-3 max-w-xl text-[var(--textMuted)]">
@@ -21,7 +21,7 @@ export default function PhotographyPage() {
         </motion.div>
       </section>
 
-      <section className="mx-auto max-w-5xl px-6 pb-24">
+      <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6 sm:pb-24">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

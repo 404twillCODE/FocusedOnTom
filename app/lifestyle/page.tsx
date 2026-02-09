@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 
-export default function SkillsPage() {
+export default function LifestylePage() {
   return (
     <main className="min-h-screen">
       <section className="mx-auto max-w-5xl px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12">
@@ -12,10 +12,10 @@ export default function SkillsPage() {
           transition={{ duration: 0.4 }}
         >
           <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl sm:text-4xl">
-            Skills
+            Lifestyle
           </h1>
           <p className="mt-3 max-w-xl text-[var(--textMuted)]">
-            What I work with — languages, tools, and areas I'm building in. Coming soon.
+            Beyond code and cameras. Coming soon.
           </p>
         </motion.div>
       </section>
