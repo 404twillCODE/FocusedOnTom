@@ -81,7 +81,7 @@ export default function DevPage() {
           {projects.map((project, i) => (
             <AnimatedCard key={project.title} delay={0.08 * (i + 1)}>
               <motion.article
-                className="group relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/50 transition-colors hover:border-[var(--ice)]/25 hover:bg-[var(--iceSoft)]/20"
+                className="group relative flex h-full min-h-[280px] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-transparent transition-colors hover:border-[var(--ice)]/25 hover:bg-[var(--iceSoft)]/10"
                 whileHover={{ y: -4 }}
                 transition={{ type: "spring", bounce: 0.35 }}
               >
