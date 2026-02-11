@@ -36,7 +36,7 @@ yarn-error.log*
 
 # workout app (local/docs only)
 WORKOUT_APP.md
-supabase/
+/supabase/
 
 # vercel
 .vercel
