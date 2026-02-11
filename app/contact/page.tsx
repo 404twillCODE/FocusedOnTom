@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Linkedin, Github, Instagram, ArrowRight, X } from "lucide-react";
+import { Mail, Linkedin, Github, Instagram, ArrowRight, X, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
 // Single source for Formspree; override via NEXT_PUBLIC_FORMSPREE_ENDPOINT on Vercel (see CONTACT_FORM.md).
@@ -211,7 +211,7 @@ export default function ContactPage() {
       setMessage("");
       setCompany("");
       setErrors({});
-      setTimeout(() => setEmailModalOpen(false), 900);
+      setTimeout(() => setEmailModalOpen(false), 2400);
       return;
     }
 
@@ -237,7 +237,7 @@ export default function ContactPage() {
         setMessage("");
         setCompany("");
         setErrors({});
-        setTimeout(() => setEmailModalOpen(false), 900);
+        setTimeout(() => setEmailModalOpen(false), 2400);
       } else {
         if (process.env.NODE_ENV === "development") {
           console.debug("[Contact form] Submit failed:", res.status, data);
@@ -284,13 +284,23 @@ export default function ContactPage() {
               >
                 <X className="h-5 w-5" />
               </button>
-              <h2 className="pr-10 text-xl font-semibold text-[var(--text)]">Send me an email</h2>
-              <p className="mt-1 text-sm text-[var(--textMuted)]">
-                Fill this out and I’ll get it in my inbox.
-              </p>
-              <p className="mt-0.5 text-xs text-[var(--textMuted)]/80">Replies may take 1–2 days.</p>
+              <h2 className="pr-10 text-xl font-semibold text-[var(--text)]">
+                {submitStatus === "success" ? "Email sent" : "Send me an email"}
+              </h2>
+              {submitStatus !== "success" && (
+                <>
+                  <p className="mt-1 text-sm text-[var(--textMuted)]">
+                    Fill this out and I'll get it in my inbox.
+                  </p>
+                  <p className="mt-0.5 text-xs text-[var(--textMuted)]/80">Replies may take 1–2 days.</p>
+                </>
+              )}
               {submitStatus === "success" ? (
-                <p className="mt-6 text-sm text-[var(--ice)]">Sent! I'll get back to you soon.</p>
+                <div className="mt-6 flex flex-col items-center gap-3 text-center">
+                  <CheckCircle className="h-12 w-12 text-[var(--ice)]" aria-hidden />
+                  <p className="text-lg font-medium text-[var(--text)]">Email sent</p>
+                  <p className="text-sm text-[var(--textMuted)]">I'll get back to you soon.</p>
+                </div>
               ) : (
                 <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
                   <div>
