@@ -30,8 +30,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files — ignore all except .env.example (safe template)
 .env*
+!.env.example
 
 # workout app (local/docs only)
 WORKOUT_APP.md

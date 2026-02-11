@@ -81,7 +81,7 @@ export function WorkoutPasscodeGate({
         <p className="mt-1 text-center text-sm text-[var(--textMuted)]">
           Enter the passcode to continue.
         </p>
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
+        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3" aria-label="Passcode">
           <Input
             type="password"
             placeholder="Passcode"

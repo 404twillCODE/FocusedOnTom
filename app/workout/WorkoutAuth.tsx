@@ -9,10 +9,13 @@ import { supabase } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup";
 
+const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/;
+
 export function WorkoutAuth({ onSignedIn }: { onSignedIn: () => void }) {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -21,24 +24,53 @@ export function WorkoutAuth({ onSignedIn }: { onSignedIn: () => void }) {
     e.preventDefault();
     setError("");
     setMessage("");
-    if (!email.trim() || !password) {
+
+    const trimmedEmail = email.trim();
+    const trimmedUsername = username.trim().toLowerCase();
+
+    if (!trimmedEmail || !password) {
       setError("Email and password are required.");
       return;
     }
+
+    if (mode === "signup") {
+      if (!trimmedUsername) {
+        setError("Username is required.");
+        return;
+      }
+      if (trimmedUsername.length < 2) {
+        setError("Username must be at least 2 characters.");
+        return;
+      }
+      if (!USERNAME_REGEX.test(trimmedUsername)) {
+        setError(
+          "Username can only contain letters, numbers, underscore and hyphen.",
+        );
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       if (mode === "signup") {
         const { error: signUpError } = await supabase.auth.signUp({
-          email: email.trim(),
+          email: trimmedEmail,
           password,
+          options: {
+            data: {
+              // Store desired username in user metadata; profile row is created later.
+              username: trimmedUsername,
+            },
+          },
         });
         if (signUpError) throw signUpError;
         setMessage("Check your email to confirm your account, then sign in.");
       } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
+        const { error: signInError } =
+          await supabase.auth.signInWithPassword({
+            email: trimmedEmail,
+            password,
+          });
         if (signInError) throw signInError;
         onSignedIn();
       }
@@ -75,6 +107,17 @@ export function WorkoutAuth({ onSignedIn }: { onSignedIn: () => void }) {
             : "Create an account to join the workout group."}
         </p>
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-3">
+          {mode === "signup" && (
+            <Input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full"
+              autoComplete="username"
+              disabled={loading}
+            />
+          )}
           <Input
             type="email"
             placeholder="Email"

@@ -21,7 +21,6 @@ export function WorkoutProfileTab({
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -31,7 +30,6 @@ export function WorkoutProfileTab({
         setProfile(p);
         if (p) {
           setUsername(p.username);
-          setDisplayName(p.display_name);
         }
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load profile."))
@@ -42,7 +40,6 @@ export function WorkoutProfileTab({
     e.preventDefault();
     setError("");
     const u = username.trim().toLowerCase();
-    const d = displayName.trim();
     if (!u) {
       setError("Username is required.");
       return;
@@ -55,19 +52,15 @@ export function WorkoutProfileTab({
       setError("Username can only contain letters, numbers, underscore and hyphen.");
       return;
     }
-    if (!d) {
-      setError("Display name is required.");
-      return;
-    }
     setSaving(true);
     try {
+      // Use username as display name everywhere
       const updated = await upsertProfile(userId, {
         username: u,
-        display_name: d,
+        display_name: u,
       });
       setProfile(updated);
       setUsername(updated.username);
-      setDisplayName(updated.display_name);
       setEditing(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to save.";
@@ -96,7 +89,7 @@ export function WorkoutProfileTab({
   }
 
   const needsProfile = !profile;
-  const canEdit = profile && (editing || needsProfile);
+  const canEdit = needsProfile || (profile !== null && editing);
 
   return (
     <div className="pb-24">
@@ -113,7 +106,7 @@ export function WorkoutProfileTab({
         )}
         {needsProfile && (
           <p className="mt-2 text-center text-sm text-[var(--textMuted)]">
-            Set a username and display name to use the app.
+            Set a username to use the app (it will be shown in the feed).
           </p>
         )}
         {canEdit ? (
@@ -126,18 +119,6 @@ export function WorkoutProfileTab({
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="e.g. tom_fit"
-                className="w-full"
-                disabled={saving}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-[var(--textMuted)]">
-                Display name
-              </label>
-              <Input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="e.g. Tom"
                 className="w-full"
                 disabled={saving}
               />
@@ -156,7 +137,6 @@ export function WorkoutProfileTab({
                   onClick={() => {
                     setEditing(false);
                     setUsername(profile?.username ?? "");
-                    setDisplayName(profile?.display_name ?? "");
                     setError("");
                   }}
                   className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--textMuted)] hover:border-[var(--ice)]/50 hover:text-[var(--text)]"
@@ -169,13 +149,23 @@ export function WorkoutProfileTab({
         ) : (
           <>
             <h2 className="mt-4 text-center text-xl font-semibold text-[var(--text)]">
-              {profile?.display_name ?? "—"}
+              {profile?.display_name ?? profile?.username ?? "—"}
             </h2>
             <p className="text-center text-sm text-[var(--textMuted)]">
               @{profile?.username ?? "—"}
             </p>
             <div className="mt-6 flex justify-center">
-              <Button onClick={() => setEditing(true)}>Edit profile</Button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(true);
+                  setUsername(profile?.username ?? "");
+                  setError("");
+                }}
+                className="rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:border-[var(--ice)]/50 hover:text-[var(--ice)]"
+              >
+                Edit profile
+              </button>
             </div>
           </>
         )}

@@ -7,15 +7,21 @@ import { supabase } from "@/lib/supabase/client";
 import { getGateUnlocked, WorkoutPasscodeGate } from "./WorkoutPasscodeGate";
 import { WorkoutAuth } from "./WorkoutAuth";
 import { WorkoutAppTabs } from "./WorkoutAppTabs";
+import { WorkoutInstallPrompt } from "./WorkoutInstallPrompt";
 
 // Show passcode gate first unless explicitly disabled (default: gate before login)
 const GATE_ENABLED = process.env.NEXT_PUBLIC_WORKOUT_GATE_ENABLED !== "false";
+const INSTALL_DISMISSED_KEY = "workout_install_dismissed";
 
 export default function WorkoutPage() {
   const [mounted, setMounted] = useState(false);
   const [gateUnlocked, setGateUnlocked] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [showInstallPrompt, setShowInstallPrompt] = useState(false);
+  const [installPlatform, setInstallPlatform] = useState<"ios" | "android" | "other">(
+    "other",
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -41,6 +47,30 @@ export default function WorkoutPage() {
     return () => subscription.unsubscribe();
   }, [mounted, gateUnlocked]);
 
+  // After login, prompt mobile users (not already in standalone/app mode) to add to home screen.
+  useEffect(() => {
+    if (!user) return;
+    if (typeof window === "undefined") return;
+
+    const dismissed = localStorage.getItem(INSTALL_DISMISSED_KEY) === "true";
+
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      // iOS Safari standalone
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window.navigator as any).standalone === true;
+
+    const ua = window.navigator.userAgent || "";
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
+    const isAndroid = /android/i.test(ua);
+    const isMobile = isIOS || isAndroid;
+
+    if (!dismissed && isMobile && !isStandalone) {
+      setInstallPlatform(isIOS ? "ios" : isAndroid ? "android" : "other");
+      setShowInstallPrompt(true);
+    }
+  }, [user]);
+
   if (!mounted) {
     return (
       <main className="min-h-screen">
@@ -56,21 +86,8 @@ export default function WorkoutPage() {
   const showApp = gateUnlocked && authChecked && user;
 
   return (
-    <main className="min-h-screen">
-      <div className="mx-auto max-w-2xl px-4 pt-6 pb-8">
-        <motion.header
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
-        >
-          <h1 className="text-2xl font-semibold text-[var(--text)]">
-            Workout
-          </h1>
-          <p className="mt-1 text-sm text-[var(--textMuted)]">
-            Log workouts and see the community feed.
-          </p>
-        </motion.header>
-
+    <main className="min-h-screen -mt-16 sm:-mt-20">
+      <div className="mx-auto max-w-2xl px-4 pt-2 pb-8">
         <AnimatePresence mode="wait">
           {showGate && (
             <motion.div
@@ -113,6 +130,19 @@ export default function WorkoutPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {showApp && (
+        <WorkoutInstallPrompt
+          open={showInstallPrompt}
+          platform={installPlatform}
+          onDismiss={() => {
+            if (typeof window !== "undefined") {
+              localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
+            }
+            setShowInstallPrompt(false);
+          }}
+        />
+      )}
     </main>
   );
 }

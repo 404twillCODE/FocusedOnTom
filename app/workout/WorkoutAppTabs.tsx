@@ -58,7 +58,7 @@ export function WorkoutAppTabs({
           ))}
         </nav>
       </div>
-      <div className="min-h-[50vh] px-4 pt-4">
+      <div className="min-h-[50vh] px-4 pt-5">
         {tab === "feed" && (
           <WorkoutFeedTab onSelectMember={(username) => setMemberUsername(username)} />
         )}

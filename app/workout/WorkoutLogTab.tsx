@@ -122,9 +122,9 @@ export function WorkoutLogTab({ userId }: { userId: string }) {
     <div className="pb-24">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-lg font-semibold text-[var(--text)]">My workouts</h2>
-        <Button onClick={openNew} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Log
+        <Button onClick={openNew} className="inline-flex items-center justify-center gap-2 px-5 py-2.5">
+          <Plus className="h-4 w-4 shrink-0" />
+          <span>Log</span>
         </Button>
       </div>
 
