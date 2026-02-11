@@ -21,6 +21,10 @@ export type WorkoutLog = {
   user_id: string;
   date: string;
   workout_type: string;
+  workout_name: string | null;
+  reps: number | null;
+  sets: number | null;
+  lbs: number | null;
   duration_min: number;
   notes: string;
   created_at: string;

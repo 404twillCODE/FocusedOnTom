@@ -1,5 +1,58 @@
 import { supabase, type Profile, type WorkoutLog, type WorkoutLogWithProfile } from "./client";
 
+// Sun=0, Mon=1, ... Sat=6 (JS getDay())
+const ROUTINE_BY_DAY: (string | null)[] = [
+  "rest",
+  "push",
+  "pull",
+  "legs",
+  "push",
+  "pull",
+  "legs",
+];
+const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+/** Returns the next scheduled category (and day name) after the last workout date. If no last log, returns today's. */
+export function getNextSuggested(
+  lastLogDate: string | null
+): { category: string; dayName: string; dayIndex: number } {
+  const now = new Date();
+  const todayIndex = now.getDay();
+  if (!lastLogDate) {
+    let idx = todayIndex;
+    let cat = ROUTINE_BY_DAY[idx];
+    while (cat === "rest" && idx !== (todayIndex + 6) % 7) {
+      idx = (idx + 1) % 7;
+      cat = ROUTINE_BY_DAY[idx];
+    }
+    return {
+      category: cat ?? "push",
+      dayName: DAY_NAMES[idx],
+      dayIndex: idx,
+    };
+  }
+  const last = new Date(lastLogDate + "Z");
+  const lastDayIndex = last.getUTCDay();
+  let nextIndex = (lastDayIndex + 1) % 7;
+  let nextCat = ROUTINE_BY_DAY[nextIndex];
+  while (nextCat === "rest") {
+    nextIndex = (nextIndex + 1) % 7;
+    nextCat = ROUTINE_BY_DAY[nextIndex];
+  }
+  return {
+    category: nextCat ?? "push",
+    dayName: DAY_NAMES[nextIndex],
+    dayIndex: nextIndex,
+  };
+}
+
+export function getRoutineSchedule(): { dayName: string; category: string }[] {
+  return DAY_NAMES.map((name, i) => ({
+    dayName: name,
+    category: ROUTINE_BY_DAY[i] ?? "rest",
+  }));
+}
+
 export async function getMyProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
@@ -28,7 +81,7 @@ export async function getCommunityFeed(limit = 50): Promise<WorkoutLogWithProfil
     .from("workout_logs")
     .select(
       `
-      id, user_id, date, workout_type, duration_min, notes, created_at,
+      id, user_id, date, workout_type, workout_name, reps, sets, lbs, duration_min, notes, created_at,
       profiles ( username, display_name, avatar_url )
     `
     )
@@ -103,7 +156,16 @@ export async function getCommunityLeaderboard(weekStart: string, weekEnd: string
 
 export async function insertLog(
   userId: string,
-  payload: { date: string; workout_type: string; duration_min?: number; notes?: string }
+  payload: {
+    date: string;
+    workout_type: string;
+    workout_name?: string | null;
+    reps?: number | null;
+    sets?: number | null;
+    lbs?: number | null;
+    duration_min?: number;
+    notes?: string;
+  }
 ): Promise<WorkoutLog> {
   const { data, error } = await supabase
     .from("workout_logs")
@@ -117,7 +179,16 @@ export async function insertLog(
 export async function updateLog(
   logId: string,
   userId: string,
-  payload: Partial<{ date: string; workout_type: string; duration_min: number; notes: string }>
+  payload: Partial<{
+    date: string;
+    workout_type: string;
+    workout_name: string | null;
+    reps: number | null;
+    sets: number | null;
+    lbs: number | null;
+    duration_min: number;
+    notes: string;
+  }>
 ): Promise<WorkoutLog> {
   const { data, error } = await supabase
     .from("workout_logs")

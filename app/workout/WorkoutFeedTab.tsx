@@ -5,12 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Dumbbell, User, Loader2 } from "lucide-react";
 import { getCommunityFeed } from "@/lib/supabase/workout";
 import type { WorkoutLogWithProfile } from "@/lib/supabase/client";
-const WORKOUT_LABELS: Record<string, string> = {
+const CATEGORY_LABELS: Record<string, string> = {
   push: "Push",
   pull: "Pull",
   legs: "Legs",
   cardio: "Cardio",
   other: "Other",
+  rest: "Rest",
 };
 
 function formatDate(d: string) {
@@ -81,7 +82,12 @@ export function WorkoutFeedTab({
           const profile = log.profiles;
           const displayName = profile?.display_name ?? "Unknown";
           const username = profile?.username ?? "";
-          const typeLabel = WORKOUT_LABELS[log.workout_type] ?? log.workout_type;
+          const categoryLabel = CATEGORY_LABELS[log.workout_type] ?? log.workout_type;
+          const title = log.workout_name?.trim() || categoryLabel;
+          const hasDetails =
+            (log.reps != null && log.reps > 0) ||
+            (log.sets != null && log.sets > 0) ||
+            (log.lbs != null && log.lbs > 0);
           return (
             <motion.li
               key={log.id}
@@ -110,8 +116,24 @@ export function WorkoutFeedTab({
                       )}
                     </div>
                   </button>
-                  <p className="mt-2 flex items-center gap-2 text-sm">
-                    <span className="font-medium text-[var(--ice)]">{typeLabel}</span>
+                  <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-sm">
+                    <span className="font-medium text-[var(--ice)]">{title}</span>
+                    {log.workout_name?.trim() && (
+                      <span className="text-[var(--textMuted)]">
+                        ({categoryLabel})
+                      </span>
+                    )}
+                    {hasDetails && (
+                      <span className="text-[var(--textMuted)]">
+                        {[
+                          log.sets != null && log.sets > 0 && `${log.sets}×`,
+                          log.reps != null && log.reps > 0 && `${log.reps} reps`,
+                          log.lbs != null && log.lbs > 0 && `${log.lbs} lbs`,
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                      </span>
+                    )}
                     {log.duration_min > 0 && (
                       <span className="text-[var(--textMuted)]">
                         {log.duration_min} min

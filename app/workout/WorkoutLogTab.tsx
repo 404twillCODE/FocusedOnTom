@@ -8,11 +8,24 @@ import {
   insertLog,
   updateLog,
   deleteLog,
+  getNextSuggested,
+  getRoutineSchedule,
 } from "@/lib/supabase/workout";
 import type { WorkoutLog } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-const WORKOUT_TYPES = ["push", "pull", "legs", "cardio", "other"] as const;
+
+const ROUTINE_OPTIONS = getRoutineSchedule()
+  .filter((s) => s.category !== "rest")
+  .map((s) => ({
+    value: `${s.dayName.toLowerCase()}-${s.category}`,
+    label: `${s.dayName} – ${s.category.charAt(0).toUpperCase() + s.category.slice(1)}`,
+    category: s.category,
+  }));
+function optionToCategory(value: string): string {
+  const opt = ROUTINE_OPTIONS.find((o) => o.value === value);
+  return opt ? opt.category : "push";
+}
 
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString(undefined, {
@@ -30,11 +43,16 @@ export function WorkoutLogTab({ userId }: { userId: string }) {
   const [formDate, setFormDate] = useState(() =>
     new Date().toISOString().slice(0, 10)
   );
-  const [formType, setFormType] = useState<string>("push");
+  const [formCategoryValue, setFormCategoryValue] = useState<string>(ROUTINE_OPTIONS[0]?.value ?? "monday-push");
+  const [formWorkoutName, setFormWorkoutName] = useState("");
+  const [formReps, setFormReps] = useState("");
+  const [formSets, setFormSets] = useState("");
+  const [formLbs, setFormLbs] = useState("");
   const [formDuration, setFormDuration] = useState("");
   const [formNotes, setFormNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [suggestedLabel, setSuggestedLabel] = useState<string | null>(null);
 
   function loadLogs() {
     setLoading(true);
@@ -51,7 +69,14 @@ export function WorkoutLogTab({ userId }: { userId: string }) {
   function openNew() {
     setEditingId(null);
     setFormDate(new Date().toISOString().slice(0, 10));
-    setFormType("push");
+    const suggested = getNextSuggested(logs[0]?.date ?? null);
+    const opt = ROUTINE_OPTIONS.find((o) => o.category === suggested.category);
+    setFormCategoryValue(opt?.value ?? "monday-push");
+    setSuggestedLabel(`${suggested.dayName} – ${suggested.category.charAt(0).toUpperCase() + suggested.category.slice(1)}`);
+    setFormWorkoutName("");
+    setFormReps("");
+    setFormSets("");
+    setFormLbs("");
     setFormDuration("");
     setFormNotes("");
     setError("");
@@ -61,7 +86,13 @@ export function WorkoutLogTab({ userId }: { userId: string }) {
   function openEdit(log: WorkoutLog) {
     setEditingId(log.id);
     setFormDate(log.date);
-    setFormType(log.workout_type);
+    const opt = ROUTINE_OPTIONS.find((o) => o.category === log.workout_type);
+    setFormCategoryValue(opt?.value ?? ROUTINE_OPTIONS[0]?.value ?? "monday-push");
+    setSuggestedLabel(null);
+    setFormWorkoutName(log.workout_name ?? "");
+    setFormReps(log.reps != null ? String(log.reps) : "");
+    setFormSets(log.sets != null ? String(log.sets) : "");
+    setFormLbs(log.lbs != null ? String(log.lbs) : "");
     setFormDuration(String(log.duration_min || ""));
     setFormNotes(log.notes || "");
     setError("");
@@ -77,21 +108,22 @@ export function WorkoutLogTab({ userId }: { userId: string }) {
     e.preventDefault();
     setError("");
     setSaving(true);
+    const category = optionToCategory(formCategoryValue);
+    const payload = {
+      date: formDate,
+      workout_type: category,
+      workout_name: formWorkoutName.trim() || null,
+      reps: formReps.trim() ? parseInt(formReps, 10) : null,
+      sets: formSets.trim() ? parseInt(formSets, 10) : null,
+      lbs: formLbs.trim() ? parseFloat(formLbs) : null,
+      duration_min: parseInt(formDuration, 10) || 0,
+      notes: formNotes.trim(),
+    };
     try {
       if (editingId) {
-        await updateLog(editingId, userId, {
-          date: formDate,
-          workout_type: formType,
-          duration_min: parseInt(formDuration, 10) || 0,
-          notes: formNotes.trim(),
-        });
+        await updateLog(editingId, userId, payload);
       } else {
-        await insertLog(userId, {
-          date: formDate,
-          workout_type: formType,
-          duration_min: parseInt(formDuration, 10) || 0,
-          notes: formNotes.trim(),
-        });
+        await insertLog(userId, payload);
       }
       closeForm();
       loadLogs();
@@ -151,19 +183,76 @@ export function WorkoutLogTab({ userId }: { userId: string }) {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--textMuted)]">
-                  Type
+                  Category
                 </label>
+                {suggestedLabel && !editingId && (
+                  <p className="mb-1 text-xs text-[var(--ice)]">Up next: {suggestedLabel}</p>
+                )}
                 <select
-                  value={formType}
-                  onChange={(e) => setFormType(e.target.value)}
+                  value={formCategoryValue}
+                  onChange={(e) => setFormCategoryValue(e.target.value)}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg2)] px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
                 >
-                  {WORKOUT_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {ROUTINE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
                     </option>
                   ))}
                 </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-[var(--textMuted)]">
+                  Workout name
+                </label>
+                <Input
+                  type="text"
+                  value={formWorkoutName}
+                  onChange={(e) => setFormWorkoutName(e.target.value)}
+                  placeholder="e.g. Bench press"
+                  className="w-full"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--textMuted)]">
+                    Reps
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formReps}
+                    onChange={(e) => setFormReps(e.target.value)}
+                    placeholder="—"
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--textMuted)]">
+                    Sets
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formSets}
+                    onChange={(e) => setFormSets(e.target.value)}
+                    placeholder="—"
+                    className="w-full"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-[var(--textMuted)]">
+                    Lbs
+                  </label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.5}
+                    value={formLbs}
+                    onChange={(e) => setFormLbs(e.target.value)}
+                    placeholder="—"
+                    className="w-full"
+                  />
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-[var(--textMuted)]">
@@ -172,7 +261,7 @@ export function WorkoutLogTab({ userId }: { userId: string }) {
                 <Input
                   type="number"
                   min={0}
-                  placeholder="0"
+                  placeholder="—"
                   value={formDuration}
                   onChange={(e) => setFormDuration(e.target.value)}
                   className="w-full"
@@ -185,7 +274,7 @@ export function WorkoutLogTab({ userId }: { userId: string }) {
                 <textarea
                   value={formNotes}
                   onChange={(e) => setFormNotes(e.target.value)}
-                  placeholder="Optional"
+                  placeholder=""
                   rows={2}
                   className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg2)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--textMuted)] focus:border-[var(--ice)]/50 focus:outline-none"
                 />
@@ -232,12 +321,20 @@ export function WorkoutLogTab({ userId }: { userId: string }) {
               layout
               className="flex items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 px-4 py-3"
             >
-              <div>
+              <div className="min-w-0 flex-1">
                 <p className="font-medium capitalize text-[var(--text)]">
-                  {log.workout_type}
+                  {log.workout_name?.trim() || log.workout_type}
                 </p>
                 <p className="text-xs text-[var(--textMuted)]">
                   {formatDate(log.date)}
+                  {(log.reps != null || log.sets != null || (log.lbs != null && log.lbs > 0)) && (
+                    <>
+                      {" · "}
+                      {[log.sets != null && `${log.sets}×`, log.reps != null && `${log.reps} reps`, log.lbs != null && log.lbs > 0 && `${log.lbs} lbs`]
+                        .filter(Boolean)
+                        .join(" ")}
+                    </>
+                  )}
                   {log.duration_min > 0 && ` · ${log.duration_min} min`}
                 </p>
               </div>
