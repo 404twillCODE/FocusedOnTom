@@ -1,8 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { ExternalLink, Code2, Server, Car } from "lucide-react";
+import { WorkInProgressBanner } from "@/components/WorkInProgressBanner";
 
 const projects = [
   {
@@ -55,25 +56,31 @@ function AnimatedCard({
 }
 
 export default function DevPage() {
+  const [notificationDismissed, setNotificationDismissed] = useState(false);
+
   return (
     <main className="min-h-screen">
-      <section className="mx-auto max-w-5xl px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl sm:text-4xl">
-            Dev
-          </h1>
-          <p className="mt-3 max-w-xl text-[var(--textMuted)]">
-            Things I've been building — side projects and experiments. Links and
-            code when available.
-          </p>
-        </motion.div>
-      </section>
+      <WorkInProgressBanner onDismiss={() => setNotificationDismissed(true)} />
+      <div
+        className={`transition-opacity duration-300 ${notificationDismissed ? "opacity-100" : "pointer-events-none opacity-0"}`}
+      >
+        <section className="mx-auto max-w-5xl px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl sm:text-4xl">
+              Dev
+            </h1>
+            <p className="mt-3 max-w-xl text-[var(--textMuted)]">
+              Things I've been building — side projects and experiments. Links and
+              code when available.
+            </p>
+          </motion.div>
+        </section>
 
-      <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6 sm:pb-24">
+        <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6 sm:pb-24">
         <div className="grid gap-6 sm:grid-cols-2">
           {projects.map((project, i) => (
             <AnimatedCard key={project.title} delay={0.08 * (i + 1)}>
@@ -155,6 +162,7 @@ export default function DevPage() {
           ))}
         </div>
       </section>
+      </div>
     </main>
   );
 }

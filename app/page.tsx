@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Camera, Code2, Sparkles, Mail, ArrowRight } from "lucide-react";
+import { Camera, Code2, Sparkles, ArrowRight } from "lucide-react";
 import { TypingEffect } from "@/components/TypingEffect";
 
 const container = {
@@ -190,13 +190,14 @@ export default function HomePage() {
         <div className="mt-10 grid gap-6 sm:grid-cols-2">
           {exploreCards.map((card, i) => (
             <AnimatedSection key={card.href} delay={0.08 * (i + 1)} className="flex">
-              <Link href={card.href} className="group block w-full">
+              <Link href={card.href} className="group block w-full cursor-pointer">
                 <motion.div
-                  className="flex w-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/50 p-6 transition-colors hover:border-[var(--ice)]/25 hover:bg-[var(--iceSoft)]/20 sm:p-7"
+                  className="relative flex w-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/50 p-6 transition-colors hover:border-[var(--ice)]/25 hover:bg-[var(--iceSoft)]/20 sm:p-7"
                   style={{ height: "280px" }}
                   whileHover={{ y: -6 }}
                   transition={{ type: "spring", bounce: 0.35 }}
                 >
+                  <ArrowRight className="absolute right-5 top-5 h-4 w-4 text-[var(--ice)] opacity-0 transition-opacity duration-200 group-hover:opacity-70" />
                   <motion.span
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--iceSoft)] text-[var(--ice)] transition-colors group-hover:bg-[var(--ice)]/25"
                     whileHover={{ scale: 1.08 }}
@@ -204,15 +205,11 @@ export default function HomePage() {
                   >
                     <card.icon className="h-5 w-5" />
                   </motion.span>
-                  <h3 className="mt-4 text-lg font-semibold text-[var(--text)]">
+                  <h3 className="mt-4 text-lg font-semibold text-[var(--text)] transition-colors group-hover:text-[var(--ice)]">
                     {card.title}
                   </h3>
                   <p className="mt-2 flex-1 text-[var(--textMuted)] prose-custom">
                     {card.text}
-                  </p>
-                  <p className="mt-4 flex items-center gap-2 text-sm font-medium text-[var(--ice)] group-hover:underline">
-                    {card.cta}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </p>
                 </motion.div>
               </Link>
@@ -221,39 +218,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA - Hirable */}
-      <section className="mx-auto max-w-5xl px-6 pb-28 pt-8 md:pb-36 md:pt-12">
-        <AnimatedSection delay={0}>
-          <motion.div
-            className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/60 px-4 py-8 text-center sm:px-10 sm:py-14"
-            whileHover="hover"
-            variants={{
-              hover: {
-                borderColor: "rgba(125, 211, 252, 0.2)",
-                boxShadow: "0 0 40px rgba(125, 211, 252, 0.08)",
-              },
-            }}
-            transition={{ duration: 0.3 }}
-          >
-            <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl sm:text-3xl">
-              Let's work together
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-[var(--textMuted)] prose-custom">
-              Open to internships, collabs, or just a chat about code or
-              photography.
-            </p>
-            <motion.a
-              href="mailto:you@example.com"
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[var(--iceSoft)] px-5 py-3 text-sm font-medium text-[var(--ice)] transition-colors hover:bg-[var(--ice)]/25"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Mail className="h-4 w-4" />
-              Get in touch
-            </motion.a>
-          </motion.div>
-        </AnimatedSection>
-      </section>
     </main>
   );
 }
