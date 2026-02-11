@@ -2,15 +2,17 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { LayoutGrid, Plus, BarChart3, User } from "lucide-react";
+import { LayoutGrid, Plus, BarChart3, User, MessageCircle } from "lucide-react";
 import { WorkoutFeedTab } from "./WorkoutFeedTab";
 import { WorkoutLogTab } from "./WorkoutLogTab";
 import { WorkoutStatsTab } from "./WorkoutStatsTab";
 import { WorkoutProfileTab } from "./WorkoutProfileTab";
 import { WorkoutMemberProfile } from "./WorkoutMemberProfile";
+import { ChatShell } from "./chat/ChatShell";
 
 const TABS = [
   { id: "feed", label: "Feed", icon: LayoutGrid },
+  { id: "chat", label: "Chat", icon: MessageCircle },
   { id: "log", label: "Log", icon: Plus },
   { id: "stats", label: "Stats", icon: BarChart3 },
   { id: "profile", label: "Profile", icon: User },
@@ -25,7 +27,8 @@ export function WorkoutAppTabs({
   userId: string;
   onSignOut: () => void;
 }) {
-  const [tab, setTab] = useState<TabId>("feed");
+  // Default to the Log tab so signed-in users land directly in the workout experience.
+  const [tab, setTab] = useState<TabId>("log");
   const [memberUsername, setMemberUsername] = useState<string | null>(null);
 
   return (
@@ -62,6 +65,7 @@ export function WorkoutAppTabs({
         {tab === "feed" && (
           <WorkoutFeedTab onSelectMember={(username) => setMemberUsername(username)} />
         )}
+        {tab === "chat" && <ChatShell userId={userId} />}
         {tab === "log" && <WorkoutLogTab userId={userId} />}
         {tab === "stats" && <WorkoutStatsTab userId={userId} />}
         {tab === "profile" && (

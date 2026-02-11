@@ -1,57 +1,539 @@
 import { supabase, type Profile, type WorkoutLog, type WorkoutLogWithProfile } from "./client";
 
-// Sun=0, Mon=1, ... Sat=6 (JS getDay())
-const ROUTINE_BY_DAY: (string | null)[] = [
-  "rest",
-  "push",
-  "pull",
-  "legs",
-  "push",
-  "pull",
-  "legs",
-];
-const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+// ---------- Types ----------
 
-/** Returns the next scheduled category (and day name) after the last workout date. If no last log, returns today's. */
-export function getNextSuggested(
-  lastLogDate: string | null
-): { category: string; dayName: string; dayIndex: number } {
-  const now = new Date();
-  const todayIndex = now.getDay();
-  if (!lastLogDate) {
-    let idx = todayIndex;
-    let cat = ROUTINE_BY_DAY[idx];
-    while (cat === "rest" && idx !== (todayIndex + 6) % 7) {
-      idx = (idx + 1) % 7;
-      cat = ROUTINE_BY_DAY[idx];
-    }
-    return {
-      category: cat ?? "push",
-      dayName: DAY_NAMES[idx],
-      dayIndex: idx,
-    };
-  }
-  const last = new Date(lastLogDate + "Z");
-  const lastDayIndex = last.getUTCDay();
-  let nextIndex = (lastDayIndex + 1) % 7;
-  let nextCat = ROUTINE_BY_DAY[nextIndex];
-  while (nextCat === "rest") {
-    nextIndex = (nextIndex + 1) % 7;
-    nextCat = ROUTINE_BY_DAY[nextIndex];
-  }
+export type TrackingStyle = "schedule" | "sequence";
+
+export type WorkoutModes = {
+  progressiveOverload: boolean;
+  dropSets: boolean;
+  rpe: boolean;
+  supersets: boolean;
+  amrap: boolean;
+};
+
+export type WorkoutPreferences = {
+  timer_enabled: boolean;
+  timer_default_sec: number | null;
+  units: "lbs" | "kg";
+  show_suggestions: boolean;
+};
+
+export type WorkoutSettings = {
+  user_id: string;
+  tracking_style: TrackingStyle;
+  selected_days: number[] | null;
+  schedule_map: Record<string, string> | null; // weekday "0".."6" -> template_id
+  rotation: { index: number; template_id: string; label: string }[] | null;
+  modes: WorkoutModes;
+  preferences: WorkoutPreferences;
+  setup_completed: boolean;
+  updated_at: string;
+};
+
+export type WorkoutTemplate = {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
+};
+
+export type TemplateExercise = {
+  id: string;
+  user_id: string;
+  template_id: string;
+  name: string;
+  sort_order: number;
+  default_sets: number | null;
+  default_reps: number | null;
+  default_rest_sec: number | null;
+  mode: Record<string, unknown> | null;
+};
+
+export type WorkoutSession = {
+  id: string;
+  user_id: string;
+  started_at: string;
+  ended_at: string | null;
+  day_label: string | null;
+  template_id: string | null;
+  notes: string | null;
+  duration_min: number | null;
+};
+
+export type WorkoutExerciseRow = {
+  id: string;
+  session_id: string;
+  name: string;
+  sort_order: number;
+};
+
+export type WorkoutSetRow = {
+  id: string;
+  exercise_id: string;
+  set_number: number;
+  reps: number | null;
+  weight: number | null;
+  is_done: boolean;
+  is_drop_set: boolean;
+  drop_set_level: number | null;
+  rpe: number | null;
+};
+
+export type ExerciseHistory = {
+  user_id: string;
+  exercise_name: string;
+  last_weight: number | null;
+  last_reps: number | null;
+  last_sets: number | null;
+  last_done_at: string | null;
+  next_weight: number | null;
+  next_reps: number | null;
+  next_sets: number | null;
+  updated_at: string;
+};
+
+export type WorkoutStatsSummary = {
+  topExercises: { exercise_name: string; count: number }[];
+  totalVolume: number;
+};
+
+// ---------- Settings helpers ----------
+
+function ensureDefaultModes(modes: Partial<WorkoutModes> | null | undefined): WorkoutModes {
   return {
-    category: nextCat ?? "push",
-    dayName: DAY_NAMES[nextIndex],
-    dayIndex: nextIndex,
+    progressiveOverload: modes?.progressiveOverload ?? true,
+    dropSets: modes?.dropSets ?? false,
+    rpe: modes?.rpe ?? false,
+    supersets: modes?.supersets ?? false,
+    amrap: modes?.amrap ?? false,
   };
 }
 
-export function getRoutineSchedule(): { dayName: string; category: string }[] {
-  return DAY_NAMES.map((name, i) => ({
-    dayName: name,
-    category: ROUTINE_BY_DAY[i] ?? "rest",
-  }));
+function ensureDefaultPreferences(
+  prefs: Partial<WorkoutPreferences> | null | undefined
+): WorkoutPreferences {
+  return {
+    timer_enabled: prefs?.timer_enabled ?? false,
+    timer_default_sec: prefs?.timer_default_sec ?? 90,
+    units: prefs?.units ?? "lbs",
+    show_suggestions: prefs?.show_suggestions ?? true,
+  };
 }
+
+export async function getWorkoutSettings(userId: string): Promise<WorkoutSettings | null> {
+  const { data, error } = await supabase
+    .from("workout_settings")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error && error.code !== "PGRST116") throw error;
+  if (!data) return null;
+  const row = data as WorkoutSettings;
+  return {
+    ...row,
+    modes: ensureDefaultModes(row.modes as Partial<WorkoutModes>),
+    preferences: ensureDefaultPreferences(row.preferences as Partial<WorkoutPreferences>),
+  };
+}
+
+export async function upsertWorkoutSettings(
+  userId: string,
+  payload: Partial<Omit<WorkoutSettings, "user_id" | "updated_at">>
+): Promise<WorkoutSettings> {
+  const nextModes = ensureDefaultModes((payload.modes ?? {}) as Partial<WorkoutModes>);
+  const nextPrefs = ensureDefaultPreferences(
+    (payload.preferences ?? {}) as Partial<WorkoutPreferences>
+  );
+  const { data, error } = await supabase
+    .from("workout_settings")
+    .upsert(
+      { user_id: userId, ...payload, modes: nextModes, preferences: nextPrefs },
+      { onConflict: "user_id" }
+    )
+    .select()
+    .single();
+  if (error) throw error;
+  const row = data as WorkoutSettings;
+  return {
+    ...row,
+    modes: ensureDefaultModes(row.modes as Partial<WorkoutModes>),
+    preferences: ensureDefaultPreferences(row.preferences as Partial<WorkoutPreferences>),
+  };
+}
+
+export async function resetWorkoutSetup(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("workout_settings")
+    .update({ setup_completed: false })
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+// ---------- Templates ----------
+
+export async function getUserTemplates(userId: string): Promise<WorkoutTemplate[]> {
+  const { data, error } = await supabase
+    .from("workout_templates")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as WorkoutTemplate[];
+}
+
+export async function getTemplateExercises(templateId: string): Promise<TemplateExercise[]> {
+  const { data, error } = await supabase
+    .from("template_exercises")
+    .select("*")
+    .eq("template_id", templateId)
+    .order("sort_order", { ascending: true });
+  if (error) throw error;
+  return (data ?? []) as TemplateExercise[];
+}
+
+export async function createTemplateWithExercises(
+  userId: string,
+  name: string,
+  exercises: {
+    name: string;
+    sort_order: number;
+    default_sets?: number | null;
+    default_reps?: number | null;
+    default_rest_sec?: number | null;
+  }[]
+): Promise<{ template: WorkoutTemplate; exercises: TemplateExercise[] }> {
+  const { data: templateData, error: templateError } = await supabase
+    .from("workout_templates")
+    .insert({ user_id: userId, name })
+    .select()
+    .single();
+  if (templateError) throw templateError;
+  const template = templateData as WorkoutTemplate;
+
+  if (exercises.length === 0) {
+    return { template, exercises: [] };
+  }
+
+  const { data: exData, error: exError } = await supabase
+    .from("template_exercises")
+    .insert(
+      exercises.map((e) => ({
+        ...e,
+        user_id: userId,
+        template_id: template.id,
+      }))
+    )
+    .select();
+  if (exError) throw exError;
+  return { template, exercises: (exData ?? []) as TemplateExercise[] };
+}
+
+// ---------- Sessions & logging ----------
+
+export async function getActiveSession(userId: string): Promise<WorkoutSession | null> {
+  const { data, error } = await supabase
+    .from("workout_sessions")
+    .select("*")
+    .eq("user_id", userId)
+    .is("ended_at", null)
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error && error.code !== "PGRST116") throw error;
+  return (data ?? null) as WorkoutSession | null;
+}
+
+export async function getLastCompletedSession(
+  userId: string
+): Promise<WorkoutSession | null> {
+  const { data, error } = await supabase
+    .from("workout_sessions")
+    .select("*")
+    .eq("user_id", userId)
+    .not("ended_at", "is", null)
+    .order("ended_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error && error.code !== "PGRST116") throw error;
+  return (data ?? null) as WorkoutSession | null;
+}
+
+export async function getSessionWithDetails(sessionId: string): Promise<{
+  session: WorkoutSession;
+  exercises: WorkoutExerciseRow[];
+  sets: WorkoutSetRow[];
+}> {
+  const { data: session, error: sErr } = await supabase
+    .from("workout_sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .single();
+  if (sErr) throw sErr;
+
+  const { data: exercises, error: eErr } = await supabase
+    .from("workout_exercises")
+    .select("*")
+    .eq("session_id", sessionId)
+    .order("sort_order", { ascending: true });
+  if (eErr) throw eErr;
+
+  const { data: sets, error: setErr } = await supabase
+    .from("workout_sets")
+    .select("*")
+    .in(
+      "exercise_id",
+      (exercises ?? []).map((e) => e.id)
+    );
+  if (setErr) throw setErr;
+
+  return {
+    session: session as WorkoutSession,
+    exercises: (exercises ?? []) as WorkoutExerciseRow[],
+    sets: (sets ?? []) as WorkoutSetRow[],
+  };
+}
+
+export type StartSessionParams = {
+  userId: string;
+  dayLabel: string;
+  templateId?: string | null;
+};
+
+export async function startWorkoutSession(
+  params: StartSessionParams
+): Promise<{ session: WorkoutSession; exercises: WorkoutExerciseRow[] }> {
+  const { userId, dayLabel, templateId } = params;
+  const { data: sessionData, error: sErr } = await supabase
+    .from("workout_sessions")
+    .insert({
+      user_id: userId,
+      day_label: dayLabel,
+      template_id: templateId ?? null,
+      started_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+  if (sErr) throw sErr;
+  const session = sessionData as WorkoutSession;
+
+  if (!templateId) {
+    return { session, exercises: [] };
+  }
+
+  const templateExercises = await getTemplateExercises(templateId);
+  if (templateExercises.length === 0) {
+    return { session, exercises: [] };
+  }
+
+  const { data: exRows, error: exErr } = await supabase
+    .from("workout_exercises")
+    .insert(
+      templateExercises.map((e) => ({
+        session_id: session.id,
+        name: e.name,
+        sort_order: e.sort_order,
+      }))
+    )
+    .select();
+  if (exErr) throw exErr;
+
+  return { session, exercises: (exRows ?? []) as WorkoutExerciseRow[] };
+}
+
+export type FinishSessionPayload = {
+  sessionId: string;
+  notes?: string;
+  durationMin?: number | null;
+  exercises: {
+    name: string;
+    sets: {
+      set_number: number;
+      reps: number | null;
+      weight: number | null;
+      is_done: boolean;
+      is_drop_set: boolean;
+      drop_set_level: number | null;
+      rpe: number | null;
+    }[];
+  }[];
+  modes: WorkoutModes;
+};
+
+export async function finishWorkoutSession(payload: FinishSessionPayload): Promise<void> {
+  const { sessionId, notes, durationMin, exercises, modes } = payload;
+
+  const endedAt = new Date().toISOString();
+
+  const { error: sErr } = await supabase
+    .from("workout_sessions")
+    .update({
+      ended_at: endedAt,
+      notes: notes ?? null,
+      duration_min: durationMin ?? null,
+    })
+    .eq("id", sessionId);
+  if (sErr) throw sErr;
+
+  if (exercises.length === 0) {
+    return;
+  }
+
+  const { data: exRows, error: exErr } = await supabase
+    .from("workout_exercises")
+    .insert(
+      exercises.map((e, idx) => ({
+        session_id: sessionId,
+        name: e.name,
+        sort_order: idx,
+      }))
+    )
+    .select();
+  if (exErr) throw exErr;
+  const insertedExercises = (exRows ?? []) as WorkoutExerciseRow[];
+
+  const setsToInsert: Omit<WorkoutSetRow, "id">[] = [];
+  for (const ex of exercises) {
+    const exRow = insertedExercises.find((r) => r.name === ex.name);
+    if (!exRow) continue;
+    for (const set of ex.sets) {
+      setsToInsert.push({
+        exercise_id: exRow.id,
+        set_number: set.set_number,
+        reps: set.reps,
+        weight: set.weight,
+        is_done: set.is_done,
+        is_drop_set: set.is_drop_set,
+        drop_set_level: set.drop_set_level,
+        rpe: set.rpe,
+      });
+    }
+  }
+
+  if (setsToInsert.length > 0) {
+    const { error: setErr } = await supabase.from("workout_sets").insert(setsToInsert);
+    if (setErr) throw setErr;
+  }
+
+  // Optionally mirror a summary row into workout_logs for existing feed / leaderboard.
+  const mainExercise = exercises[0];
+  if (mainExercise) {
+    const reps = mainExercise.sets.reduce((sum, s) => sum + (s.reps ?? 0), 0);
+    const avgWeight =
+      mainExercise.sets.reduce((sum, s) => sum + (s.weight ?? 0), 0) /
+      (mainExercise.sets.filter((s) => s.weight != null).length || 1);
+
+    const dateStr = endedAt.slice(0, 10);
+    await insertLogFromSession({
+      date: dateStr,
+      workout_type: mainExercise.name.toLowerCase(),
+      workout_name: mainExercise.name,
+      reps: reps || null,
+      sets: mainExercise.sets.length || null,
+      lbs: Number.isFinite(avgWeight) ? Math.round(avgWeight) : null,
+      duration_min: durationMin ?? undefined,
+      notes: notes ?? undefined,
+    });
+  }
+
+  if (modes.progressiveOverload) {
+    await updateExerciseHistoryFromSession(exercises);
+  }
+}
+
+// ---------- Exercise history & suggestions ----------
+
+export async function getExerciseHistoryForNames(
+  userId: string,
+  names: string[]
+): Promise<Map<string, ExerciseHistory>> {
+  if (names.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from("exercise_history")
+    .select("*")
+    .eq("user_id", userId)
+    .in("exercise_name", names);
+  if (error) throw error;
+  const map = new Map<string, ExerciseHistory>();
+  for (const row of data ?? []) {
+    const h = row as ExerciseHistory;
+    map.set(h.exercise_name, h);
+  }
+  return map;
+}
+
+async function updateExerciseHistoryFromSession(
+  exercises: FinishSessionPayload["exercises"]
+): Promise<void> {
+  const updates: {
+    exercise_name: string;
+    last_weight: number | null;
+    last_reps: number | null;
+    last_sets: number | null;
+    next_weight: number | null;
+    next_reps: number | null;
+    next_sets: number | null;
+  }[] = [];
+
+  for (const ex of exercises) {
+    const doneSets = ex.sets.filter((s) => s.is_done && s.weight != null && s.reps != null);
+    if (doneSets.length === 0) continue;
+    const last = doneSets[doneSets.length - 1];
+    const lastWeight = last.weight ?? null;
+    const lastReps = last.reps ?? null;
+    const lastSets = doneSets.length;
+
+    let nextWeight: number | null = lastWeight;
+    let nextReps: number | null = lastReps;
+    let nextSets: number | null = lastSets;
+
+    if (lastWeight != null && lastReps != null) {
+      if (lastReps >= (lastReps ?? 0)) {
+        const increment = lastWeight >= 100 ? 5 : 2.5;
+        nextWeight = lastWeight + increment;
+      }
+    }
+
+    updates.push({
+      exercise_name: ex.name,
+      last_weight: lastWeight,
+      last_reps: lastReps,
+      last_sets: lastSets,
+      next_weight: nextWeight,
+      next_reps: nextReps,
+      next_sets: nextSets,
+    });
+  }
+
+  if (updates.length === 0) return;
+
+  const rows = updates.map((u) => ({
+    ...u,
+    user_id: (supabase as unknown as { auth: { getUser: () => Promise<{ data: { user: { id: string } | null } }> } })
+      ? undefined
+      : undefined,
+  }));
+
+  // We don't have auth.uid() here, so rely on PostgREST RLS via current user; the caller must be authenticated.
+  const { error } = await supabase.from("exercise_history").upsert(
+    updates.map((u) => ({
+      ...u,
+      user_id: undefined,
+      updated_at: new Date().toISOString(),
+    })),
+    {
+      onConflict: "user_id,exercise_name",
+      ignoreDuplicates: false,
+    }
+  );
+  if (error) {
+    // Non-fatal; suggestions just won't update.
+    // eslint-disable-next-line no-console
+    console.error("Failed to update exercise history", error);
+  }
+}
+
+// ---------- Stats helpers ----------
 
 export async function getMyProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
@@ -136,6 +618,56 @@ export async function getAllProfiles(): Promise<Profile[]> {
   return (data ?? []) as Profile[];
 }
 
+export async function getWorkoutStatsSummary(userId: string): Promise<WorkoutStatsSummary> {
+  // Top exercises & total volume from session-based logging when available.
+  const { data, error } = await supabase
+    .from("workout_exercises")
+    .select(
+      `
+      name,
+      workout_sets (
+        reps,
+        weight
+      )
+    `
+    )
+    .in(
+      "session_id",
+      (
+        await supabase
+          .from("workout_sessions")
+          .select("id")
+          .eq("user_id", userId)
+      ).data?.map((s) => s.id) ?? []
+    );
+  if (error) {
+    // Fallback: no extra stats
+    return { topExercises: [], totalVolume: 0 };
+  }
+
+  const counts = new Map<string, number>();
+  let totalVolume = 0;
+
+  for (const row of data ?? []) {
+    const name = (row as { name: string }).name;
+    const sets = (row as { workout_sets: { reps: number | null; weight: number | null }[] })
+      .workout_sets;
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+    for (const set of sets ?? []) {
+      if (set.reps != null && set.weight != null) {
+        totalVolume += set.reps * Number(set.weight);
+      }
+    }
+  }
+
+  const topExercises = Array.from(counts.entries())
+    .map(([exercise_name, count]) => ({ exercise_name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  return { topExercises, totalVolume };
+}
+
 export async function getCommunityLeaderboard(weekStart: string, weekEnd: string) {
   const { data: logs, error } = await supabase
     .from("workout_logs")
@@ -152,6 +684,33 @@ export async function getCommunityLeaderboard(weekStart: string, weekEnd: string
     byUser.set(row.user_id, cur);
   }
   return Array.from(byUser.entries()).map(([user_id, agg]) => ({ user_id, ...agg }));
+}
+
+async function insertLogFromSession(
+  payload: {
+    date: string;
+    workout_type: string;
+    workout_name?: string | null;
+    reps?: number | null;
+    sets?: number | null;
+    lbs?: number | null;
+    duration_min?: number;
+    notes?: string;
+  }
+): Promise<void> {
+  // Caller must already be authenticated in Supabase; we rely on RLS to attach user_id via client.
+  const { data: userRes } = await supabase.auth.getUser();
+  const userId = userRes.user?.id;
+  if (!userId) return;
+
+  const { error } = await supabase.from("workout_logs").insert({
+    user_id: userId,
+    ...payload,
+  });
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.error("Failed to mirror workout_logs from session", error);
+  }
 }
 
 export async function insertLog(

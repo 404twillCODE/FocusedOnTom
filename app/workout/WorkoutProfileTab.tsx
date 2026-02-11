@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { User, LogOut, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { getMyProfile, upsertProfile } from "@/lib/supabase/workout";
+import { getMyProfile, upsertProfile, resetWorkoutSetup } from "@/lib/supabase/workout";
 import type { Profile } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -170,15 +170,62 @@ export function WorkoutProfileTab({
           </>
         )}
       </div>
-      <div className="mt-6 flex justify-center">
-        <button
-          type="button"
-          onClick={handleSignOut}
-          className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-transparent px-4 py-2.5 text-sm text-[var(--textMuted)] hover:border-red-500/50 hover:text-red-400"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign out
-        </button>
+      <div className="mt-6 space-y-4">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/80 p-4">
+          <h3 className="text-sm font-semibold text-[var(--text)]">Workout settings</h3>
+          <p className="mt-1 text-xs text-[var(--textMuted)]">
+            Control how the Log tab behaves.
+          </p>
+          <div className="mt-3 flex flex-col gap-2 text-xs">
+            <button
+              type="button"
+              onClick={async () => {
+                // Simplest path: mark setup as incomplete so the wizard runs again.
+                try {
+                  await resetWorkoutSetup(userId);
+                } catch {
+                  // ignore; wizard will still be available on next load
+                }
+                // Give a gentle hint; real edit happens when user returns to Log.
+                alert("Next time you open the Log tab, the setup wizard will appear again.");
+              }}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-2.5 text-left text-xs font-medium text-[var(--text)] hover:border-[var(--ice)]/50 hover:text-[var(--ice)]"
+            >
+              Edit workout setup
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (
+                  !window.confirm(
+                    "Reset workout setup? Your past sessions stay, but you will re-run the wizard."
+                  )
+                ) {
+                  return;
+                }
+                try {
+                  await resetWorkoutSetup(userId);
+                  alert("Workout setup reset. The wizard will appear next time in the Log tab.");
+                } catch {
+                  alert("Failed to reset workout setup. Please try again later.");
+                }
+              }}
+              className="w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-left text-xs font-medium text-red-300 hover:border-red-400 hover:text-red-200"
+            >
+              Reset setup
+            </button>
+          </div>
+        </div>
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-transparent px-4 py-2.5 text-sm text-[var(--textMuted)] hover:border-red-500/50 hover:text-red-400"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   );

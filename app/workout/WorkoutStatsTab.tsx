@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Flame, Activity, Loader2 } from "lucide-react";
+import { Trophy, Flame, Activity, Loader2, Dumbbell } from "lucide-react";
 import {
   getCommunityLeaderboard,
   getMyLogs,
   getAllProfiles,
+  getWorkoutStatsSummary,
 } from "@/lib/supabase/workout";
 import { cn } from "@/lib/cn";
 
@@ -45,6 +46,8 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
   >([]);
   const [profiles, setProfiles] = useState<Map<string, { display_name: string; username: string }>>(new Map());
   const [myLogs, setMyLogs] = useState<{ date: string; duration_min: number }[]>([]);
+  const [volume, setVolume] = useState<number>(0);
+  const [topExercises, setTopExercises] = useState<{ exercise_name: string; count: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -55,8 +58,9 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
       getCommunityLeaderboard(start, end),
       getAllProfiles(),
       getMyLogs(userId),
+      getWorkoutStatsSummary(userId),
     ])
-      .then(([board, profs, logs]) => {
+      .then(([board, profs, logs, summary]) => {
         if (cancelled) return;
         setLeaderboard(
           board.sort((a, b) => (b.count !== a.count ? b.count - a.count : b.minutes - a.minutes))
@@ -65,6 +69,8 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
         for (const p of profs) map.set(p.id, { display_name: p.display_name, username: p.username });
         setProfiles(map);
         setMyLogs(logs.map((l) => ({ date: l.date, duration_min: l.duration_min ?? 0 })));
+        setVolume(summary.totalVolume);
+        setTopExercises(summary.topExercises);
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load stats.");
@@ -152,6 +158,36 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
           </motion.div>
         </div>
       </section>
+
+      {topExercises.length > 0 && (
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-[var(--text)]">
+            <Dumbbell className="h-5 w-5 text-[var(--ice)]" />
+            Lifts
+          </h2>
+          <div className="space-y-2">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 p-3 text-xs text-[var(--textMuted)]">
+              <span className="font-medium text-[var(--text)]">
+                Total volume:&nbsp;
+              </span>
+              {Math.round(volume)} {/** units-agnostic; display as raw number */}
+            </div>
+            <ul className="space-y-1 text-sm">
+              {topExercises.map((ex) => (
+                <li
+                  key={ex.exercise_name}
+                  className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 px-3 py-2"
+                >
+                  <span className="truncate text-[var(--text)]">{ex.exercise_name}</span>
+                  <span className="text-xs text-[var(--textMuted)]">
+                    {ex.count} session{ex.count !== 1 ? "s" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-[var(--text)]">
