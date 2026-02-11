@@ -17,6 +17,11 @@ const links = [
 function NavContent() {
   const pathname = usePathname();
 
+  // Hide nav on the workout app to keep it feeling like a standalone app.
+  if (pathname.startsWith("/workout")) {
+    return null;
+  }
+
   return (
     <nav
       className="fixed left-0 right-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-4 sm:pt-4"
