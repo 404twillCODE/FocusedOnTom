@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import webpush from "web-push";
-import { supabaseAdmin } from "@/lib/supabase/serverClient";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
@@ -37,6 +37,14 @@ export async function POST(req: Request) {
 
   if (!Array.isArray(userIds) || userIds.length === 0 || !title || !messageBody) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  let supabaseAdmin;
+  try {
+    supabaseAdmin = getSupabaseAdmin();
+  } catch (error) {
+    console.error("push/send getSupabaseAdmin:", error);
+    return NextResponse.json({ error: "Server configuration error" }, { status: 503 });
   }
 
   const { data: subs, error } = await supabaseAdmin

@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid subscription" }, { status: 400 });
   }
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: false,
@@ -56,7 +56,7 @@ export async function DELETE(req: Request) {
   const body = await req.json().catch(() => ({}));
   const { endpoint } = body ?? {};
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
       persistSession: false,

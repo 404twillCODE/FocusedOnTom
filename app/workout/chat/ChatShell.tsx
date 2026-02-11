@@ -103,22 +103,23 @@ export function ChatShell({ userId }: { userId: string }) {
     setLoadingMessages(true);
     setMessages([]);
 
-    supabase
-      .from("chat_messages")
-      .select("*")
-      .eq("room_id", activeRoomId)
-      .order("created_at", { ascending: true })
-      .then(({ data, error: msgErr }) => {
+    (async () => {
+      try {
+        const { data, error: msgErr } = await supabase
+          .from("chat_messages")
+          .select("*")
+          .eq("room_id", activeRoomId)
+          .order("created_at", { ascending: true });
         if (cancelled) return;
         if (msgErr) {
           setError(msgErr.message);
         } else {
           setMessages((data ?? []) as Message[]);
         }
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setLoadingMessages(false);
-      });
+      }
+    })();
 
     const ch = supabase
       .channel(`chat-room-${activeRoomId}`)

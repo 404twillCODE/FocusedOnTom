@@ -920,7 +920,7 @@ export function GetFitWorkoutTracker({
                       set={set}
                       exerciseId={exercise.id}
                       index={index}
-                      canRemove={exercise.sets.length > 1}
+                      canRemove={(exercise.sets?.length ?? 0) > 1}
                       onRepsBlur={(v) => updateSetField(exercise.id, index, "reps", v)}
                       onWeightBlur={(v) => updateSetField(exercise.id, index, "weight", v)}
                       onRestChange={(sec) => updateSetRest(exercise.id, index, sec)}
