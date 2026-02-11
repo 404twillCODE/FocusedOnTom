@@ -15,12 +15,13 @@ export function ProjectListView({ projects }: ProjectListViewProps) {
   const byCategory = useMemo(() => {
     const map = new Map<string, Project[]>();
     for (const p of projects) {
-      const list = map.get(p.category) ?? [];
+      const key = p.category ?? "";
+      const list = map.get(key) ?? [];
       list.push(p);
-      map.set(p.category, list);
+      map.set(key, list);
     }
     for (const list of map.values()) {
-      list.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
+      list.sort((a, b) => Number(b.year ?? 0) - Number(a.year ?? 0));
     }
     const order = Array.from(map.keys()).sort();
     return order.map((cat) => ({ category: cat, items: map.get(cat)! }));

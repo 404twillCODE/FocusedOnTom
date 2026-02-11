@@ -1,119 +1,33 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { AppShell } from "@/components/shell/AppShell";
-import { FadeIn } from "@/components/motion/FadeIn";
-import { getSkillClusters, getSkillCategories } from "@/lib/data/skills";
-import { useAppStore, type AppState } from "@/store/appStore";
-import { SkillClusterView } from "@/components/skills/SkillCluster";
-import { SkillDetailPanel } from "@/components/skills/SkillDetailPanel";
-import { SkillMap } from "@/components/skills/SkillMap";
-import { SkillFilters } from "@/components/skills/SkillFilters";
-import type { SkillCluster } from "@/lib/types/content";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { WorkInProgressBanner } from "@/components/WorkInProgressBanner";
 
 export default function SkillsPage() {
-  const allClusters = useMemo(() => getSkillClusters(), []);
-  const categories = useMemo(() => getSkillCategories(), []);
-  const reducedMotion = useAppStore((s: AppState) => s.reducedMotion);
-  const [selectedSkill, setSelectedSkill] = useState<SkillCluster | null>(null);
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [sortByLevel, setSortByLevel] = useState(true);
-
-  const clusters = useMemo(() => {
-    let list = allClusters;
-    if (searchQuery.trim()) {
-      const q = searchQuery.trim().toLowerCase();
-      list = list.filter(
-        (s) =>
-          s.label.toLowerCase().includes(q) ||
-          s.summary.toLowerCase().includes(q) ||
-          s.tech.some((t) => t.toLowerCase().includes(q)) ||
-          (s.category ?? "").toLowerCase().includes(q)
-      );
-    }
-    if (categoryFilter) {
-      list = list.filter((s) => s.category === categoryFilter);
-    }
-    if (sortByLevel) {
-      list = [...list].sort((a, b) => b.level - a.level);
-    }
-    return list;
-  }, [allClusters, searchQuery, categoryFilter, sortByLevel]);
+  const [notificationDismissed, setNotificationDismissed] = useState(false);
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-6xl px-4 py-12">
-        <FadeIn>
-          <h1 className="text-4xl font-semibold tracking-tight text-text md:text-5xl">
-            Skills Constellation
-          </h1>
-        </FadeIn>
-        <FadeIn delay={0.05}>
-          <p className="mt-2 text-textMuted">
-            Hover nodes to highlight connections. Click to open details.
-          </p>
-        </FadeIn>
-
-        <FadeIn delay={0.08}>
-          <SkillFilters
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            categoryFilter={categoryFilter}
-            onCategoryChange={setCategoryFilter}
-            categories={categories}
-            sortByLevel={sortByLevel}
-            onSortChange={setSortByLevel}
-            className="mt-6"
-          />
-        </FadeIn>
-
-        {/* Map view: md and up */}
-        <FadeIn delay={0.1} className="mt-6 hidden md:block">
-          {clusters.length > 0 ? (
-            <SkillMap
-              skills={clusters}
-              reducedMotion={reducedMotion}
-              hoveredId={hoveredId}
-              onHoverChange={setHoveredId}
-              onSelect={setSelectedSkill}
-            />
-          ) : (
-            <div className="flex min-h-[40vh] items-center justify-center rounded-xl border border-border/60 bg-panel/30 text-textMuted">
-              No skills match the current filters.
-            </div>
-          )}
-        </FadeIn>
-
-        {/* List view: small screens only */}
-        <FadeIn delay={0.1} className="mt-6 md:hidden">
-          {clusters.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              {clusters.map((skill, index) => (
-                <SkillClusterView
-                  key={skill.id}
-                  skill={skill}
-                  index={index}
-                  reducedMotion={reducedMotion}
-                  onSelect={setSelectedSkill}
-                  mode="list"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex min-h-[200px] items-center justify-center rounded-xl border border-border/60 bg-panel/30 text-textMuted">
-              No skills match the current filters.
-            </div>
-          )}
-        </FadeIn>
+    <main className="min-h-screen">
+      <WorkInProgressBanner onDismiss={() => setNotificationDismissed(true)} />
+      <div
+        className={`transition-opacity duration-300 ${notificationDismissed ? "opacity-100" : "pointer-events-none opacity-0"}`}
+      >
+        <section className="mx-auto max-w-5xl px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl sm:text-4xl">
+              Skills
+            </h1>
+            <p className="mt-3 max-w-xl text-[var(--textMuted)]">
+              What I work with — languages, tools, and areas I'm building in. Coming soon.
+            </p>
+          </motion.div>
+        </section>
       </div>
-
-      <SkillDetailPanel
-        skill={selectedSkill}
-        onClose={() => setSelectedSkill(null)}
-        reducedMotion={reducedMotion}
-      />
-    </AppShell>
+    </main>
   );
 }

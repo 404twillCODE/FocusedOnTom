@@ -1,15 +1,14 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import { ExternalLink, Code2, Server, Car } from "lucide-react";
-import { GridCardBackground } from "@/components/GridCardBackground";
+import { WorkInProgressBanner } from "@/components/WorkInProgressBanner";
 
 const projects = [
   {
     title: "Nodexity",
     subtitle: "Minecraft server manager",
-    cardGridBackground: true,
     description:
       "A tool to manage Minecraft servers — start, stop, monitor, and configure your server from one place. Built to make self-hosting simpler.",
     tags: ["Node.js", "Minecraft", "DevOps"],
@@ -19,7 +18,6 @@ const projects = [
   },
   {
     title: "PullUp",
-    cardGridBackground: false,
     subtitle: "Car meet app",
     description:
       "Find and join local car meets. See what's happening near you, share your ride, and connect with other enthusiasts.",
@@ -58,25 +56,31 @@ function AnimatedCard({
 }
 
 export default function DevPage() {
+  const [notificationDismissed, setNotificationDismissed] = useState(false);
+
   return (
     <main className="min-h-screen">
-      <section className="mx-auto max-w-5xl px-6 pt-24 pb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          <h1 className="text-3xl font-semibold tracking-tight text-[var(--text)] sm:text-4xl">
-            Dev & projects
-          </h1>
-          <p className="mt-3 max-w-xl text-[var(--textMuted)]">
-            Things I've been building — side projects and experiments. Links and
-            code when available.
-          </p>
-        </motion.div>
-      </section>
+      <WorkInProgressBanner onDismiss={() => setNotificationDismissed(true)} />
+      <div
+        className={`transition-opacity duration-300 ${notificationDismissed ? "opacity-100" : "pointer-events-none opacity-0"}`}
+      >
+        <section className="mx-auto max-w-5xl px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl sm:text-4xl">
+              Dev
+            </h1>
+            <p className="mt-3 max-w-xl text-[var(--textMuted)]">
+              Things I've been building — side projects and experiments. Links and
+              code when available.
+            </p>
+          </motion.div>
+        </section>
 
-      <section className="mx-auto max-w-5xl px-6 pb-24">
+        <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6 sm:pb-24">
         <div className="grid gap-6 sm:grid-cols-2">
           {projects.map((project, i) => (
             <AnimatedCard key={project.title} delay={0.08 * (i + 1)}>
@@ -85,7 +89,6 @@ export default function DevPage() {
                 whileHover={{ y: -4 }}
                 transition={{ type: "spring", bounce: 0.35 }}
               >
-                {project.cardGridBackground && <GridCardBackground />}
                 <div className="relative z-10 flex flex-1 flex-col p-6 sm:p-7">
                   <div className="flex items-start gap-4">
                     <motion.span
@@ -159,6 +162,7 @@ export default function DevPage() {
           ))}
         </div>
       </section>
+      </div>
     </main>
   );
 }

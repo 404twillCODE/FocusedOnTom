@@ -74,7 +74,7 @@ export function SkillDetailPanel({ skill, onClose, reducedMotion }: SkillDetailP
     }
   }, [skill]);
 
-  const strengthLabel = skill ? getStrengthLabel(skill.level) : "";
+  const strengthLabel = skill ? getStrengthLabel(skill.level ?? 0) : "";
   const usedInProjects = skill
     ? (skill.usedIn ?? [])
         .map((slug) => ({ slug, project: getProjectBySlug(slug) }))
@@ -224,7 +224,7 @@ export function SkillDetailPanel({ skill, onClose, reducedMotion }: SkillDetailP
               </p>
 
               {/* Tech pills */}
-              {skill.tech.length > 0 && (
+              {skill.tech && skill.tech.length > 0 && (
                 <div className="mt-4">
                   <p className="mb-2 font-mono text-[10px] uppercase tracking-wider text-textMuted">
                     Tech
@@ -244,13 +244,13 @@ export function SkillDetailPanel({ skill, onClose, reducedMotion }: SkillDetailP
               )}
 
               {/* Keywords */}
-              {skill.keywords?.length ? (
+              {(skill.keywords?.length ?? 0) > 0 ? (
                 <div className="mt-3">
                   <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-textMuted/80">
                     Keywords
                   </p>
                   <p className="text-xs text-textMuted/90">
-                    {skill.keywords.join(" · ")}
+                    {(skill.keywords ?? []).join(" · ")}
                   </p>
                 </div>
               ) : null}

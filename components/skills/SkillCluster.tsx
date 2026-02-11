@@ -53,13 +53,13 @@ export function SkillClusterView({
   isAnchor = false,
   orbitPaused = false,
 }: SkillClusterProps) {
-  const ringCount = useMemo(() => getRingCount(skill.level), [skill.level]);
-  const isHighLevel = skill.level >= 90;
+  const ringCount = useMemo(() => getRingCount(skill.level ?? 0), [skill.level]);
+  const isHighLevel = (skill.level ?? 0) >= 90;
   const isMap = mode === "map";
   const showAnchorStyle = isMap && isAnchor;
 
   const techPerRing = useMemo(() => {
-    const total = Math.min(skill.tech.length, ringCount * 4);
+    const total = Math.min((skill.tech ?? []).length, ringCount * 4);
     const perRing: number[] = [];
     let left = total;
     for (let r = 0; r < ringCount; r++) {
@@ -69,7 +69,7 @@ export function SkillClusterView({
       left -= n;
     }
     return perRing;
-  }, [skill.tech.length, ringCount]);
+  }, [(skill.tech ?? []).length, ringCount]);
 
   const techPositions = useMemo(() => {
     const out: { x: number; y: number }[] = [];

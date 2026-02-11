@@ -39,10 +39,10 @@ export function ProjectsPageClient({
       const q = search.trim().toLowerCase();
       list = list.filter(
         (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.tagline.toLowerCase().includes(q) ||
+          (p.name ?? "").toLowerCase().includes(q) ||
+          (p.tagline ?? "").toLowerCase().includes(q) ||
           p.tech.some((t) => t.toLowerCase().includes(q)) ||
-          p.category.toLowerCase().includes(q)
+          (p.category ?? "").toLowerCase().includes(q)
       );
     }
     return list;
