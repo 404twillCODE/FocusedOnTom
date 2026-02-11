@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { LayoutGrid, Plus, BarChart3, User, MessageCircle } from "lucide-react";
 import { WorkoutFeedTab } from "./WorkoutFeedTab";
-import { WorkoutLogTab } from "./WorkoutLogTab";
+import { WorkoutTab } from "./workout-tab";
 import { WorkoutStatsTab } from "./WorkoutStatsTab";
 import { WorkoutProfileTab } from "./WorkoutProfileTab";
 import { WorkoutMemberProfile } from "./WorkoutMemberProfile";
@@ -13,7 +13,7 @@ import { ChatShell } from "./chat/ChatShell";
 const TABS = [
   { id: "feed", label: "Feed", icon: LayoutGrid },
   { id: "chat", label: "Chat", icon: MessageCircle },
-  { id: "log", label: "Log", icon: Plus },
+  { id: "log", label: "Workout", icon: Plus },
   { id: "stats", label: "Stats", icon: BarChart3 },
   { id: "profile", label: "Profile", icon: User },
 ] as const;
@@ -66,7 +66,7 @@ export function WorkoutAppTabs({
           <WorkoutFeedTab onSelectMember={(username) => setMemberUsername(username)} />
         )}
         {tab === "chat" && <ChatShell userId={userId} />}
-        {tab === "log" && <WorkoutLogTab userId={userId} />}
+        {tab === "log" && <WorkoutTab userId={userId} />}
         {tab === "stats" && <WorkoutStatsTab userId={userId} />}
         {tab === "profile" && (
           <WorkoutProfileTab userId={userId} onSignOut={onSignOut} />

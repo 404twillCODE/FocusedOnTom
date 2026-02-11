@@ -170,6 +170,93 @@ export async function resetWorkoutSetup(userId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Suggested workout for today based on schedule or rotation. */
+export function getSuggestedToday(settings: WorkoutSettings): { label: string; templateId: string | null } | null {
+  if (!settings) return null;
+  if (settings.tracking_style === "schedule" && settings.schedule_map && settings.selected_days?.length) {
+    const today = new Date().getDay();
+    const templateId = settings.schedule_map[String(today)] ?? null;
+    if (templateId) return { label: "Today's workout", templateId };
+    return null;
+  }
+  if (settings.tracking_style === "sequence" && settings.rotation?.length) {
+    const first = settings.rotation[0] as { index?: number; template_id: string; label: string };
+    return {
+      label: first.label ?? "Day 1",
+      templateId: first.template_id ?? null,
+    };
+  }
+  return null;
+}
+
+/** Deletes all workout data for the user and resets setup so the wizard runs again. */
+export async function resetWorkoutEverything(userId: string): Promise<void> {
+  await supabase.from("workout_sessions").delete().eq("user_id", userId);
+  await supabase.from("template_exercises").delete().eq("user_id", userId);
+  await supabase.from("workout_templates").delete().eq("user_id", userId);
+  await supabase.from("exercise_history").delete().eq("user_id", userId);
+  const { error } = await supabase
+    .from("workout_settings")
+    .update({ setup_completed: false })
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+// ---------- Default template exercises ----------
+
+const DEFAULT_EXERCISES_BY_TEMPLATE_NAME: Record<string, string[]> = {
+  Push: [
+    "Bench Press",
+    "Overhead Press",
+    "Incline Dumbbell Press",
+    "Tricep Pushdown",
+    "Lateral Raise",
+  ],
+  Pull: [
+    "Barbell Row",
+    "Lat Pulldown",
+    "Cable Row",
+    "Bicep Curl",
+    "Face Pull",
+  ],
+  Legs: [
+    "Barbell Squat",
+    "Romanian Deadlift",
+    "Leg Press",
+    "Leg Curl",
+    "Calf Raise",
+  ],
+  Upper: [
+    "Bench Press",
+    "Overhead Press",
+    "Barbell Row",
+    "Lat Pulldown",
+    "Bicep Curl",
+  ],
+  Lower: [
+    "Barbell Squat",
+    "Romanian Deadlift",
+    "Leg Press",
+    "Leg Curl",
+    "Calf Raise",
+  ],
+  "Full Body": [
+    "Barbell Squat",
+    "Bench Press",
+    "Barbell Row",
+    "Overhead Press",
+    "Romanian Deadlift",
+  ],
+};
+
+/** Default exercise names for a template by display name (e.g. Push, Pull, Legs). Custom returns []. */
+export function getDefaultExercisesForTemplateName(
+  name: string
+): { name: string; sort_order: number }[] {
+  const names = DEFAULT_EXERCISES_BY_TEMPLATE_NAME[name] ?? [];
+  return names.map((name, i) => ({ name, sort_order: i }));
+}
+
 // ---------- Templates ----------
 
 export async function getUserTemplates(userId: string): Promise<WorkoutTemplate[]> {
@@ -294,6 +381,46 @@ export async function getSessionWithDetails(sessionId: string): Promise<{
   };
 }
 
+export async function getMySessions(
+  userId: string,
+  limit = 30
+): Promise<WorkoutSession[]> {
+  const { data, error } = await supabase
+    .from("workout_sessions")
+    .select("*")
+    .eq("user_id", userId)
+    .not("ended_at", "is", null)
+    .order("ended_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as WorkoutSession[];
+}
+
+export async function updateSession(
+  sessionId: string,
+  userId: string,
+  payload: { notes?: string | null; duration_min?: number | null }
+): Promise<WorkoutSession> {
+  const { data, error } = await supabase
+    .from("workout_sessions")
+    .update(payload)
+    .eq("id", sessionId)
+    .eq("user_id", userId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as WorkoutSession;
+}
+
+export async function deleteSession(sessionId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("workout_sessions")
+    .delete()
+    .eq("id", sessionId)
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
 export type StartSessionParams = {
   userId: string;
   dayLabel: string;
@@ -341,7 +468,32 @@ export async function startWorkoutSession(
   return { session, exercises: (exRows ?? []) as WorkoutExerciseRow[] };
 }
 
+/** Add template exercises to an existing session (e.g. "Log workout anyway" → user picks Push → Use template). */
+export async function addTemplateToSession(
+  sessionId: string,
+  userId: string,
+  templateId: string
+): Promise<WorkoutExerciseRow[]> {
+  const templateExercises = await getTemplateExercises(templateId);
+  if (templateExercises.length === 0) {
+    return [];
+  }
+  const { data: exRows, error } = await supabase
+    .from("workout_exercises")
+    .insert(
+      templateExercises.map((e) => ({
+        session_id: sessionId,
+        name: e.name,
+        sort_order: e.sort_order,
+      }))
+    )
+    .select();
+  if (error) throw error;
+  return (exRows ?? []) as WorkoutExerciseRow[];
+}
+
 export type FinishSessionPayload = {
+  userId: string;
   sessionId: string;
   notes?: string;
   durationMin?: number | null;
@@ -361,7 +513,7 @@ export type FinishSessionPayload = {
 };
 
 export async function finishWorkoutSession(payload: FinishSessionPayload): Promise<void> {
-  const { sessionId, notes, durationMin, exercises, modes } = payload;
+  const { userId, sessionId, notes, durationMin, exercises, modes } = payload;
 
   const endedAt = new Date().toISOString();
 
@@ -437,7 +589,7 @@ export async function finishWorkoutSession(payload: FinishSessionPayload): Promi
   }
 
   if (modes.progressiveOverload) {
-    await updateExerciseHistoryFromSession(exercises);
+    await updateExerciseHistoryFromSession(userId, exercises);
   }
 }
 
@@ -463,9 +615,11 @@ export async function getExerciseHistoryForNames(
 }
 
 async function updateExerciseHistoryFromSession(
+  userId: string,
   exercises: FinishSessionPayload["exercises"]
 ): Promise<void> {
   const updates: {
+    user_id: string;
     exercise_name: string;
     last_weight: number | null;
     last_reps: number | null;
@@ -473,6 +627,7 @@ async function updateExerciseHistoryFromSession(
     next_weight: number | null;
     next_reps: number | null;
     next_sets: number | null;
+    updated_at: string;
   }[] = [];
 
   for (const ex of exercises) {
@@ -488,13 +643,14 @@ async function updateExerciseHistoryFromSession(
     let nextSets: number | null = lastSets;
 
     if (lastWeight != null && lastReps != null) {
-      if (lastReps >= (lastReps ?? 0)) {
-        const increment = lastWeight >= 100 ? 5 : 2.5;
-        nextWeight = lastWeight + increment;
-      }
+      // If user hit >= last reps at last weight, suggest +5 lb (or +2.5 for lighter)
+      const increment = lastWeight >= 100 ? 5 : 2.5;
+      nextWeight = lastWeight + increment;
+      nextReps = lastReps >= 10 ? 10 : lastReps;
     }
 
     updates.push({
+      user_id: userId,
       exercise_name: ex.name,
       last_weight: lastWeight,
       last_reps: lastReps,
@@ -502,32 +658,17 @@ async function updateExerciseHistoryFromSession(
       next_weight: nextWeight,
       next_reps: nextReps,
       next_sets: nextSets,
+      updated_at: new Date().toISOString(),
     });
   }
 
   if (updates.length === 0) return;
 
-  const rows = updates.map((u) => ({
-    ...u,
-    user_id: (supabase as unknown as { auth: { getUser: () => Promise<{ data: { user: { id: string } | null } }> } })
-      ? undefined
-      : undefined,
-  }));
-
-  // We don't have auth.uid() here, so rely on PostgREST RLS via current user; the caller must be authenticated.
-  const { error } = await supabase.from("exercise_history").upsert(
-    updates.map((u) => ({
-      ...u,
-      user_id: undefined,
-      updated_at: new Date().toISOString(),
-    })),
-    {
-      onConflict: "user_id,exercise_name",
-      ignoreDuplicates: false,
-    }
-  );
+  const { error } = await supabase.from("exercise_history").upsert(updates, {
+    onConflict: "user_id,exercise_name",
+    ignoreDuplicates: false,
+  });
   if (error) {
-    // Non-fatal; suggestions just won't update.
     // eslint-disable-next-line no-console
     console.error("Failed to update exercise history", error);
   }

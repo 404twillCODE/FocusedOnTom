@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { User, LogOut, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { getMyProfile, upsertProfile, resetWorkoutSetup } from "@/lib/supabase/workout";
+import { getMyProfile, upsertProfile, resetWorkoutSetup, resetWorkoutEverything } from "@/lib/supabase/workout";
 import type { Profile } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -174,7 +174,7 @@ export function WorkoutProfileTab({
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/80 p-4">
           <h3 className="text-sm font-semibold text-[var(--text)]">Workout settings</h3>
           <p className="mt-1 text-xs text-[var(--textMuted)]">
-            Control how the Log tab behaves.
+            Control how the Workout tab behaves.
           </p>
           <div className="mt-3 flex flex-col gap-2 text-xs">
             <button
@@ -187,7 +187,7 @@ export function WorkoutProfileTab({
                   // ignore; wizard will still be available on next load
                 }
                 // Give a gentle hint; real edit happens when user returns to Log.
-                alert("Next time you open the Log tab, the setup wizard will appear again.");
+                alert("Next time you open the Workout tab, the setup wizard will appear again.");
               }}
               className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-2.5 text-left text-xs font-medium text-[var(--text)] hover:border-[var(--ice)]/50 hover:text-[var(--ice)]"
             >
@@ -198,21 +198,21 @@ export function WorkoutProfileTab({
               onClick={async () => {
                 if (
                   !window.confirm(
-                    "Reset workout setup? Your past sessions stay, but you will re-run the wizard."
+                    "Reset everything in the Workout tab? This will delete all your workouts, templates, and history, and show the setup wizard again. This cannot be undone."
                   )
                 ) {
                   return;
                 }
                 try {
-                  await resetWorkoutSetup(userId);
-                  alert("Workout setup reset. The wizard will appear next time in the Log tab.");
+                  await resetWorkoutEverything(userId);
+                  alert("Workout data reset. Open the Workout tab to run the setup wizard again.");
                 } catch {
-                  alert("Failed to reset workout setup. Please try again later.");
+                  alert("Failed to reset. Please try again later.");
                 }
               }}
               className="w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-left text-xs font-medium text-red-300 hover:border-red-400 hover:text-red-200"
             >
-              Reset setup
+              Reset everything (Workout tab)
             </button>
           </div>
         </div>
