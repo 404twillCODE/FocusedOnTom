@@ -160,6 +160,9 @@ export function ChatShell({ userId }: { userId: string }) {
 
   return (
     <div className="flex h-[70vh] flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/90">
+      <div className="border-b border-amber-400/30 bg-amber-500/10 px-4 py-2 text-xs text-amber-200">
+        Chat is a work in progress and currently not fully functional.
+      </div>
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
         <div className="flex items-center gap-2">
           <button

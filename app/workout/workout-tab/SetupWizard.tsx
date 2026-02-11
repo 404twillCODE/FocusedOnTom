@@ -5,15 +5,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import {
   upsertWorkoutSettings,
-  createTemplateWithExercises,
-  getDefaultExercisesForTemplateName,
   type WorkoutSettings,
   type WorkoutModes,
   type WorkoutPreferences,
 } from "@/lib/supabase/workout";
 import { Button } from "@/components/ui/button";
 
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 3;
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const TRACKING_OPTIONS = [
@@ -28,13 +26,6 @@ const TRACKING_OPTIONS = [
     description: "Day 1 / Day 2 rotation for inconsistent weeks.",
   },
 ];
-
-const SPLIT_OPTIONS = [
-  { id: "ppl", label: "PPL (Push / Pull / Legs)", count: 3 },
-  { id: "upper-lower", label: "Upper / Lower", count: 2 },
-  { id: "full-body", label: "Full Body", count: 1 },
-  { id: "custom", label: "Custom", count: 0 },
-] as const;
 
 const defaultModes: WorkoutModes = {
   progressiveOverload: true,
@@ -51,12 +42,12 @@ const defaultPrefs: WorkoutPreferences = {
   show_suggestions: true,
 };
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3;
 
 type WizardState = {
   tracking_style: "schedule" | "sequence";
   selected_days: number[];
-  split_id: (typeof SPLIT_OPTIONS)[number]["id"];
+  sequence_days_count: number;
   modes: WorkoutModes;
   preferences: WorkoutPreferences;
 };
@@ -150,7 +141,7 @@ export function SetupWizard({
   const [state, setState] = useState<WizardState>(() => ({
     tracking_style: existing?.tracking_style ?? "schedule",
     selected_days: existing?.selected_days ?? [1, 3, 5],
-    split_id: "ppl",
+    sequence_days_count: 3,
     modes: existing?.modes ?? defaultModes,
     preferences: existing?.preferences ?? defaultPrefs,
   }));
@@ -171,45 +162,12 @@ export function SetupWizard({
     setErr(null);
     onError("");
     try {
-      const split = SPLIT_OPTIONS.find((s) => s.id === state.split_id);
-      const templateNames =
-        state.split_id === "ppl"
-          ? ["Push", "Pull", "Legs"]
-          : state.split_id === "upper-lower"
-            ? ["Upper", "Lower"]
-            : state.split_id === "full-body"
-              ? ["Full Body"]
-              : [];
-
-      const created: { id: string; name: string }[] = [];
-      for (const name of templateNames) {
-        const defaultExs = getDefaultExercisesForTemplateName(name);
-        const { template } = await createTemplateWithExercises(
-          userId,
-          name,
-          defaultExs.map((e) => ({ name: e.name, sort_order: e.sort_order }))
-        );
-        created.push({ id: template.id, name: template.name });
-      }
-      if (state.split_id === "custom") {
-        const { template } = await createTemplateWithExercises(userId, "Custom", []);
-        created.push({ id: template.id, name: template.name });
-      }
-
-      let schedule_map: Record<string, string> | null = null;
       let rotation: { index: number; template_id: string; label: string }[] | null = null;
-
-      if (state.tracking_style === "schedule" && created.length > 0) {
-        schedule_map = {};
-        state.selected_days.forEach((dayIdx, i) => {
-          const t = created[i % created.length];
-          if (t) schedule_map![String(dayIdx)] = t.id;
-        });
-      }
-      if (state.tracking_style === "sequence" && created.length > 0) {
-        rotation = created.map((t, i) => ({
+      if (state.tracking_style === "sequence") {
+        const count = Math.max(1, Math.min(7, state.sequence_days_count));
+        rotation = Array.from({ length: count }, (_, i) => ({
           index: i,
-          template_id: t.id,
+          template_id: "",
           label: `Day ${i + 1}`,
         }));
       }
@@ -217,7 +175,7 @@ export function SetupWizard({
       const settings = await upsertWorkoutSettings(userId, {
         tracking_style: state.tracking_style,
         selected_days: state.tracking_style === "schedule" ? state.selected_days : null,
-        schedule_map,
+        schedule_map: null,
         rotation,
         modes: state.modes,
         preferences: state.preferences,
@@ -267,32 +225,23 @@ export function SetupWizard({
                       selected={state.tracking_style === opt.id}
                       title={opt.title}
                       description={opt.description}
-                      onClick={() => setState((s) => ({ ...s, tracking_style: opt.id }))}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-
-            {step === 2 && (
-              <>
-                <h3 className="text-lg font-medium text-[var(--text)]">Choose your split</h3>
-                <p className="text-sm text-[var(--textMuted)]">
-                  We’ll create templates for each day. You can add exercises later.
-                </p>
-                <div className="space-y-3">
-                  {SPLIT_OPTIONS.map((opt) => (
-                    <OptionCard
-                      key={opt.id}
-                      selected={state.split_id === opt.id}
-                      title={opt.label}
-                      onClick={() => setState((s) => ({ ...s, split_id: opt.id }))}
+                      onClick={() =>
+                        setState((s) => ({
+                          ...s,
+                          tracking_style: opt.id,
+                          sequence_days_count:
+                            opt.id === "sequence" ? Math.max(2, s.sequence_days_count) : s.sequence_days_count,
+                        }))
+                      }
                     />
                   ))}
                 </div>
                 {state.tracking_style === "schedule" && (
                   <div className="space-y-2 pt-2">
                     <p className="text-sm font-medium text-[var(--text)]">Workout days</p>
+                    <p className="text-xs text-[var(--textMuted)]">
+                      Pick which weekdays you plan to workout.
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {WEEKDAYS.map((label, idx) => {
                         const selected = state.selected_days.includes(idx);
@@ -314,19 +263,48 @@ export function SetupWizard({
                     </div>
                   </div>
                 )}
+                {state.tracking_style === "sequence" && (
+                  <div className="space-y-2 pt-2">
+                    <p className="text-sm font-medium text-[var(--text)]">How many days per week?</p>
+                    <p className="text-xs text-[var(--textMuted)]">
+                      You’ll see Day 1, Day 2, Day 3, etc. in your tracker (no calendar days).
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {[2, 3, 4, 5, 6].map((n) => {
+                        const selected = state.sequence_days_count === n;
+                        return (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() =>
+                              setState((s) => ({ ...s, sequence_days_count: n }))
+                            }
+                            className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                              selected
+                                ? "bg-[var(--iceSoft)] text-[var(--ice)]"
+                                : "bg-[var(--bg3)] text-[var(--textMuted)] hover:text-[var(--text)]"
+                            }`}
+                          >
+                            {n} days
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </>
             )}
 
-            {step === 3 && (
+            {step === 2 && (
               <>
                 <h3 className="text-lg font-medium text-[var(--text)]">Training options</h3>
                 <p className="text-sm text-[var(--textMuted)]">
-                  Enable what you use. All optional.
+                  These affect what you see when adding exercises.
                 </p>
                 <div className="space-y-3">
                   <ToggleRow
                     label="Progressive overload"
-                    description="Suggest next weight/reps from your history."
+                    description="Auto-fill last session's weight so you can bump up."
                     value={state.modes.progressiveOverload}
                     onChange={(v) =>
                       setState((s) => ({ ...s, modes: { ...s.modes, progressiveOverload: v } }))
@@ -334,7 +312,7 @@ export function SetupWizard({
                   />
                   <ToggleRow
                     label="Drop sets"
-                    description="Add drop-set rows with suggested weight reduction."
+                    description="Add a drop-set button on each exercise to quickly add a lighter set."
                     value={state.modes.dropSets}
                     onChange={(v) =>
                       setState((s) => ({ ...s, modes: { ...s.modes, dropSets: v } }))
@@ -342,7 +320,7 @@ export function SetupWizard({
                   />
                   <ToggleRow
                     label="RPE tracking"
-                    description="Optional RPE per set."
+                    description="Rate each set 1-10 to track how hard it felt."
                     value={state.modes.rpe}
                     onChange={(v) =>
                       setState((s) => ({ ...s, modes: { ...s.modes, rpe: v } }))
@@ -352,7 +330,7 @@ export function SetupWizard({
               </>
             )}
 
-            {step === 4 && (
+            {step === 3 && (
               <>
                 <h3 className="text-lg font-medium text-[var(--text)]">Preferences</h3>
                 <p className="text-sm text-[var(--textMuted)]">
@@ -416,15 +394,6 @@ export function SetupWizard({
                     </div>
                   </div>
                 </div>
-              </>
-            )}
-
-            {step === 5 && (
-              <>
-                <h3 className="text-lg font-medium text-[var(--text)]">You’re all set</h3>
-                <p className="text-sm text-[var(--textMuted)]">
-                  Tap Finish to save. You’ll land on your workout home next.
-                </p>
                 {err && (
                   <p className="text-sm text-red-400" role="alert">
                     {err}
@@ -450,7 +419,7 @@ export function SetupWizard({
         </div>
         <div className="flex items-center gap-3">
           <div className="flex gap-1">
-            {([1, 2, 3, 4, 5] as const).map((n) => (
+            {([1, 2, 3] as const).map((n) => (
               <span
                 key={n}
                 className={`h-1.5 w-6 rounded-full ${

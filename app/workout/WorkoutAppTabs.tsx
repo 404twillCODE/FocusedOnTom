@@ -69,7 +69,11 @@ export function WorkoutAppTabs({
         {tab === "log" && <WorkoutTab userId={userId} />}
         {tab === "stats" && <WorkoutStatsTab userId={userId} />}
         {tab === "profile" && (
-          <WorkoutProfileTab userId={userId} onSignOut={onSignOut} />
+          <WorkoutProfileTab
+            userId={userId}
+            onSignOut={onSignOut}
+            onNavigateToWorkout={() => setTab("log")}
+          />
         )}
       </div>
       <WorkoutMemberProfile

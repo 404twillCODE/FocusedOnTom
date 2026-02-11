@@ -1,21 +1,31 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { User, LogOut, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { getMyProfile, upsertProfile, resetWorkoutSetup, resetWorkoutEverything } from "@/lib/supabase/workout";
+import { getMyProfile, upsertProfile } from "@/lib/supabase/workout";
 import type { Profile } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/;
+
+/** Clear workout-only localStorage keys for this user. Do NOT clear workout_gate_ok / workout_gate_ts. */
+function clearWorkoutLocalStorage(userId: string): void {
+  if (typeof window === "undefined") return;
+  const key = `workout_getfit_${userId}`;
+  localStorage.removeItem(key);
+}
 
 export function WorkoutProfileTab({
   userId,
   onSignOut,
+  onNavigateToWorkout,
 }: {
   userId: string;
   onSignOut: () => void;
+  /** Call after reset-all or reset-setup so the user is taken to the Workout tab. */
+  onNavigateToWorkout?: () => void;
 }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +33,7 @@ export function WorkoutProfileTab({
   const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [resetting, setResetting] = useState<"all" | "setup" | null>(null);
 
   useEffect(() => {
     getMyProfile(userId)
@@ -179,40 +190,98 @@ export function WorkoutProfileTab({
           <div className="mt-3 flex flex-col gap-2 text-xs">
             <button
               type="button"
-              onClick={async () => {
-                // Simplest path: mark setup as incomplete so the wizard runs again.
-                try {
-                  await resetWorkoutSetup(userId);
-                } catch {
-                  // ignore; wizard will still be available on next load
-                }
-                // Give a gentle hint; real edit happens when user returns to Log.
-                alert("Next time you open the Workout tab, the setup wizard will appear again.");
-              }}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-2.5 text-left text-xs font-medium text-[var(--text)] hover:border-[var(--ice)]/50 hover:text-[var(--ice)]"
-            >
-              Edit workout setup
-            </button>
-            <button
-              type="button"
+              disabled={resetting !== null}
               onClick={async () => {
                 if (
                   !window.confirm(
-                    "Reset everything in the Workout tab? This will delete all your workouts, templates, and history, and show the setup wizard again. This cannot be undone."
+                    "This will restart setup but keep your workout history. Continue?"
                   )
                 ) {
                   return;
                 }
+                setResetting("setup");
                 try {
-                  await resetWorkoutEverything(userId);
-                  alert("Workout data reset. Open the Workout tab to run the setup wizard again.");
+                  await supabase.auth.refreshSession();
+                  const { data: { session } } = await supabase.auth.getSession();
+                  const token = session?.access_token;
+                  if (!token) {
+                    alert("Please sign in again.");
+                    return;
+                  }
+                  const res = await fetch("/api/workout/reset-setup", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+                  const data = await res.json().catch(() => ({}));
+                  if (!res.ok) {
+                    alert(data?.error ?? "Failed to reset setup. Please try again.");
+                    return;
+                  }
+                  alert("Setup reset. Your workout history is unchanged.");
+                  onNavigateToWorkout?.();
                 } catch {
-                  alert("Failed to reset. Please try again later.");
+                  alert("Failed to reset setup. Please try again.");
+                } finally {
+                  setResetting(null);
                 }
               }}
-              className="w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-left text-xs font-medium text-red-300 hover:border-red-400 hover:text-red-200"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-2.5 text-left text-xs font-medium text-[var(--text)] hover:border-[var(--ice)]/50 hover:text-[var(--ice)] disabled:opacity-60"
             >
-              Reset everything (Workout tab)
+              {resetting === "setup" ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Resetting…
+                </span>
+              ) : (
+                "Edit workout setup"
+              )}
+            </button>
+            <button
+              type="button"
+              disabled={resetting !== null}
+              onClick={async () => {
+                if (
+                  !window.confirm(
+                    "This will delete all your workout logs and setup. Continue?"
+                  )
+                ) {
+                  return;
+                }
+                setResetting("all");
+                try {
+                  await supabase.auth.refreshSession();
+                  const { data: { session } } = await supabase.auth.getSession();
+                  const token = session?.access_token;
+                  if (!token) {
+                    alert("Please sign in again.");
+                    return;
+                  }
+                  const res = await fetch("/api/workout/reset-all", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${token}` },
+                  });
+                  const data = await res.json().catch(() => ({}));
+                  if (!res.ok) {
+                    alert(data?.error ?? "Failed to reset. Please try again.");
+                    return;
+                  }
+                  clearWorkoutLocalStorage(userId);
+                  alert("Workout data reset. Opening Workout tab.");
+                  onNavigateToWorkout?.();
+                } catch {
+                  alert("Failed to reset. Please try again.");
+                } finally {
+                  setResetting(null);
+                }
+              }}
+              className="w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2.5 text-left text-xs font-medium text-red-300 hover:border-red-400 hover:text-red-200 disabled:opacity-60"
+            >
+              {resetting === "all" ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Resetting…
+                </span>
+              ) : (
+                "Reset everything (Workout tab)"
+              )}
             </button>
           </div>
         </div>

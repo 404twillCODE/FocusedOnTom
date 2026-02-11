@@ -98,6 +98,12 @@ export type WorkoutStatsSummary = {
   totalVolume: number;
 };
 
+export type WorkoutGetfitSyncRow = {
+  user_id: string;
+  data: Record<string, unknown>;
+  updated_at: string;
+};
+
 // ---------- Settings helpers ----------
 
 function ensureDefaultModes(modes: Partial<WorkoutModes> | null | undefined): WorkoutModes {
@@ -191,6 +197,7 @@ export function getSuggestedToday(settings: WorkoutSettings): { label: string; t
 
 /** Deletes all workout data for the user and resets setup so the wizard runs again. */
 export async function resetWorkoutEverything(userId: string): Promise<void> {
+  await supabase.from("workout_getfit_sync").delete().eq("user_id", userId);
   await supabase.from("workout_sessions").delete().eq("user_id", userId);
   await supabase.from("template_exercises").delete().eq("user_id", userId);
   await supabase.from("workout_templates").delete().eq("user_id", userId);
@@ -200,6 +207,42 @@ export async function resetWorkoutEverything(userId: string): Promise<void> {
     .update({ setup_completed: false })
     .eq("user_id", userId);
   if (error) throw error;
+}
+
+// ---------- GetFit sync ----------
+
+export async function getWorkoutGetfitSync(
+  userId: string
+): Promise<Record<string, unknown> | null> {
+  try {
+    const { data, error } = await supabase
+      .from("workout_getfit_sync")
+      .select("data")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error && error.code !== "PGRST116") throw error;
+    if (!data) return null;
+    return (data as { data?: Record<string, unknown> }).data ?? null;
+  } catch (error) {
+    // Keep app usable when table/migration is not applied yet.
+    console.warn("workout_getfit_sync read failed; using local data fallback.", error);
+    return null;
+  }
+}
+
+export async function upsertWorkoutGetfitSync(
+  userId: string,
+  payload: Record<string, unknown>
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from("workout_getfit_sync")
+      .upsert({ user_id: userId, data: payload }, { onConflict: "user_id" });
+    if (error) throw error;
+  } catch (error) {
+    // Keep app usable when table/migration is not applied yet.
+    console.warn("workout_getfit_sync write failed; data is local-only on this device.", error);
+  }
 }
 
 // ---------- Default template exercises ----------
@@ -700,21 +743,44 @@ export async function upsertProfile(
 }
 
 export async function getCommunityFeed(limit = 50): Promise<WorkoutLogWithProfile[]> {
-  const { data, error } = await supabase
+  const { data: logs, error: logsError } = await supabase
     .from("workout_logs")
-    .select(
-      `
-      id, user_id, date, workout_type, workout_name, reps, sets, lbs, duration_min, notes, created_at,
-      profiles ( username, display_name, avatar_url )
-    `
-    )
+    .select("id, user_id, date, workout_type, workout_name, reps, sets, lbs, duration_min, notes, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error) throw error;
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  if (logsError) throw logsError;
+
+  const logRows = (logs ?? []) as WorkoutLog[];
+  if (logRows.length === 0) return [];
+
+  const userIds = Array.from(new Set(logRows.map((l) => l.user_id).filter(Boolean)));
+  let profileMap = new Map<
+    string,
+    Pick<Profile, "username" | "display_name" | "avatar_url">
+  >();
+
+  if (userIds.length > 0) {
+    const { data: profilesData, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id, username, display_name, avatar_url")
+      .in("id", userIds);
+    if (profilesError) throw profilesError;
+    profileMap = new Map(
+      (profilesData ?? []).map((p) => [
+        p.id as string,
+        {
+          username: p.username as string,
+          display_name: p.display_name as string,
+          avatar_url: (p.avatar_url ?? null) as string | null,
+        },
+      ])
+    );
+  }
+
+  return logRows.map((row) => ({
     ...row,
-    profiles: row.profiles ?? null,
-  })) as WorkoutLogWithProfile[];
+    profiles: profileMap.get(row.user_id) ?? null,
+  }));
 }
 
 export async function getMyLogs(userId: string, limit = 50): Promise<WorkoutLog[]> {
