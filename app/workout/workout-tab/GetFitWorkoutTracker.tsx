@@ -160,7 +160,14 @@ export function GetFitWorkoutTracker({
   userId: string;
   settings: WorkoutSettings;
 }) {
-  const [currentDayIndex, setCurrentDayIndex] = useState(new Date().getDay());
+  // For sequence mode: start on the next incomplete day (based on workouts completed this week).
+  // For schedule mode: start on today's weekday.
+  const [currentDayIndex, setCurrentDayIndex] = useState(() => {
+    if (settingsProp?.tracking_style === "sequence" && settingsProp?.rotation?.length) {
+      return 0; // Will be corrected in useEffect once workoutHistory loads
+    }
+    return new Date().getDay();
+  });
   const [workouts, setWorkouts] = useState<Exercise[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
@@ -744,9 +751,14 @@ export function GetFitWorkoutTracker({
   const isInconsistent = !!sequenceLabels;
   const navigatorLabels = isInconsistent ? sequenceLabels : days;
   const workoutsThisWeek = getWorkoutsCompletedThisWeek(workoutHistory);
-  const isToday = isInconsistent
-    ? currentDayIndex === workoutsThisWeek % Math.max(1, navigatorLabels.length)
-    : currentDayIndex === new Date().getDay();
+
+  // In sequence mode, "today" is the next slot the user should do (based on completions this week).
+  // e.g. 0 completions → Day 1, 1 completion → Day 2, etc., wrapping around.
+  const todaySlot = isInconsistent
+    ? workoutsThisWeek % Math.max(1, navigatorLabels.length)
+    : new Date().getDay();
+  const isToday = currentDayIndex === todaySlot;
+
   const getDateLabel = () => {
     if (isInconsistent && navigatorLabels[currentDayIndex]) {
       return navigatorLabels[currentDayIndex];
@@ -754,13 +766,20 @@ export function GetFitWorkoutTracker({
     return days[currentDayIndex] ?? "Today";
   };
 
-  const nextSlotIndex = isInconsistent ? workoutsThisWeek % Math.max(1, navigatorLabels.length) : currentDayIndex;
+  const nextSlotIndex = todaySlot;
   const goalHit = isInconsistent && workoutsThisWeek >= weeklyGoal;
 
+  // When workout history changes (e.g. on load or after completing), snap to the correct "today" slot.
   useEffect(() => {
     const maxIndex = Math.max(0, navigatorLabels.length - 1);
-    setCurrentDayIndex((prev) => (prev > maxIndex ? 0 : prev));
-  }, [navigatorLabels.length]);
+    if (isInconsistent) {
+      // Always snap to the current slot for sequence mode
+      const slot = workoutsThisWeek % Math.max(1, navigatorLabels.length);
+      setCurrentDayIndex(Math.min(slot, maxIndex));
+    } else {
+      setCurrentDayIndex((prev) => (prev > maxIndex ? 0 : prev));
+    }
+  }, [navigatorLabels.length, workoutsThisWeek, isInconsistent]);
 
   return (
     <div className="mx-auto w-full max-w-lg">
