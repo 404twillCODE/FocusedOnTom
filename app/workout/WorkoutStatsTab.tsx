@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Flame, Activity, Loader2, Dumbbell } from "lucide-react";
+import { Trophy, Activity, Loader2, Dumbbell } from "lucide-react";
 import {
   getCommunityLeaderboard,
   getMyLogs,

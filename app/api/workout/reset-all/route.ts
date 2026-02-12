@@ -91,6 +91,9 @@ export async function POST(request: NextRequest) {
     await admin.from("template_exercises").delete().eq("user_id", userId);
     await admin.from("workout_templates").delete().eq("user_id", userId);
     await admin.from("exercise_history").delete().eq("user_id", userId);
+    // Also nuke feed logs and GetFit sync blob so nothing lingers
+    await admin.from("workout_logs").delete().eq("user_id", userId);
+    await admin.from("workout_getfit_sync").delete().eq("user_id", userId);
     await admin.from("workout_settings").delete().eq("user_id", userId);
 
     const payload: Record<string, unknown> = {

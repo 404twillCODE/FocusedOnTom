@@ -134,7 +134,7 @@ export function WorkoutFeedTab({
                           .join(" ")}
                       </span>
                     )}
-                    {log.duration_min > 0 && (
+                    {(log.duration_min ?? 0) > 0 && (
                       <span className="text-[var(--textMuted)]">
                         {log.duration_min} min
                       </span>

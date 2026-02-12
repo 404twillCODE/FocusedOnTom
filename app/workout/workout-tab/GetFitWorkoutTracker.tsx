@@ -2,10 +2,10 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, Plus, Check, Pencil, Trash2, X, Dumbbell, Target, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Check, Pencil, Trash2, X, Dumbbell } from "lucide-react";
 import { loadAppData, updateAppData } from "./getfit/dataStore";
-import { formatDateKey, sanitizeExerciseDisplayText, getWorkoutsCompletedThisWeek, type TrackingStyle } from "./getfit/storage";
-import { getDefaultWorkoutRoutine, getDefaultWorkoutSchedule } from "./getfit/workoutRoutine";
+import { formatDateKey, sanitizeExerciseDisplayText, type TrackingStyle } from "./getfit/storage";
+
 import { getWorkoutSettings, getUserTemplates, insertLog, type WorkoutSettings } from "@/lib/supabase/workout";
 
 interface Set {
@@ -19,12 +19,6 @@ interface Set {
 }
 
 type ExerciseCategory = "legs" | "arms" | "chest" | "back" | "shoulders" | "core" | "cardio" | "full_body";
-
-/** Format weight for display: 0 or null/undefined → "No weight", else "N lb". */
-function formatWeight(weight: number | null | undefined): string {
-  if (weight == null || weight === 0) return "No weight";
-  return `${weight} lb`;
-}
 
 /** Shared category list for Add Exercise modal in all modes (scheduled / inconsistent / etc.). */
 const ALL_CATEGORIES: { value: ExerciseCategory; label: string }[] = [
@@ -176,7 +170,6 @@ export function GetFitWorkoutTracker({
     Array(7).fill("Rest Day")
   );
   const [trackingStyle, setTrackingStyle] = useState<TrackingStyle>("scheduled");
-  const [weeklyGoal, setWeeklyGoal] = useState(3);
   const [rotationOrder, setRotationOrder] = useState<string[]>([]);
   const [workoutHistory, setWorkoutHistory] = useState<{ date: string; timestamp: number; dayOfWeek: number; workoutType?: string; exercises: unknown[] }[]>([]);
   const [preferredRestSec, setPreferredRestSec] = useState(() => {
@@ -289,12 +282,14 @@ export function GetFitWorkoutTracker({
     setWorkoutSchedule(data.workoutSchedule);
     const style = (data.trackingStyle as TrackingStyle) ?? "scheduled";
     setTrackingStyle(style);
-    setWeeklyGoal(data.weeklyGoal ?? 3);
     const order = data.rotationOrder ?? [];
     setRotationOrder(order);
     setWorkoutHistory(data.workoutHistory ?? []);
     if (style === "inconsistent" && order.length > 0) {
-      setCurrentDayIndex((i) => (i >= order.length ? 0 : i));
+      // Jump to the next incomplete day based on total workouts completed.
+      const history = data.workoutHistory ?? [];
+      const nextDay = history.length % order.length;
+      setCurrentDayIndex(nextDay);
     }
   };
 
@@ -586,16 +581,6 @@ export function GetFitWorkoutTracker({
     }
   };
 
-  const toggleExerciseComplete = async (id: number) => {
-    const allData = await loadAppData(userId);
-    const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
-    const updatedWorkouts = allWorkouts.map((e) =>
-      e.id === id ? { ...e, completed: !e.completed } : e
-    );
-    await saveDayWorkouts(updatedWorkouts);
-    await loadDayWorkouts();
-  };
-
   const resetDayProgress = async () => {
     const allData = await loadAppData(userId);
     const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
@@ -613,48 +598,6 @@ export function GetFitWorkoutTracker({
     });
     await saveDayWorkouts(updatedWorkouts);
     await loadDayWorkouts();
-  };
-
-  const initializeDefaultRoutine = async () => {
-    if (!confirm("This will replace your current workout routine with the default 4-day split (Push, Pull, Legs, Full Upper). Continue?")) {
-      return;
-    }
-
-    try {
-      const defaultExercises = getDefaultWorkoutRoutine();
-      const defaultSchedule = getDefaultWorkoutSchedule();
-
-      // Organize exercises by day
-      const savedWorkouts: Exercise[][] = Array.from({ length: 7 }, () => []);
-      
-      defaultExercises.forEach((exercise) => {
-        const exerciseDays = exercise.selectedDays || [];
-        if (exerciseDays.length === 0) {
-          // Add to all days if no selection
-          for (let i = 0; i < 7; i++) {
-            savedWorkouts[i].push(exercise as Exercise);
-          }
-        } else {
-          exerciseDays.forEach((day) => {
-            savedWorkouts[day].push(exercise as Exercise);
-          });
-        }
-      });
-
-      await updateAppData(userId, (current) => ({
-        ...current,
-        savedWorkouts,
-        workoutSchedule: defaultSchedule,
-        workoutSetupComplete: true,
-      }));
-
-      await loadWorkoutSchedule();
-      await loadDayWorkouts();
-      alert("Default workout routine initialized successfully!");
-    } catch (error) {
-      console.error("Error initializing routine:", error);
-      alert("Failed to initialize routine. Please try again.");
-    }
   };
 
   const completeWorkout = async () => {
@@ -750,15 +693,15 @@ export function GetFitWorkoutTracker({
         : null;
   const isInconsistent = !!sequenceLabels;
   const navigatorLabels = isInconsistent ? sequenceLabels : days;
-  const workoutsThisWeek = getWorkoutsCompletedThisWeek(workoutHistory);
-
-  // In sequence mode, "today" is the next slot the user should do (based on completions this week).
-  // e.g. 0 completions → Day 1, 1 completion → Day 2, etc., wrapping around.
-  const todaySlot = isInconsistent
-    ? workoutsThisWeek % Math.max(1, navigatorLabels.length)
-    : new Date().getDay();
-  const isToday = currentDayIndex === todaySlot;
-
+  // For sequence mode, use total completed workouts (all time) so the
+  // current day carries over across weeks instead of resetting every Monday.
+  const totalSequenceWorkouts = workoutHistory.length;
+  const currentSequenceSlot = isInconsistent
+    ? totalSequenceWorkouts % Math.max(1, navigatorLabels.length)
+    : 0;
+  const isToday = isInconsistent
+    ? currentDayIndex === currentSequenceSlot
+    : currentDayIndex === new Date().getDay();
   const getDateLabel = () => {
     if (isInconsistent && navigatorLabels[currentDayIndex]) {
       return navigatorLabels[currentDayIndex];
@@ -766,20 +709,16 @@ export function GetFitWorkoutTracker({
     return days[currentDayIndex] ?? "Today";
   };
 
-  const nextSlotIndex = todaySlot;
-  const goalHit = isInconsistent && workoutsThisWeek >= weeklyGoal;
-
   // When workout history changes (e.g. on load or after completing), snap to the correct "today" slot.
   useEffect(() => {
     const maxIndex = Math.max(0, navigatorLabels.length - 1);
     if (isInconsistent) {
-      // Always snap to the current slot for sequence mode
-      const slot = workoutsThisWeek % Math.max(1, navigatorLabels.length);
+      const slot = totalSequenceWorkouts % Math.max(1, navigatorLabels.length);
       setCurrentDayIndex(Math.min(slot, maxIndex));
     } else {
       setCurrentDayIndex((prev) => (prev > maxIndex ? 0 : prev));
     }
-  }, [navigatorLabels.length, workoutsThisWeek, isInconsistent]);
+  }, [navigatorLabels.length, totalSequenceWorkouts, isInconsistent]);
 
   return (
     <div className="mx-auto w-full max-w-lg">

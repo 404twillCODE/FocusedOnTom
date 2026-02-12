@@ -186,7 +186,8 @@ export function getSuggestedToday(settings: WorkoutSettings): { label: string; t
     return null;
   }
   if (settings.tracking_style === "sequence" && settings.rotation?.length) {
-    const first = settings.rotation[0] as { index?: number; template_id: string; label: string };
+    const first = settings.rotation[0] as { index?: number; template_id: string; label: string } | undefined;
+    if (!first) return null;
     return {
       label: first.label ?? "Day 1",
       templateId: first.template_id ?? null,
