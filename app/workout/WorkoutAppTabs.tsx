@@ -64,6 +64,7 @@ export function WorkoutAppTabs({
           <WorkoutFeedTab
             userId={userId}
             onSelectMember={(username) => setMemberUsername(username)}
+            onNavigateToStats={() => setTab("stats")}
           />
         )}
         {tab === "log" && <WorkoutTab userId={userId} />}

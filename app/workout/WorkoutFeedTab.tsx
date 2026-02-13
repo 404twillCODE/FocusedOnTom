@@ -2,8 +2,13 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dumbbell, User, Loader2, ChevronDown, Trash2 } from "lucide-react";
-import { getCommunityFeed, getReactionsForLogs, toggleReaction, type ReactionSummary } from "@/lib/supabase/workout";
+import { Dumbbell, User, Loader2, ChevronDown, Trash2, BarChart3 } from "lucide-react";
+import {
+  getCommunityFeed,
+  getReactionsForLogs,
+  toggleReaction,
+  type ReactionSummary,
+} from "@/lib/supabase/workout";
 import { supabase } from "@/lib/supabase/client";
 import type { WorkoutLogWithProfile } from "@/lib/supabase/client";
 
@@ -23,7 +28,9 @@ type ParsedExercise = {
   sets: { r: number; w: number | null; done?: boolean }[];
 };
 
-function parseExerciseDetails(notes: string | null | undefined): ParsedExercise[] | null {
+function parseExerciseDetails(
+  notes: string | null | undefined
+): ParsedExercise[] | null {
   if (!notes?.trim()) return null;
   try {
     const parsed = JSON.parse(notes);
@@ -54,7 +61,20 @@ function formatDate(d: string) {
   return date.toLocaleDateString();
 }
 
-// ---------- Feed entry card (stats-style, expandable) ----------
+/** Compute total volume from parsed exercises. */
+function computeFeedVolume(exercises: ParsedExercise[]): number {
+  let total = 0;
+  for (const ex of exercises) {
+    for (const s of ex.sets) {
+      if (s.w != null && s.w > 0) {
+        total += s.r * s.w;
+      }
+    }
+  }
+  return total;
+}
+
+// ─── Feed entry card ───
 
 function FeedEntryCard({
   log,
@@ -64,6 +84,7 @@ function FeedEntryCard({
   onSelectMember,
   onAdminDelete,
   onToggleReaction,
+  onViewDetails,
 }: {
   log: WorkoutLogWithProfile;
   isAdmin: boolean;
@@ -72,14 +93,21 @@ function FeedEntryCard({
   onSelectMember: (username: string) => void;
   onAdminDelete: (logId: string) => void;
   onToggleReaction: (logId: string, emoji: string) => void;
+  onViewDetails?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [expandedExercise, setExpandedExercise] = useState<number | null>(null);
+  const [expandedExercise, setExpandedExercise] = useState<number | null>(
+    null
+  );
 
   const profile = log.profiles;
   const username = profile?.username ?? "";
-  const displayName = (profile?.display_name && profile.display_name !== "-") ? profile.display_name : (username || "Unknown");
-  const categoryLabel = CATEGORY_LABELS[log.workout_type] ?? log.workout_type;
+  const displayName =
+    profile?.display_name && profile.display_name !== "-"
+      ? profile.display_name
+      : username || "Unknown";
+  const categoryLabel =
+    CATEGORY_LABELS[log.workout_type] ?? log.workout_type;
   const title = log.workout_name?.trim() || categoryLabel;
   const exerciseDetails = parseExerciseDetails(log.notes);
   const hasStats =
@@ -88,15 +116,18 @@ function FeedEntryCard({
     (log.lbs != null && log.lbs > 0);
   const textNotes = exerciseDetails ? null : log.notes?.trim();
   const exerciseCount = exerciseDetails?.length ?? 0;
+  const feedVolume = exerciseDetails
+    ? computeFeedVolume(exerciseDetails)
+    : 0;
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 overflow-hidden">
-      {/* Header: user info + workout summary - tap to expand */}
+    <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60">
+      {/* Header */}
       <div className="flex items-center">
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="flex flex-1 min-w-0 items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--bg3)]/20"
+          className="flex min-w-0 flex-1 items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--bg3)]/20"
         >
           {/* Avatar */}
           <button
@@ -105,7 +136,7 @@ function FeedEntryCard({
               e.stopPropagation();
               username && onSelectMember(username);
             }}
-            className="shrink-0 flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--iceSoft)] text-[var(--ice)] hover:opacity-80"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--iceSoft)] text-[var(--ice)] hover:opacity-80"
           >
             <User className="h-4 w-4" />
           </button>
@@ -113,15 +144,21 @@ function FeedEntryCard({
           <div className="min-w-0 flex-1">
             {/* Name + username */}
             <div className="flex items-center gap-1.5">
-              <span className="font-medium text-[var(--text)] text-sm truncate">{displayName}</span>
+              <span className="truncate text-sm font-medium text-[var(--text)]">
+                {displayName}
+              </span>
               {username && (
-                <span className="text-xs text-[var(--textMuted)] shrink-0">@{username}</span>
+                <span className="shrink-0 text-xs text-[var(--textMuted)]">
+                  @{username}
+                </span>
               )}
             </div>
 
             {/* Workout type + date */}
             <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--textMuted)]">
-              <span className="font-medium text-[var(--ice)]">{title}</span>
+              <span className="font-medium text-[var(--ice)]">
+                {title}
+              </span>
               <span>·</span>
               <span>{formatDate(log.date)}</span>
             </div>
@@ -129,7 +166,10 @@ function FeedEntryCard({
             {/* Quick stats */}
             <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs text-[var(--textMuted)]">
               {exerciseCount > 0 && (
-                <span>{exerciseCount} exercise{exerciseCount !== 1 ? "s" : ""}</span>
+                <span>
+                  {exerciseCount} exercise
+                  {exerciseCount !== 1 ? "s" : ""}
+                </span>
               )}
               {log.sets != null && log.sets > 0 && (
                 <span>{log.sets} sets</span>
@@ -140,6 +180,11 @@ function FeedEntryCard({
               {log.lbs != null && log.lbs > 0 && (
                 <span>{log.lbs} lbs</span>
               )}
+              {feedVolume > 0 && (
+                <span className="font-medium text-[var(--text)]">
+                  {Math.round(feedVolume).toLocaleString()} vol
+                </span>
+              )}
               {(log.duration_min ?? 0) > 0 && (
                 <span>{log.duration_min} min</span>
               )}
@@ -147,7 +192,7 @@ function FeedEntryCard({
           </div>
 
           <ChevronDown
-            className={`h-4 w-4 shrink-0 mt-1 text-[var(--textMuted)] transition-transform duration-200 ${
+            className={`mt-1 h-4 w-4 shrink-0 text-[var(--textMuted)] transition-transform duration-200 ${
               expanded ? "rotate-180" : ""
             }`}
           />
@@ -159,7 +204,7 @@ function FeedEntryCard({
             type="button"
             onClick={() => onAdminDelete(log.id)}
             disabled={deletingId === log.id}
-            className="shrink-0 mr-3 rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
+            className="mr-3 shrink-0 rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
             aria-label="Delete feed entry"
           >
             {deletingId === log.id ? (
@@ -181,7 +226,7 @@ function FeedEntryCard({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[var(--border)] px-4 py-3 space-y-2">
+            <div className="space-y-2 border-t border-[var(--border)] px-4 py-3">
               {exerciseDetails && exerciseDetails.length > 0 ? (
                 exerciseDetails.map((ex, ei) => {
                   const isExExpanded = expandedExercise === ei;
@@ -189,20 +234,25 @@ function FeedEntryCard({
                   return (
                     <div
                       key={ei}
-                      className="rounded-lg border border-[var(--border)] bg-[var(--bg3)]/40 overflow-hidden"
+                      className="overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg3)]/40"
                     >
                       <button
                         type="button"
-                        onClick={() => setExpandedExercise(isExExpanded ? null : ei)}
+                        onClick={() =>
+                          setExpandedExercise(
+                            isExExpanded ? null : ei
+                          )
+                        }
                         className="flex w-full items-center justify-between px-3 py-2 text-left transition-colors hover:bg-[var(--bg3)]/60"
                       >
-                        <div className="flex items-center gap-2 min-w-0">
+                        <div className="flex min-w-0 items-center gap-2">
                           <Dumbbell className="h-3.5 w-3.5 shrink-0 text-[var(--ice)]" />
-                          <span className="text-sm font-medium text-[var(--text)] truncate">
+                          <span className="truncate text-sm font-medium text-[var(--text)]">
                             {ex.name}
                           </span>
                           <span className="shrink-0 text-xs text-[var(--textMuted)]">
-                            {totalSets} set{totalSets !== 1 ? "s" : ""}
+                            {totalSets} set
+                            {totalSets !== 1 ? "s" : ""}
                           </span>
                         </div>
                         <ChevronDown
@@ -214,31 +264,62 @@ function FeedEntryCard({
                       <AnimatePresence>
                         {isExExpanded && (
                           <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
+                            initial={{
+                              height: 0,
+                              opacity: 0,
+                            }}
+                            animate={{
+                              height: "auto",
+                              opacity: 1,
+                            }}
+                            exit={{
+                              height: 0,
+                              opacity: 0,
+                            }}
                             transition={{ duration: 0.15 }}
                             className="overflow-hidden"
                           >
-                            <div className="border-t border-[var(--border)] px-3 py-2 space-y-1">
+                            <div className="space-y-1 border-t border-[var(--border)] px-3 py-2">
                               <div className="flex items-center gap-3 text-[10px] font-medium uppercase tracking-wider text-[var(--textMuted)]">
-                                <span className="w-5 text-center">Set</span>
-                                <span className="w-14">Reps</span>
-                                <span className="w-16">Weight</span>
-                                <span className="ml-auto">Done</span>
+                                <span className="w-5 text-center">
+                                  Set
+                                </span>
+                                <span className="w-14">
+                                  Reps
+                                </span>
+                                <span className="w-16">
+                                  Weight
+                                </span>
+                                <span className="ml-auto">
+                                  Done
+                                </span>
                               </div>
                               {ex.sets.map((set, si) => (
-                                <div key={si} className="flex items-center gap-3 text-xs">
-                                  <span className="w-5 text-center text-[var(--textMuted)]">{si + 1}</span>
-                                  <span className="w-14 text-[var(--text)]">{set.r} reps</span>
+                                <div
+                                  key={si}
+                                  className="flex items-center gap-3 text-xs"
+                                >
+                                  <span className="w-5 text-center text-[var(--textMuted)]">
+                                    {si + 1}
+                                  </span>
+                                  <span className="w-14 text-[var(--text)]">
+                                    {set.r} reps
+                                  </span>
                                   <span className="w-16 text-[var(--textMuted)]">
-                                    {set.w != null && set.w > 0 ? `${set.w} lbs` : "—"}
+                                    {set.w != null &&
+                                    set.w > 0
+                                      ? `${set.w} lbs`
+                                      : "—"}
                                   </span>
                                   <span className="ml-auto">
                                     {set.done ? (
-                                      <span className="text-[var(--ice)]">✓</span>
+                                      <span className="text-[var(--ice)]">
+                                        ✓
+                                      </span>
                                     ) : (
-                                      <span className="text-[var(--textMuted)]">—</span>
+                                      <span className="text-[var(--textMuted)]">
+                                        —
+                                      </span>
                                     )}
                                   </span>
                                 </div>
@@ -253,27 +334,49 @@ function FeedEntryCard({
               ) : hasStats ? (
                 <p className="text-xs text-[var(--textMuted)]">
                   {[
-                    log.sets != null && log.sets > 0 && `${log.sets} sets`,
-                    log.reps != null && log.reps > 0 && `${log.reps} reps`,
-                    log.lbs != null && log.lbs > 0 && `${log.lbs} lbs avg`,
+                    log.sets != null &&
+                      log.sets > 0 &&
+                      `${log.sets} sets`,
+                    log.reps != null &&
+                      log.reps > 0 &&
+                      `${log.reps} reps`,
+                    log.lbs != null &&
+                      log.lbs > 0 &&
+                      `${log.lbs} lbs avg`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
               ) : (
-                <p className="text-xs text-[var(--textMuted)]">No exercise details recorded.</p>
+                <p className="text-xs text-[var(--textMuted)]">
+                  No exercise details recorded.
+                </p>
               )}
 
               {textNotes && (
-                <p className="text-sm text-[var(--textMuted)]">{textNotes}</p>
+                <p className="text-sm text-[var(--textMuted)]">
+                  {textNotes}
+                </p>
+              )}
+
+              {/* View details link to Stats tab */}
+              {onViewDetails && (
+                <button
+                  type="button"
+                  onClick={onViewDetails}
+                  className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--ice)] transition-colors hover:bg-[var(--iceSoft)]"
+                >
+                  <BarChart3 className="h-3.5 w-3.5" />
+                  View in Stats
+                </button>
               )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Inline emoji reactions - always visible */}
-      <div className="border-t border-[var(--border)] px-4 py-2 flex items-center gap-1">
+      {/* Emoji reactions */}
+      <div className="flex items-center gap-1.5 border-t border-[var(--border)] px-4 py-2">
         {REACTION_EMOJIS.map((emoji) => {
           const r = reactions.find((rx) => rx.emoji === emoji);
           const count = r?.count ?? 0;
@@ -284,15 +387,21 @@ function FeedEntryCard({
               key={emoji}
               type="button"
               onClick={() => onToggleReaction(log.id, emoji)}
-              className={`flex items-center gap-0.5 rounded-full px-2 py-1 text-sm transition-colors ${
+              className={`flex items-center gap-0.5 rounded-full px-2.5 py-1.5 text-sm transition-colors ${
                 reacted
-                  ? "bg-[var(--iceSoft)]/50 border border-[var(--ice)]/40"
-                  : "hover:bg-[var(--bg3)]/60 border border-transparent"
+                  ? "border border-[var(--ice)]/40 bg-[var(--iceSoft)]/50"
+                  : "border border-transparent hover:bg-[var(--bg3)]/60"
               }`}
             >
               <span className="text-base">{emoji}</span>
               {count > 0 && (
-                <span className={`text-[11px] font-medium ${reacted ? "text-[var(--ice)]" : "text-[var(--textMuted)]"}`}>
+                <span
+                  className={`text-[11px] font-medium ${
+                    reacted
+                      ? "text-[var(--ice)]"
+                      : "text-[var(--textMuted)]"
+                  }`}
+                >
                   {count}
                 </span>
               )}
@@ -304,19 +413,23 @@ function FeedEntryCard({
   );
 }
 
-// ---------- Main feed tab ----------
+// ─── Main feed tab ───
 
 export function WorkoutFeedTab({
   userId,
   onSelectMember,
+  onNavigateToStats,
 }: {
   userId: string;
   onSelectMember: (username: string) => void;
+  onNavigateToStats?: () => void;
 }) {
   const [logs, setLogs] = useState<WorkoutLogWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [reactionsMap, setReactionsMap] = useState<Map<string, ReactionSummary[]>>(new Map());
+  const [reactionsMap, setReactionsMap] = useState<
+    Map<string, ReactionSummary[]>
+  >(new Map());
   const [isAdmin, setIsAdmin] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -330,15 +443,20 @@ export function WorkoutFeedTab({
   );
 
   useEffect(() => {
-    // Check admin status via server (linked to email in app_admins table)
     (async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session?.access_token) return;
         const res = await fetch("/api/workout/check-admin", {
-          headers: { Authorization: `Bearer ${session.access_token}` },
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
         });
-        const data = await res.json().catch(() => ({ admin: false }));
+        const data = await res
+          .json()
+          .catch(() => ({ admin: false }));
         if (data.admin) setIsAdmin(true);
       } catch {
         // non-critical
@@ -356,7 +474,10 @@ export function WorkoutFeedTab({
         await loadReactions(logIds);
       })
       .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load feed.");
+        if (!cancelled)
+          setError(
+            e instanceof Error ? e.message : "Failed to load feed."
+          );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -367,16 +488,26 @@ export function WorkoutFeedTab({
   }, [userId, loadReactions]);
 
   const handleAdminDelete = async (logId: string) => {
-    if (!window.confirm("Delete this feed entry? This cannot be undone.")) return;
+    if (
+      !window.confirm(
+        "Delete this feed entry? This cannot be undone."
+      )
+    )
+      return;
     setDeletingId(logId);
     try {
       await supabase.auth.refreshSession();
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const token = session?.access_token;
       if (!token) return;
       const res = await fetch("/api/workout/admin-delete-log", {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ logId }),
       });
       if (res.ok) {
@@ -398,15 +529,35 @@ export function WorkoutFeedTab({
         if (existing.reacted) {
           const newCount = existing.count - 1;
           if (newCount <= 0) {
-            next.set(logId, current.filter((r) => r.emoji !== emoji));
+            next.set(
+              logId,
+              current.filter((r) => r.emoji !== emoji)
+            );
           } else {
-            next.set(logId, current.map((r) => r.emoji === emoji ? { ...r, count: newCount, reacted: false } : r));
+            next.set(
+              logId,
+              current.map((r) =>
+                r.emoji === emoji
+                  ? { ...r, count: newCount, reacted: false }
+                  : r
+              )
+            );
           }
         } else {
-          next.set(logId, current.map((r) => r.emoji === emoji ? { ...r, count: r.count + 1, reacted: true } : r));
+          next.set(
+            logId,
+            current.map((r) =>
+              r.emoji === emoji
+                ? { ...r, count: r.count + 1, reacted: true }
+                : r
+            )
+          );
         }
       } else {
-        next.set(logId, [...current, { emoji, count: 1, reacted: true }]);
+        next.set(logId, [
+          ...current,
+          { emoji, count: 1, reacted: true },
+        ]);
       }
       return next;
     });
@@ -422,13 +573,17 @@ export function WorkoutFeedTab({
     );
   }
   if (error) {
-    return <div className="py-8 text-center text-sm text-red-400">{error}</div>;
+    return (
+      <div className="py-8 text-center text-sm text-red-400">{error}</div>
+    );
   }
   if (logs.length === 0) {
     return (
       <div className="py-12 text-center text-[var(--textMuted)]">
         <Dumbbell className="mx-auto h-10 w-10 opacity-50" />
-        <p className="mt-2">No workouts yet. Be the first to log one.</p>
+        <p className="mt-2">
+          No workouts yet. Be the first to log one.
+        </p>
       </div>
     );
   }
@@ -450,6 +605,7 @@ export function WorkoutFeedTab({
             onSelectMember={onSelectMember}
             onAdminDelete={handleAdminDelete}
             onToggleReaction={handleToggleReaction}
+            onViewDetails={onNavigateToStats}
           />
         </motion.div>
       ))}
