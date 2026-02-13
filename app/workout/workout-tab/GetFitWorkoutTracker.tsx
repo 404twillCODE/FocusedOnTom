@@ -7,6 +7,7 @@ import { loadAppData, updateAppData } from "./getfit/dataStore";
 import { formatDateKey, sanitizeExerciseDisplayText, type TrackingStyle } from "./getfit/storage";
 
 import { getWorkoutSettings, getUserTemplates, insertLog, type WorkoutSettings } from "@/lib/supabase/workout";
+import { useToast } from "../AppToast";
 
 interface Set {
   setNumber: number;
@@ -83,6 +84,7 @@ function SetRowCard({
           aria-label={`Set ${set.setNumber} reps`}
           value={repsInput}
           onChange={(e) => setRepsInput(e.target.value)}
+          onFocus={(e) => e.target.select()}
           onBlur={() => onRepsBlur(parseInt(repsInput, 10) || 0)}
           className="w-full rounded-md border border-[var(--border)] bg-[var(--bg3)]/60 px-2 py-1 text-center text-sm text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
         />
@@ -97,6 +99,7 @@ function SetRowCard({
           aria-label={`Set ${set.setNumber} weight`}
           value={weightInput}
           onChange={(e) => setWeightInput(e.target.value)}
+          onFocus={(e) => e.target.select()}
           onBlur={() => {
             const v = weightInput.trim();
             onWeightBlur(v === "" ? null : parseFloat(v) || 0);
@@ -114,6 +117,7 @@ function SetRowCard({
           aria-label="Rest seconds"
           value={restInput}
           onChange={(e) => setRestInput(e.target.value)}
+          onFocus={(e) => e.target.select()}
           onBlur={() => onRestChange(restSec)}
           className="w-full rounded-md border border-[var(--border)] bg-[var(--bg3)]/60 px-2 py-1 text-center text-sm text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
         />
@@ -133,15 +137,16 @@ function SetRowCard({
         >
           {set.completed && <Check className="h-3.5 w-3.5" />}
         </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          disabled={!canRemove}
-          className="rounded-lg p-1 text-[var(--textMuted)] hover:bg-[var(--bg3)] hover:text-[var(--text)] disabled:opacity-40"
-          aria-label="Remove set"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        {canRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded-lg p-1 text-[var(--textMuted)] hover:bg-[var(--bg3)] hover:text-[var(--text)]"
+            aria-label="Remove set"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -180,6 +185,7 @@ export function GetFitWorkoutTracker({
     return 0;
   });
 
+  const { showToast } = useToast();
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
   useEffect(() => {
@@ -270,7 +276,11 @@ export function GetFitWorkoutTracker({
       }, 1000);
       return () => clearTimeout(timer);
     } else if (activeBreakTimer && activeBreakTimer.timeLeft === 0) {
-      // Timer finished, play sound or notification
+      // Timer finished - vibrate phone + in-app toast
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+      }
+      showToast("Rest timer complete! Time to go.", "timer", 4000);
       setTimeout(() => {
         setActiveBreakTimer(null);
       }, 1000);
@@ -459,9 +469,9 @@ export function GetFitWorkoutTracker({
     } catch (error) {
       console.error("Error saving exercise:", error);
       const errorMsg = error instanceof Error ? error.message : "Unknown error";
-      alert(errorMsg.includes("timeout") 
+      showToast(errorMsg.includes("timeout") 
         ? "Save is taking longer than expected. Please try again." 
-        : "Failed to save exercise. Please try again.");
+        : "Failed to save exercise. Please try again.", "error");
       throw error; // Re-throw so handleSave can catch it
     }
   };
@@ -541,12 +551,13 @@ export function GetFitWorkoutTracker({
     const exercise = workouts.find((e) => e.id === exerciseId);
     if (!exercise?.sets) return;
     const defaultRest = preferredRestSec ?? 0;
+    const lastSet = exercise.sets[exercise.sets.length - 1];
     const newSet: Set = {
       setNumber: exercise.sets.length + 1,
-      reps: 10,
-      weight: null,
+      reps: lastSet?.reps ?? 10,
+      weight: lastSet?.weight ?? null,
       completed: false,
-      breakTime: defaultRest > 0 ? defaultRest : undefined,
+      breakTime: lastSet?.breakTime ?? (defaultRest > 0 ? defaultRest : undefined),
     };
     const newSets = [...exercise.sets, newSet].map((s, i) => ({ ...s, setNumber: i + 1 }));
     await updateExerciseSets(exerciseId, newSets);
@@ -602,7 +613,7 @@ export function GetFitWorkoutTracker({
 
   const completeWorkout = async () => {
     if (workouts.length === 0) {
-      alert("Add at least one exercise before completing the workout");
+      showToast("Add at least one exercise before completing the workout", "error");
       return;
     }
 
@@ -639,6 +650,16 @@ export function GetFitWorkoutTracker({
       );
       const avgWeight = weightedCount > 0 ? Math.round(weightedSum / weightedCount) : null;
 
+      // Encode exercise details into notes for the feed to display
+      const exerciseDetails = workouts.map((ex) => ({
+        name: sanitizeExerciseDisplayText(ex.name) || "Exercise",
+        sets: (ex.sets ?? []).map((s) => ({
+          r: s.reps ?? 0,
+          w: s.weight,
+          done: s.completed,
+        })),
+      }));
+
       await insertLog(userId, {
         date: workoutEntry.date,
         workout_type:
@@ -650,7 +671,7 @@ export function GetFitWorkoutTracker({
         sets: totalSets > 0 ? totalSets : null,
         lbs: avgWeight,
         duration_min: undefined,
-        notes: undefined,
+        notes: JSON.stringify(exerciseDetails),
       });
     } catch (error) {
       console.warn("Failed to sync completed workout to feed", error);
@@ -658,10 +679,16 @@ export function GetFitWorkoutTracker({
 
     // Reset progress but keep workouts
     await resetDayProgress();
-    alert("Workout completed and saved to history!");
+    showToast("Workout completed and saved to history!", "success");
 
-    // Auto-advance to next day
-    navigateDay("next");
+    // Day advance is handled by the useEffect that watches totalSequenceWorkouts /
+    // workoutHistory.length – no manual navigateDay("next") needed for sequence mode.
+    // For schedule (weekday) mode, stay on today's weekday.
+    if (!isInconsistent) {
+      setCurrentDayIndex(new Date().getDay());
+    }
+    // For sequence mode, the useEffect below will snap to the correct next slot
+    // when workoutHistory state updates and totalSequenceWorkouts changes.
   };
 
   const navigateDay = (direction: "prev" | "next") => {
@@ -853,37 +880,19 @@ export function GetFitWorkoutTracker({
 
                   {exercise.sets && exercise.sets.length > 0 && (
                 <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-[var(--textMuted)]">Sets</span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => selectAllSets(exercise.id)}
-                            className="text-xs text-[var(--textMuted)] hover:text-[var(--ice)] hover:underline underline-offset-2"
-                          >
-                            Select all
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addSetToExercise(exercise.id)}
-                            className="text-xs font-medium text-[var(--ice)] hover:underline"
-                          >
-                            + Add set
-                          </button>
-                        </div>
-                      </div>
+                      <span className="text-xs text-[var(--textMuted)]">Sets</span>
                   {exercise.sets.map((set, index) => (
                     <SetRowCard
                       key={`${exercise.id}-${index}`}
                       set={set}
                       exerciseId={exercise.id}
                       index={index}
-                      canRemove={(exercise.sets?.length ?? 0) > 1}
+                      canRemove={false}
                       onRepsBlur={(v) => updateSetField(exercise.id, index, "reps", v)}
                       onWeightBlur={(v) => updateSetField(exercise.id, index, "weight", v)}
                       onRestChange={(sec) => updateSetRest(exercise.id, index, sec)}
                       onToggleComplete={() => toggleSetComplete(exercise.id, index, set.breakTime)}
-                      onRemove={() => removeSetFromExercise(exercise.id, index)}
+                      onRemove={() => {}}
                     />
                   ))}
                 </div>
@@ -991,6 +1000,7 @@ const ExerciseModal = ({
   onBreakTimeChange,
   userId,
 }: ExerciseModalProps) => {
+  const { showToast } = useToast();
   const [name, setName] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<ExerciseCategory[]>([]);
   const [setRows, setSetRows] = useState<SetRow[]>(() => defaultSetRows(defaultBreakTime));
@@ -1234,10 +1244,19 @@ const ExerciseModal = ({
   };
 
   const addSetRow = () => {
-    setSetRows((prev) => [
-      ...prev,
-      { reps: null, weight: null, restSec: defaultBreakTime, rpe: null, isDropSet: false },
-    ]);
+    setSetRows((prev) => {
+      const lastRow = prev[prev.length - 1];
+      return [
+        ...prev,
+        {
+          reps: lastRow?.reps ?? null,
+          weight: lastRow?.weight ?? null,
+          restSec: lastRow?.restSec ?? defaultBreakTime,
+          rpe: lastRow?.rpe ?? null,
+          isDropSet: false,
+        },
+      ];
+    });
   };
   const addDropSetRow = () => {
     const last = setRows[setRows.length - 1];
@@ -1283,11 +1302,11 @@ const ExerciseModal = ({
     }
 
     if (!name.trim()) {
-      alert("Please enter an exercise name");
+      showToast("Please enter an exercise name", "error");
       return;
     }
     if (selectedCategories.length === 0) {
-      alert("Please select at least one category");
+      showToast("Please select at least one category", "error");
       return;
     }
 
@@ -1324,7 +1343,7 @@ const ExerciseModal = ({
       onClose(); // Close modal after successful save
     } catch (error) {
       console.error("Error saving exercise:", error);
-      alert("Failed to save exercise. Please try again.");
+      showToast("Failed to save exercise. Please try again.", "error");
     } finally {
       setIsSavingExercise(false);
     }
@@ -1542,6 +1561,7 @@ const ExerciseModal = ({
                           const v = e.target.value;
                           updateSetRow(index, "reps", v === "" ? null : (parseInt(v, 10) || 0));
                         }}
+                        onFocus={(e) => e.target.select()}
                         className="w-full rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1 text-center text-xs text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
                       />
 
@@ -1556,6 +1576,7 @@ const ExerciseModal = ({
                           const v = e.target.value;
                           updateSetRow(index, "weight", v === "" ? null : (parseFloat(v) || 0));
                         }}
+                        onFocus={(e) => e.target.select()}
                         className="w-full rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1 text-center text-xs text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
                       />
 
@@ -1567,6 +1588,7 @@ const ExerciseModal = ({
                           aria-label="Rest seconds"
                           value={row.restSec > 0 ? String(row.restSec) : ""}
                           onChange={(e) => updateSetRow(index, "restSec", parseInt(e.target.value, 10) || 0)}
+                          onFocus={(e) => e.target.select()}
                           placeholder="—"
                           className="w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1 text-center text-xs text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
                         />
@@ -1585,6 +1607,7 @@ const ExerciseModal = ({
                             const v = e.target.value;
                             updateSetRow(index, "rpe", v === "" ? null : Math.min(10, Math.max(1, parseInt(v, 10) || 0)));
                           }}
+                          onFocus={(e) => e.target.select()}
                           placeholder="—"
                           className="w-full rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1 py-1 text-center text-xs text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
                         />

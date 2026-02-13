@@ -7,6 +7,7 @@ import { getMyProfile, upsertProfile } from "@/lib/supabase/workout";
 import type { Profile } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useToast } from "./AppToast";
 
 const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 
@@ -31,9 +32,11 @@ export function WorkoutProfileTab({
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [username, setUsername] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState<"all" | "setup" | null>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     getMyProfile(userId)
@@ -41,6 +44,7 @@ export function WorkoutProfileTab({
         setProfile(p);
         if (p) {
           setUsername(p.username);
+          setDisplayName(p.display_name ?? "");
         }
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load profile."))
@@ -65,13 +69,14 @@ export function WorkoutProfileTab({
     }
     setSaving(true);
     try {
-      // Use username as display name everywhere
+      const dn = displayName.trim();
       const updated = await upsertProfile(userId, {
         username: u,
-        display_name: u,
+        display_name: dn || u, // fallback to username when display name is empty
       });
       setProfile(updated);
       setUsername(updated.username);
+      setDisplayName(updated.display_name ?? "");
       setEditing(false);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to save.";
@@ -104,6 +109,7 @@ export function WorkoutProfileTab({
 
   return (
     <div className="pb-24">
+      {/* Profile Card */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/80 p-6">
         <div className="flex justify-center">
           <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--iceSoft)] text-[var(--ice)]">
@@ -134,6 +140,21 @@ export function WorkoutProfileTab({
                 disabled={saving}
               />
             </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--textMuted)]">
+                Display name
+              </label>
+              <Input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={username || "Your name"}
+                className="w-full"
+                disabled={saving}
+              />
+              <p className="mt-0.5 text-[10px] text-[var(--textMuted)]">
+                Shown in the feed. Leave blank to use your username.
+              </p>
+            </div>
             <div className="flex gap-2">
               <Button type="submit" disabled={saving} className="flex-1">
                 {saving ? (
@@ -148,6 +169,7 @@ export function WorkoutProfileTab({
                   onClick={() => {
                     setEditing(false);
                     setUsername(profile?.username ?? "");
+                    setDisplayName(profile?.display_name ?? "");
                     setError("");
                   }}
                   className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm text-[var(--textMuted)] hover:border-[var(--ice)]/50 hover:text-[var(--text)]"
@@ -171,6 +193,7 @@ export function WorkoutProfileTab({
                 onClick={() => {
                   setEditing(true);
                   setUsername(profile?.username ?? "");
+                  setDisplayName(profile?.display_name ?? "");
                   setError("");
                 }}
                 className="rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:border-[var(--ice)]/50 hover:text-[var(--ice)]"
@@ -181,6 +204,8 @@ export function WorkoutProfileTab({
           </>
         )}
       </div>
+
+      {/* Settings Section */}
       <div className="mt-6 space-y-4">
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/80 p-4">
           <h3 className="text-sm font-semibold text-[var(--text)]">Workout settings</h3>
@@ -205,7 +230,7 @@ export function WorkoutProfileTab({
                   const { data: { session } } = await supabase.auth.getSession();
                   const token = session?.access_token;
                   if (!token) {
-                    alert("Please sign in again.");
+                    showToast("Please sign in again.", "error");
                     return;
                   }
                   const res = await fetch("/api/workout/reset-setup", {
@@ -214,13 +239,13 @@ export function WorkoutProfileTab({
                   });
                   const data = await res.json().catch(() => ({}));
                   if (!res.ok) {
-                    alert(data?.error ?? "Failed to reset setup. Please try again.");
+                    showToast(data?.error ?? "Failed to reset setup. Please try again.", "error");
                     return;
                   }
-                  alert("Setup reset. Your workout history is unchanged.");
+                  showToast("Setup reset. Your workout history is unchanged.", "success");
                   onNavigateToWorkout?.();
                 } catch {
-                  alert("Failed to reset setup. Please try again.");
+                  showToast("Failed to reset setup. Please try again.", "error");
                 } finally {
                   setResetting(null);
                 }
@@ -252,7 +277,7 @@ export function WorkoutProfileTab({
                   const { data: { session } } = await supabase.auth.getSession();
                   const token = session?.access_token;
                   if (!token) {
-                    alert("Please sign in again.");
+                    showToast("Please sign in again.", "error");
                     return;
                   }
                   const res = await fetch("/api/workout/reset-all", {
@@ -261,14 +286,14 @@ export function WorkoutProfileTab({
                   });
                   const data = await res.json().catch(() => ({}));
                   if (!res.ok) {
-                    alert(data?.error ?? "Failed to reset. Please try again.");
+                    showToast(data?.error ?? "Failed to reset. Please try again.", "error");
                     return;
                   }
                   clearWorkoutLocalStorage(userId);
-                  alert("Workout data reset. Opening Workout tab.");
+                  showToast("Workout data reset. Opening Workout tab.", "success");
                   onNavigateToWorkout?.();
                 } catch {
-                  alert("Failed to reset. Please try again.");
+                  showToast("Failed to reset. Please try again.", "error");
                 } finally {
                   setResetting(null);
                 }

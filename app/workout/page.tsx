@@ -8,6 +8,7 @@ import { getGateUnlocked, WorkoutPasscodeGate } from "./WorkoutPasscodeGate";
 import { WorkoutAuth } from "./WorkoutAuth";
 import { WorkoutAppTabs } from "./WorkoutAppTabs";
 import { WorkoutInstallPrompt } from "./WorkoutInstallPrompt";
+import { ToastProvider } from "./AppToast";
 
 // Show passcode gate first unless explicitly disabled (default: gate before login)
 const GATE_ENABLED = process.env.NEXT_PUBLIC_WORKOUT_GATE_ENABLED !== "false";
@@ -86,63 +87,65 @@ export default function WorkoutPage() {
   const showApp = gateUnlocked && authChecked && user;
 
   return (
-    <main className="min-h-screen -mt-16 sm:-mt-20">
-      <div className="mx-auto max-w-2xl px-4 pt-2 pb-8">
-        <AnimatePresence mode="wait">
-          {showGate && (
-            <motion.div
-              key="gate"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <WorkoutPasscodeGate onUnlock={() => setGateUnlocked(true)} />
-            </motion.div>
-          )}
-          {showAuth && (
-            <motion.div
-              key="auth"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <WorkoutAuth
-                onSignedIn={() => {
-                  supabase.auth.getSession().then(({ data: { session } }) => {
-                    setUser(session?.user ?? null);
-                  });
-                }}
-              />
-            </motion.div>
-          )}
-          {showApp && user && (
-            <motion.div
-              key="app"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <WorkoutAppTabs
-                userId={user.id}
-                onSignOut={() => setUser(null)}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+    <ToastProvider>
+      <main className="min-h-screen -mt-16 sm:-mt-20">
+        <div className="mx-auto max-w-2xl px-4 pt-2 pb-8">
+          <AnimatePresence mode="wait">
+            {showGate && (
+              <motion.div
+                key="gate"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <WorkoutPasscodeGate onUnlock={() => setGateUnlocked(true)} />
+              </motion.div>
+            )}
+            {showAuth && (
+              <motion.div
+                key="auth"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <WorkoutAuth
+                  onSignedIn={() => {
+                    supabase.auth.getSession().then(({ data: { session } }) => {
+                      setUser(session?.user ?? null);
+                    });
+                  }}
+                />
+              </motion.div>
+            )}
+            {showApp && user && (
+              <motion.div
+                key="app"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <WorkoutAppTabs
+                  userId={user.id}
+                  onSignOut={() => setUser(null)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-      {showApp && (
-        <WorkoutInstallPrompt
-          open={showInstallPrompt}
-          platform={installPlatform}
-          onDismiss={() => {
-            if (typeof window !== "undefined") {
-              localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
-            }
-            setShowInstallPrompt(false);
-          }}
-        />
-      )}
-    </main>
+        {showApp && (
+          <WorkoutInstallPrompt
+            open={showInstallPrompt}
+            platform={installPlatform}
+            onDismiss={() => {
+              if (typeof window !== "undefined") {
+                localStorage.setItem(INSTALL_DISMISSED_KEY, "true");
+              }
+              setShowInstallPrompt(false);
+            }}
+          />
+        )}
+      </main>
+    </ToastProvider>
   );
 }

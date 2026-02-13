@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { LocalExercise, LocalSet } from "./types";
 import { DEFAULT_DROP_PERCENT } from "./types";
+import { useToast } from "../AppToast";
 
 function formatElapsed(ms: number) {
   const totalSec = Math.floor(ms / 1000);
@@ -49,6 +50,7 @@ export function ActiveSession({
   const [historyMap, setHistoryMap] = useState<Map<string, ExerciseHistory>>(new Map());
   const [restRemaining, setRestRemaining] = useState<number | null>(null);
   const addExerciseInputRef = useRef<HTMLInputElement>(null);
+  const { showToast } = useToast();
 
   const startedAt = new Date(session.started_at).getTime();
 
@@ -66,7 +68,16 @@ export function ActiveSession({
   }, [userId, exercises.map((e) => e.name).join(",")]);
 
   useEffect(() => {
-    if (restRemaining === null || restRemaining <= 0) return;
+    if (restRemaining === null) return;
+    if (restRemaining <= 0) {
+      // Timer finished - vibrate phone + in-app toast
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate([200, 100, 200, 100, 200]);
+      }
+      showToast("Rest timer complete! Time to go.", "timer", 4000);
+      setRestRemaining(null);
+      return;
+    }
     const id = setTimeout(() => setRestRemaining((r) => (r != null ? r - 1 : null)), 1000);
     return () => clearTimeout(id);
   }, [restRemaining]);
@@ -306,6 +317,7 @@ export function ActiveSession({
                           reps: e.target.value ? Number(e.target.value) : null,
                         })
                       }
+                      onFocus={(e) => e.target.select()}
                       className="h-9 w-14 rounded-lg border border-[var(--border)] bg-[var(--bg2)] px-2 text-sm focus:border-[var(--ice)]/50 focus:outline-none"
                     />
                     <input
@@ -317,6 +329,7 @@ export function ActiveSession({
                           weight: e.target.value ? Number(e.target.value) : null,
                         })
                       }
+                      onFocus={(e) => e.target.select()}
                       className="h-9 w-16 rounded-lg border border-[var(--border)] bg-[var(--bg2)] px-2 text-sm focus:border-[var(--ice)]/50 focus:outline-none"
                     />
                     {modes.rpe && (
@@ -331,6 +344,7 @@ export function ActiveSession({
                             rpe: e.target.value ? Number(e.target.value) : null,
                           })
                         }
+                        onFocus={(e) => e.target.select()}
                         className="h-9 w-12 rounded-lg border border-[var(--border)] bg-[var(--bg2)] px-2 text-sm focus:border-[var(--ice)]/50 focus:outline-none"
                       />
                     )}

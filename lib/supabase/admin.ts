@@ -36,3 +36,34 @@ export async function getUserIdFromRequest(request: NextRequest): Promise<string
   if (!user) return null;
   return user.id;
 }
+
+/** Get the email for a user id from Supabase auth. */
+export async function getUserEmailFromRequest(request: NextRequest): Promise<{ userId: string; email: string } | null> {
+  const authHeader =
+    request.headers.get("authorization") ?? request.headers.get("Authorization");
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : null;
+  if (!token) return null;
+  if (!supabaseUrl || !supabaseAnonKey) return null;
+  const client = createClient(supabaseUrl, supabaseAnonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: { user }, error } = await client.auth.getUser(token);
+  if (error || !user?.email) return null;
+  return { userId: user.id, email: user.email };
+}
+
+/** Check if a given email is in the app_admins table. Uses service role. */
+export async function isEmailAdmin(email: string): Promise<boolean> {
+  try {
+    const admin = getSupabaseAdmin();
+    const { data } = await admin
+      .from("app_admins")
+      .select("id")
+      .eq("email", email.toLowerCase())
+      .limit(1)
+      .single();
+    return !!data;
+  } catch {
+    return false;
+  }
+}

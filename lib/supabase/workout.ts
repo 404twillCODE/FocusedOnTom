@@ -611,24 +611,50 @@ export async function finishWorkoutSession(payload: FinishSessionPayload): Promi
     if (setErr) throw setErr;
   }
 
-  // Optionally mirror a summary row into workout_logs for existing feed / leaderboard.
-  const mainExercise = exercises[0];
-  if (mainExercise) {
-    const reps = mainExercise.sets.reduce((sum, s) => sum + (s.reps ?? 0), 0);
-    const avgWeight =
-      mainExercise.sets.reduce((sum, s) => sum + (s.weight ?? 0), 0) /
-      (mainExercise.sets.filter((s) => s.weight != null).length || 1);
+  // Mirror a summary row into workout_logs for feed / leaderboard.
+  if (exercises.length > 0) {
+    const totalReps = exercises.reduce(
+      (sum, ex) => sum + ex.sets.reduce((s, set) => s + (set.reps ?? 0), 0),
+      0
+    );
+    const totalSets = exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+    const weightedSum = exercises.reduce(
+      (sum, ex) => sum + ex.sets.reduce((s, set) => s + (set.weight ?? 0), 0),
+      0
+    );
+    const weightedCount = exercises.reduce(
+      (sum, ex) => sum + ex.sets.filter((s) => s.weight != null).length,
+      0
+    );
+    const avgWeight = weightedCount > 0 ? Math.round(weightedSum / weightedCount) : null;
+
+    // Encode exercise details so the feed can show them
+    const exerciseDetails = exercises.map((ex) => ({
+      name: ex.name,
+      sets: ex.sets.map((s) => ({
+        r: s.reps ?? 0,
+        w: s.weight,
+        done: s.is_done,
+      })),
+    }));
 
     const dateStr = endedAt.slice(0, 10);
+    const dayLabel = (await supabase
+      .from("workout_sessions")
+      .select("day_label")
+      .eq("id", sessionId)
+      .single()
+    ).data?.day_label;
+
     await insertLogFromSession({
       date: dateStr,
-      workout_type: mainExercise.name.toLowerCase(),
-      workout_name: mainExercise.name,
-      reps: reps || null,
-      sets: mainExercise.sets.length || null,
-      lbs: Number.isFinite(avgWeight) ? Math.round(avgWeight) : null,
+      workout_type: (dayLabel ?? exercises[0].name).toLowerCase().replace(/\s+/g, "_"),
+      workout_name: dayLabel ?? exercises[0].name,
+      reps: totalReps || null,
+      sets: totalSets || null,
+      lbs: avgWeight,
       duration_min: durationMin ?? undefined,
-      notes: notes ?? undefined,
+      notes: JSON.stringify(exerciseDetails),
     });
   }
 
@@ -743,6 +769,99 @@ export async function upsertProfile(
   return data as Profile;
 }
 
+/** Check if a notes string contains valid exercise-detail JSON. */
+function hasExerciseJson(notes: string | null | undefined): boolean {
+  if (!notes?.trim()) return false;
+  try {
+    const p = JSON.parse(notes);
+    return Array.isArray(p) && p.length > 0 && typeof p[0] === "object" && "name" in p[0] && "sets" in p[0];
+  } catch {
+    return false;
+  }
+}
+
+/** For logs missing exercise JSON in notes, try to backfill from workout_sessions/exercises/sets. */
+async function backfillExerciseDetailsForLogs(logRows: WorkoutLog[]): Promise<WorkoutLog[]> {
+  // Find logs that need backfilling
+  const needsBackfill = logRows.filter((l) => !hasExerciseJson(l.notes));
+  if (needsBackfill.length === 0) return logRows;
+
+  // Group by user_id + date to find matching sessions
+  const lookups = new Map<string, WorkoutLog[]>();
+  for (const log of needsBackfill) {
+    const key = `${log.user_id}|${log.date}`;
+    if (!lookups.has(key)) lookups.set(key, []);
+    lookups.get(key)!.push(log);
+  }
+
+  // For each user+date combo, query sessions → exercises → sets
+  const enriched = new Map<string, string>(); // log.id → JSON notes
+  for (const [key] of lookups) {
+    const [userId, date] = key.split("|");
+    try {
+      // Find sessions for this user on this date
+      const { data: sessions } = await supabase
+        .from("workout_sessions")
+        .select("id")
+        .eq("user_id", userId)
+        .gte("started_at", `${date}T00:00:00`)
+        .lte("started_at", `${date}T23:59:59`)
+        .limit(5);
+
+      if (!sessions || sessions.length === 0) continue;
+
+      const sessionIds = sessions.map((s) => s.id);
+      const { data: exercises } = await supabase
+        .from("workout_exercises")
+        .select("id, session_id, name, sort_order")
+        .in("session_id", sessionIds)
+        .order("sort_order");
+
+      if (!exercises || exercises.length === 0) continue;
+
+      const exerciseIds = exercises.map((e) => e.id);
+      const { data: sets } = await supabase
+        .from("workout_sets")
+        .select("exercise_id, set_number, reps, weight, is_done")
+        .in("exercise_id", exerciseIds)
+        .order("set_number");
+
+      const setsMap = new Map<string, typeof sets>();
+      for (const s of sets ?? []) {
+        const eid = (s as { exercise_id: string }).exercise_id;
+        if (!setsMap.has(eid)) setsMap.set(eid, []);
+        setsMap.get(eid)!.push(s);
+      }
+
+      const details = exercises.map((ex) => ({
+        name: (ex as { name: string }).name,
+        sets: (setsMap.get((ex as { id: string }).id) ?? []).map((s) => ({
+          r: (s as { reps: number | null }).reps ?? 0,
+          w: (s as { weight: number | null }).weight,
+          done: (s as { is_done: boolean }).is_done,
+        })),
+      }));
+
+      if (details.length > 0) {
+        const json = JSON.stringify(details);
+        const logs = lookups.get(key) ?? [];
+        for (const log of logs) {
+          enriched.set(log.id, json);
+        }
+      }
+    } catch {
+      // Best-effort; skip this lookup
+    }
+  }
+
+  if (enriched.size === 0) return logRows;
+
+  return logRows.map((row) => {
+    const json = enriched.get(row.id);
+    return json ? { ...row, notes: json } : row;
+  });
+}
+
 export async function getCommunityFeed(limit = 50): Promise<WorkoutLogWithProfile[]> {
   const { data: logs, error: logsError } = await supabase
     .from("workout_logs")
@@ -751,8 +870,11 @@ export async function getCommunityFeed(limit = 50): Promise<WorkoutLogWithProfil
     .limit(limit);
   if (logsError) throw logsError;
 
-  const logRows = (logs ?? []) as WorkoutLog[];
+  let logRows = (logs ?? []) as WorkoutLog[];
   if (logRows.length === 0) return [];
+
+  // Backfill exercise details from session tables for entries missing JSON in notes
+  logRows = await backfillExerciseDetailsForLogs(logRows);
 
   const userIds = Array.from(new Set(logRows.map((l) => l.user_id).filter(Boolean)));
   let profileMap = new Map<
@@ -975,4 +1097,96 @@ export async function deleteLog(logId: string, userId: string): Promise<void> {
     .eq("id", logId)
     .eq("user_id", userId);
   if (error) throw error;
+}
+
+// ---------- Reactions ----------
+
+export type Reaction = {
+  id: string;
+  log_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: string;
+};
+
+/** Grouped reaction: emoji + count + whether the current user reacted with it. */
+export type ReactionSummary = {
+  emoji: string;
+  count: number;
+  reacted: boolean; // did current userId react?
+};
+
+/** Get all reactions for a set of log IDs (batched for feed). */
+export async function getReactionsForLogs(
+  logIds: string[],
+  currentUserId: string
+): Promise<Map<string, ReactionSummary[]>> {
+  const map = new Map<string, ReactionSummary[]>();
+  if (logIds.length === 0) return map;
+
+  try {
+    const { data, error } = await supabase
+      .from("workout_log_reactions")
+      .select("log_id, user_id, emoji")
+      .in("log_id", logIds);
+    if (error) throw error;
+
+    // Group by log_id -> emoji
+    const byLog = new Map<string, Map<string, { count: number; reacted: boolean }>>();
+    for (const row of data ?? []) {
+      const r = row as { log_id: string; user_id: string; emoji: string };
+      if (!byLog.has(r.log_id)) byLog.set(r.log_id, new Map());
+      const emojiMap = byLog.get(r.log_id)!;
+      const cur = emojiMap.get(r.emoji) ?? { count: 0, reacted: false };
+      cur.count += 1;
+      if (r.user_id === currentUserId) cur.reacted = true;
+      emojiMap.set(r.emoji, cur);
+    }
+
+    for (const [logId, emojiMap] of byLog) {
+      const summaries: ReactionSummary[] = [];
+      for (const [emoji, { count, reacted }] of emojiMap) {
+        summaries.push({ emoji, count, reacted });
+      }
+      map.set(logId, summaries);
+    }
+  } catch (err) {
+    // Table may not exist yet; gracefully degrade.
+    console.warn("workout_log_reactions read failed (table may not exist yet):", err);
+  }
+
+  return map;
+}
+
+/** Toggle a reaction: add if not present, remove if already present. */
+export async function toggleReaction(
+  logId: string,
+  userId: string,
+  emoji: string
+): Promise<void> {
+  try {
+    // Check if already reacted
+    const { data: existing } = await supabase
+      .from("workout_log_reactions")
+      .select("id")
+      .eq("log_id", logId)
+      .eq("user_id", userId)
+      .eq("emoji", emoji)
+      .maybeSingle();
+
+    if (existing) {
+      // Remove reaction
+      await supabase
+        .from("workout_log_reactions")
+        .delete()
+        .eq("id", existing.id);
+    } else {
+      // Add reaction
+      await supabase
+        .from("workout_log_reactions")
+        .insert({ log_id: logId, user_id: userId, emoji });
+    }
+  } catch (err) {
+    console.warn("workout_log_reactions write failed (table may not exist yet):", err);
+  }
 }

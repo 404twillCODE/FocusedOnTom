@@ -36,6 +36,8 @@ yarn-error.log*
 
 # workout app (local/docs only)
 WORKOUT_APP.md
+WORKOUT_TAB_REBUILD.md
+.sql
 /supabase/
 
 # vercel
