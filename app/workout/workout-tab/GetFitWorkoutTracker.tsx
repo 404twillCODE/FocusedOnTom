@@ -1,156 +1,248 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
-import { ChevronLeft, ChevronRight, Plus, Check, Pencil, Trash2, X, Dumbbell } from "lucide-react";
+import { useEffect, useState, useRef, useCallback } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  Plus,
+  Check,
+  Pencil,
+  Trash2,
+  X,
+  Dumbbell,
+} from "lucide-react";
 import { loadAppData, updateAppData } from "./getfit/dataStore";
-import { formatDateKey, sanitizeExerciseDisplayText, type TrackingStyle } from "./getfit/storage";
-
-import { getWorkoutSettings, getUserTemplates, insertLog, type WorkoutSettings } from "@/lib/supabase/workout";
+import {
+  formatDateKey,
+  sanitizeExerciseDisplayText,
+  type TrackingStyle,
+} from "./getfit/storage";
+import {
+  getWorkoutSettings,
+  getUserTemplates,
+  insertLog,
+  type WorkoutSettings,
+} from "@/lib/supabase/workout";
 import { useToast } from "../AppToast";
+import {
+  type WorkoutSet,
+  type Exercise,
+  type ExerciseCategory,
+  type SetRow,
+  ALL_CATEGORIES,
+} from "@/types/workout";
 
-interface Set {
-  setNumber: number;
-  reps: number;
-  weight: number | null; // null = no weight (hidden)
-  completed: boolean;
-  breakTime?: number; // Rest/break in seconds per set (0 = off)
-  rpe?: number | null; // 1-10 when RPE tracking enabled
-  isDropSet?: boolean;
-}
+// Re-export for local compat
+type Set = WorkoutSet;
 
-type ExerciseCategory = "legs" | "arms" | "chest" | "back" | "shoulders" | "core" | "cardio" | "full_body";
-
-/** Shared category list for Add Exercise modal in all modes (scheduled / inconsistent / etc.). */
-const ALL_CATEGORIES: { value: ExerciseCategory; label: string }[] = [
-  { value: "legs", label: "Legs" },
-  { value: "arms", label: "Arms" },
-  { value: "chest", label: "Chest" },
-  { value: "back", label: "Back" },
-  { value: "shoulders", label: "Shoulders" },
-  { value: "core", label: "Core" },
-  { value: "cardio", label: "Cardio" },
-  { value: "full_body", label: "Full Body" },
-];
-
-interface Exercise {
-  id: number;
-  name: string;
-  categories: ExerciseCategory[]; // Multiple categories allowed
-  sets?: Set[];
-  selectedDays?: number[]; // Days of week (0-6) where this exercise appears
-  notes?: string;
-  completed?: boolean;
-}
+// ─────────────────────────────────────────────
+// SetRowCard – redesigned compact row
+// ─────────────────────────────────────────────
 
 function SetRowCard({
   set,
+  showWeightColumn,
   canRemove,
+  isLast,
+  repsRef,
   onRepsBlur,
   onWeightBlur,
   onRestChange,
   onToggleComplete,
   onRemove,
+  onFieldKeyDown,
 }: {
   set: Set;
-  exerciseId: number;
-  index: number;
+  showWeightColumn: boolean;
   canRemove: boolean;
+  isLast: boolean;
+  repsRef?: React.RefObject<HTMLInputElement | null>;
   onRepsBlur: (v: number) => void;
   onWeightBlur: (v: number | null) => void;
   onRestChange: (sec: number) => void;
   onToggleComplete: () => void;
   onRemove: () => void;
+  onFieldKeyDown?: (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    field: "reps" | "weight" | "rest"
+  ) => void;
 }) {
   const [repsInput, setRepsInput] = useState(String(set.reps ?? ""));
-  const [weightInput, setWeightInput] = useState(set.weight != null ? String(set.weight) : "");
+  const [weightInput, setWeightInput] = useState(
+    set.weight != null ? String(set.weight) : ""
+  );
   const [restInput, setRestInput] = useState(String(set.breakTime ?? 0));
+  const [editing, setEditing] = useState(!set.completed);
+  const weightRef = useRef<HTMLInputElement>(null);
+  const restRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setRepsInput(String(set.reps ?? ""));
     setWeightInput(set.weight != null ? String(set.weight) : "");
     setRestInput(String(set.breakTime ?? 0));
-  }, [set.reps, set.weight, set.breakTime]);
+    setEditing(!set.completed);
+  }, [set.reps, set.weight, set.breakTime, set.completed]);
 
   const restSec = Math.max(0, parseInt(restInput, 10) || 0);
+  const isDone = set.completed;
+
+  // Handle Enter key: move focus reps → weight → rest → next set
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    field: "reps" | "weight" | "rest"
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (field === "reps" && showWeightColumn) {
+        weightRef.current?.focus();
+      } else if (field === "reps" || field === "weight") {
+        restRef.current?.focus();
+      } else if (field === "rest") {
+        // Propagate to parent so it can focus next set's reps
+        onFieldKeyDown?.(e, field);
+      }
+    }
+  };
+
+  // When tapped on a done row, re-enable editing
+  const handleRowTap = () => {
+    if (isDone) {
+      setEditing(true);
+    }
+  };
+
+  // Grid columns: adapt based on weight visibility
+  const gridCols = showWeightColumn
+    ? "grid-cols-[2rem_1fr_1fr_1fr_2.5rem]"
+    : "grid-cols-[2rem_1fr_1fr_2.5rem]";
 
   return (
-    <div className="grid grid-cols-[2.25rem_1fr_1fr_1fr_auto] items-center gap-2 border-b border-[var(--border)] py-2 last:border-0">
-      <span className="text-center text-xs text-[var(--textMuted)]">{set.setNumber}</span>
-      <div className="flex items-center gap-1">
+    <div
+      className={`grid ${gridCols} items-center gap-1.5 rounded-lg px-2 py-1.5 transition-opacity ${
+        isDone && !editing ? "opacity-50" : ""
+      }`}
+      onClick={handleRowTap}
+    >
+      {/* Set # */}
+      <span
+        className={`text-center text-xs font-semibold ${
+          isDone ? "text-[var(--ice)]" : "text-[var(--textMuted)]"
+        }`}
+      >
+        {set.isDropSet ? "D" : set.setNumber}
+      </span>
+
+      {/* Reps */}
+      <div className="flex items-center gap-0.5">
         <input
+          ref={repsRef}
           type="number"
+          inputMode="numeric"
           min="0"
           aria-label={`Set ${set.setNumber} reps`}
           value={repsInput}
+          readOnly={isDone && !editing}
           onChange={(e) => setRepsInput(e.target.value)}
           onFocus={(e) => e.target.select()}
           onBlur={() => onRepsBlur(parseInt(repsInput, 10) || 0)}
-          className="w-full rounded-md border border-[var(--border)] bg-[var(--bg3)]/60 px-2 py-1 text-center text-sm text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
+          onKeyDown={(e) => handleKeyDown(e, "reps")}
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--bg3)]/60 px-1.5 py-1.5 text-center text-sm text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
+          placeholder="—"
         />
-        <span className="text-[11px] text-[var(--textMuted)]">reps</span>
+        <span className="shrink-0 text-[10px] text-[var(--textMuted)]">reps</span>
       </div>
 
-      <div className="flex items-center gap-1">
-        <input
-          type="number"
-          min="0"
-          step="2.5"
-          aria-label={`Set ${set.setNumber} weight`}
-          value={weightInput}
-          onChange={(e) => setWeightInput(e.target.value)}
-          onFocus={(e) => e.target.select()}
-          onBlur={() => {
-            const v = weightInput.trim();
-            onWeightBlur(v === "" ? null : parseFloat(v) || 0);
-          }}
-          placeholder="0"
-          className="w-full rounded-md border border-[var(--border)] bg-[var(--bg3)]/60 px-2 py-1 text-center text-sm text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
-        />
-        <span className="text-[11px] text-[var(--textMuted)]">lb</span>
-      </div>
+      {/* Weight (only if exercise uses weights) */}
+      {showWeightColumn && (
+        <div className="flex items-center gap-0.5">
+          <input
+            ref={weightRef}
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="2.5"
+            aria-label={`Set ${set.setNumber} weight`}
+            value={weightInput}
+            readOnly={isDone && !editing}
+            onChange={(e) => setWeightInput(e.target.value)}
+            onFocus={(e) => e.target.select()}
+            onBlur={() => {
+              const v = weightInput.trim();
+              onWeightBlur(v === "" ? null : parseFloat(v) || 0);
+            }}
+            onKeyDown={(e) => handleKeyDown(e, "weight")}
+            placeholder="—"
+            className="w-full rounded-md border border-[var(--border)] bg-[var(--bg3)]/60 px-1.5 py-1.5 text-center text-sm text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
+          />
+          <span className="shrink-0 text-[10px] text-[var(--textMuted)]">lb</span>
+        </div>
+      )}
 
-      <div className="flex items-center gap-1">
+      {/* Rest */}
+      <div className="flex items-center gap-0.5">
         <input
+          ref={restRef}
           type="number"
+          inputMode="numeric"
           min="0"
           aria-label="Rest seconds"
-          value={restInput}
+          value={restSec > 0 ? restInput : ""}
+          readOnly={isDone && !editing}
           onChange={(e) => setRestInput(e.target.value)}
           onFocus={(e) => e.target.select()}
           onBlur={() => onRestChange(restSec)}
-          className="w-full rounded-md border border-[var(--border)] bg-[var(--bg3)]/60 px-2 py-1 text-center text-sm text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
+          onKeyDown={(e) => handleKeyDown(e, "rest")}
+          placeholder="—"
+          className="w-full rounded-md border border-[var(--border)] bg-[var(--bg3)]/60 px-1.5 py-1.5 text-center text-sm text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
         />
-        <span className="text-[11px] text-[var(--textMuted)]">s</span>
+        <span className="shrink-0 text-[10px] text-[var(--textMuted)]">s</span>
       </div>
 
-      <div className="flex items-center gap-1.5 justify-end">
+      {/* Done checkbox + delete */}
+      <div className="flex items-center justify-center gap-0.5">
         <button
           type="button"
-          onClick={onToggleComplete}
-          className={`flex h-7 w-7 items-center justify-center rounded-lg border-2 transition-colors ${
-            set.completed
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleComplete();
+          }}
+          className={`flex h-8 w-8 items-center justify-center rounded-lg border-2 transition-colors ${
+            isDone
               ? "border-[var(--ice)] bg-[var(--iceSoft)] text-[var(--ice)]"
               : "border-[var(--border)] bg-transparent text-[var(--textMuted)] hover:border-[var(--ice)]/50"
           }`}
-          aria-label={set.completed ? "Mark set incomplete" : "Mark set complete"}
+          aria-label={isDone ? "Mark set incomplete" : "Mark set complete"}
         >
-          {set.completed && <Check className="h-3.5 w-3.5" />}
+          {isDone && <Check className="h-4 w-4" />}
         </button>
-        {canRemove && (
+      </div>
+
+      {/* Delete: only show on hover (desktop) via group, always visible on touch as a smaller icon below the row */}
+      {canRemove && (
+        <div className="col-span-full flex justify-end -mt-0.5 mb-0.5">
           <button
             type="button"
-            onClick={onRemove}
-            className="rounded-lg p-1 text-[var(--textMuted)] hover:bg-[var(--bg3)] hover:text-[var(--text)]"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            className="rounded p-0.5 text-[var(--textMuted)]/50 transition-colors hover:text-red-400 text-[10px] flex items-center gap-0.5"
             aria-label="Remove set"
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-3 w-3" />
+            <span>Remove</span>
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
+
+// ─────────────────────────────────────────────
+// Main Tracker
+// ─────────────────────────────────────────────
 
 export function GetFitWorkoutTracker({
   userId,
@@ -159,58 +251,108 @@ export function GetFitWorkoutTracker({
   userId: string;
   settings: WorkoutSettings;
 }) {
-  // For sequence mode: start on the next incomplete day (based on workouts completed this week).
-  // For schedule mode: start on today's weekday.
   const [currentDayIndex, setCurrentDayIndex] = useState(() => {
-    if (settingsProp?.tracking_style === "sequence" && settingsProp?.rotation?.length) {
-      return 0; // Will be corrected in useEffect once workoutHistory loads
+    if (
+      settingsProp?.tracking_style === "sequence" &&
+      settingsProp?.rotation?.length
+    ) {
+      return 0;
     }
     return new Date().getDay();
   });
   const [workouts, setWorkouts] = useState<Exercise[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
-  const [activeBreakTimer, setActiveBreakTimer] = useState<{ exerciseId: number; setIndex: number; timeLeft: number } | null>(null);
+  const [activeBreakTimer, setActiveBreakTimer] = useState<{
+    exerciseId: number;
+    setIndex: number;
+    timeLeft: number;
+  } | null>(null);
   const [workoutSchedule, setWorkoutSchedule] = useState<string[]>(
     Array(7).fill("Rest Day")
   );
   const [trackingStyle, setTrackingStyle] = useState<TrackingStyle>("scheduled");
   const [rotationOrder, setRotationOrder] = useState<string[]>([]);
-  const [workoutHistory, setWorkoutHistory] = useState<{ date: string; timestamp: number; dayOfWeek: number; workoutType?: string; exercises: unknown[] }[]>([]);
+  const [workoutHistory, setWorkoutHistory] = useState<
+    {
+      date: string;
+      timestamp: number;
+      dayOfWeek: number;
+      workoutType?: string;
+      exercises: unknown[];
+    }[]
+  >([]);
   const [preferredRestSec, setPreferredRestSec] = useState(() => {
-    // Seed from Supabase settings so the very first Add Exercise gets the right default
-    if (settingsProp?.preferences?.timer_enabled && settingsProp.preferences.timer_default_sec) {
+    if (
+      settingsProp?.preferences?.timer_enabled &&
+      settingsProp.preferences.timer_default_sec
+    ) {
       return settingsProp.preferences.timer_default_sec;
     }
     return 0;
   });
 
+  // Collapse state: track which exercise IDs are collapsed
+  const [collapsedExercises, setCollapsedExercises] = useState<
+    globalThis.Set<number>
+  >(new globalThis.Set());
+  // Track which exercise just had a set added (for auto-focus)
+  const [focusSetKey, setFocusSetKey] = useState<string | null>(null);
+  // Refs for set inputs (for auto-focus)
+  const setRepsRefs = useRef<Map<string, HTMLInputElement | null>>(new Map());
+  // Undo state for "Mark all done"
+  const [undoData, setUndoData] = useState<{
+    exerciseId: number;
+    previousSets: Set[];
+  } | null>(null);
+
   const { showToast } = useToast();
-  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  // ───── Auto-focus when a new set is added ─────
+  useEffect(() => {
+    if (focusSetKey) {
+      const ref = setRepsRefs.current.get(focusSetKey);
+      if (ref) {
+        setTimeout(() => ref.focus(), 50);
+      }
+      setFocusSetKey(null);
+    }
+  }, [focusSetKey, workouts]);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       await loadWorkoutSchedule();
       await loadDayWorkouts();
-      // Hydrate from Supabase if localStorage is empty (user just completed the single SetupWizard)
       const data = await loadAppData(userId);
       const isDefaultSchedule =
         !data.workoutSetupComplete &&
-        (data.workoutSchedule?.length === 7 && data.workoutSchedule.every((d) => d === "Rest Day"));
+        data.workoutSchedule?.length === 7 &&
+        data.workoutSchedule.every((d) => d === "Rest Day");
       if (cancelled || !isDefaultSchedule) return;
       try {
         const settings = await getWorkoutSettings(userId);
         if (!settings?.setup_completed) return;
         const schedule: string[] = Array(7).fill("Rest Day");
-        let rotationOrder: string[] = [];
+        let rotOrder: string[] = [];
 
         if (settings.tracking_style === "schedule") {
           if (settings.schedule_map) {
             const templates = await getUserTemplates(userId);
             for (let day = 0; day < 7; day++) {
               const templateId = settings.schedule_map![String(day)];
-              const name = templateId ? templates.find((t) => t.id === templateId)?.name : null;
+              const name = templateId
+                ? templates.find((t) => t.id === templateId)?.name
+                : null;
               if (name) schedule[day] = name;
             }
           } else if (settings.selected_days?.length) {
@@ -218,16 +360,23 @@ export function GetFitWorkoutTracker({
               if (day >= 0 && day < 7) schedule[day] = "Workout";
             }
           }
-        } else if (settings.tracking_style === "sequence" && settings.rotation?.length) {
-          rotationOrder = settings.rotation.map((r) => r.label ?? `Day ${(r.index ?? 0) + 1}`);
-          rotationOrder.forEach((label, i) => {
+        } else if (
+          settings.tracking_style === "sequence" &&
+          settings.rotation?.length
+        ) {
+          rotOrder = settings.rotation.map(
+            (r) => r.label ?? `Day ${(r.index ?? 0) + 1}`
+          );
+          rotOrder.forEach((label, i) => {
             if (i < 7) schedule[i] = label;
           });
         }
 
-        const isSequence = settings.tracking_style === "sequence" && rotationOrder.length > 0;
+        const isSequence =
+          settings.tracking_style === "sequence" && rotOrder.length > 0;
         const restFromSetup =
-          settings.preferences?.timer_enabled && settings.preferences.timer_default_sec
+          settings.preferences?.timer_enabled &&
+          settings.preferences.timer_default_sec
             ? settings.preferences.timer_default_sec
             : 0;
         await updateAppData(userId, (current) => ({
@@ -235,8 +384,9 @@ export function GetFitWorkoutTracker({
           workoutSchedule: schedule,
           workoutSetupComplete: true,
           trackingStyle: isSequence ? "inconsistent" : "scheduled",
-          rotationOrder,
-          preferred_rest_sec: restFromSetup || current.preferred_rest_sec || 0,
+          rotationOrder: rotOrder,
+          preferred_rest_sec:
+            restFromSetup || current.preferred_rest_sec || 0,
         }));
         if (!cancelled) {
           setWorkoutSchedule(schedule);
@@ -250,13 +400,14 @@ export function GetFitWorkoutTracker({
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
   useEffect(() => {
     loadDayWorkouts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentDayIndex, userId]);
 
-  // Load preferred rest when opening Add/Edit Exercise modal
   useEffect(() => {
     if (showModal) {
       loadAppData(userId).then((data) => {
@@ -276,7 +427,6 @@ export function GetFitWorkoutTracker({
       }, 1000);
       return () => clearTimeout(timer);
     } else if (activeBreakTimer && activeBreakTimer.timeLeft === 0) {
-      // Timer finished - vibrate phone + in-app toast
       if (typeof navigator !== "undefined" && navigator.vibrate) {
         navigator.vibrate([200, 100, 200, 100, 200]);
       }
@@ -285,6 +435,7 @@ export function GetFitWorkoutTracker({
         setActiveBreakTimer(null);
       }, 1000);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBreakTimer]);
 
   const loadWorkoutSchedule = async () => {
@@ -296,7 +447,6 @@ export function GetFitWorkoutTracker({
     setRotationOrder(order);
     setWorkoutHistory(data.workoutHistory ?? []);
     if (style === "inconsistent" && order.length > 0) {
-      // Jump to the next incomplete day based on total workouts completed.
       const history = data.workoutHistory ?? [];
       const nextDay = history.length % order.length;
       setCurrentDayIndex(nextDay);
@@ -305,38 +455,23 @@ export function GetFitWorkoutTracker({
 
   const loadDayWorkouts = async () => {
     try {
-    const data = await loadAppData(userId);
-      // Get workouts for current day directly (they're already organized by day)
+      const data = await loadAppData(userId);
       const dayWorkouts = (data.savedWorkouts[currentDayIndex] || []) as any[];
-      
-      // Migrate old exercises with single category to categories array
+
       const migratedWorkouts = dayWorkouts.map((exercise) => {
-        // Ensure categories array exists
         if (!exercise.categories) {
           if ((exercise as any).category) {
-            return {
-              ...exercise,
-              categories: [(exercise as any).category],
-            } as Exercise;
+            return { ...exercise, categories: [(exercise as any).category] } as Exercise;
           } else {
-            // Default to legs if no category at all
-            return {
-              ...exercise,
-              categories: ["legs"],
-            } as Exercise;
+            return { ...exercise, categories: ["legs"] } as Exercise;
           }
         }
-        // Ensure categories is an array
         if (!Array.isArray(exercise.categories)) {
-          return {
-            ...exercise,
-            categories: [exercise.categories],
-          } as Exercise;
+          return { ...exercise, categories: [exercise.categories] } as Exercise;
         }
         return exercise as Exercise;
       });
 
-      // Migrate sets: weight 0 → null (treat as "no weight", hidden)
       const withSetWeight = migratedWorkouts.map((ex) => {
         if (!ex.sets?.length) return ex;
         return {
@@ -347,7 +482,7 @@ export function GetFitWorkoutTracker({
           })),
         };
       });
-      
+
       const sanitized = withSetWeight.map((ex) => ({
         ...ex,
         name: sanitizeExerciseDisplayText(ex.name) || ex.name || "Exercise",
@@ -364,29 +499,23 @@ export function GetFitWorkoutTracker({
   };
 
   const saveDayWorkouts = async (updatedWorkouts: Exercise[]) => {
-    // Save all workouts, not just current day
     await updateAppData(userId, (current) => {
-      // Get all unique workouts from all days
       const allWorkouts = current.savedWorkouts.flat() as Exercise[];
       const workoutMap = new Map<number, Exercise>();
-      
-      // Add existing workouts to map (deduplicated by ID)
+
       allWorkouts.forEach((w) => {
         if (!workoutMap.has(w.id)) {
           workoutMap.set(w.id, w);
         }
       });
-      
-      // Update or add workouts from the updated list
+
       updatedWorkouts.forEach((workout) => {
         workoutMap.set(workout.id, workout);
       });
-      
-      // Reorganize by selected days - create fresh arrays
+
       const savedWorkouts: Exercise[][] = Array.from({ length: 7 }, () => []);
       workoutMap.forEach((workout) => {
         if (!workout.selectedDays || workout.selectedDays.length === 0) {
-          // Add to all days if no selection
           for (let i = 0; i < 7; i++) {
             savedWorkouts[i].push(workout);
           }
@@ -396,67 +525,54 @@ export function GetFitWorkoutTracker({
           });
         }
       });
-      
+
       return { ...current, savedWorkouts };
     });
   };
 
   const addExercise = async (exercise: Exercise) => {
     try {
-      // Add timeout protection
       const savePromise = (async () => {
-    if (editingExercise) {
-          // Update existing exercise - remove from all days first, then add to new days
+        if (editingExercise) {
           await updateAppData(userId, (current) => {
-            const savedWorkouts: Exercise[][] = Array.from({ length: 7 }, () => []);
-            
-            // First, remove the exercise from all days
+            const savedWorkouts: Exercise[][] = Array.from(
+              { length: 7 },
+              () => []
+            );
             for (let day = 0; day < 7; day++) {
               const dayWorkouts = (current.savedWorkouts[day] || []) as any[];
-              savedWorkouts[day] = dayWorkouts.filter((e) => {
-                // Handle both old and new format
-                const eId = e.id;
-                return eId !== editingExercise.id;
-              }) as Exercise[];
+              savedWorkouts[day] = dayWorkouts.filter(
+                (e) => e.id !== editingExercise.id
+              ) as Exercise[];
             }
-            
-            // Then add the updated exercise to the appropriate days
             if (!exercise.selectedDays || exercise.selectedDays.length === 0) {
-              // Add to all days if no selection
               for (let i = 0; i < 7; i++) {
                 savedWorkouts[i] = [...savedWorkouts[i], exercise];
               }
             } else {
-              // Add to selected days only
               exercise.selectedDays.forEach((day) => {
                 savedWorkouts[day] = [...savedWorkouts[day], exercise];
               });
             }
-            
             return { ...current, savedWorkouts };
           });
-      setEditingExercise(null);
-    } else {
-          // Add new exercise - add it to the appropriate days
+          setEditingExercise(null);
+        } else {
           await updateAppData(userId, (current) => {
             const savedWorkouts = [...current.savedWorkouts];
-            
             if (!exercise.selectedDays || exercise.selectedDays.length === 0) {
-              // Add to all days if no selection
               for (let i = 0; i < 7; i++) {
                 savedWorkouts[i] = [...(savedWorkouts[i] || []), exercise];
               }
             } else {
-              // Add to selected days only
               exercise.selectedDays.forEach((day) => {
                 savedWorkouts[day] = [...(savedWorkouts[day] || []), exercise];
               });
             }
-            
             return { ...current, savedWorkouts };
           });
         }
-        await loadDayWorkouts(); // Reload to show updated list
+        await loadDayWorkouts();
       })();
 
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -464,41 +580,52 @@ export function GetFitWorkoutTracker({
       );
 
       await Promise.race([savePromise, timeoutPromise]);
-      
-    setShowModal(false);
+      setShowModal(false);
     } catch (error) {
       console.error("Error saving exercise:", error);
-      const errorMsg = error instanceof Error ? error.message : "Unknown error";
-      showToast(errorMsg.includes("timeout") 
-        ? "Save is taking longer than expected. Please try again." 
-        : "Failed to save exercise. Please try again.", "error");
-      throw error; // Re-throw so handleSave can catch it
+      const errorMsg =
+        error instanceof Error ? error.message : "Unknown error";
+      showToast(
+        errorMsg.includes("timeout")
+          ? "Save is taking longer than expected. Please try again."
+          : "Failed to save exercise. Please try again.",
+        "error"
+      );
+      throw error;
     }
   };
 
   const removeExercise = async (id: number) => {
     await updateAppData(userId, (current) => {
-      const savedWorkouts: Exercise[][] = Array.from({ length: 7 }, () => []);
-      
-      // Remove the exercise from all days
+      const savedWorkouts: Exercise[][] = Array.from(
+        { length: 7 },
+        () => []
+      );
       for (let day = 0; day < 7; day++) {
         const dayWorkouts = (current.savedWorkouts[day] || []) as Exercise[];
         savedWorkouts[day] = dayWorkouts.filter((e) => e.id !== id);
       }
-      
       return { ...current, savedWorkouts };
     });
     await loadDayWorkouts();
   };
 
-  const toggleSetComplete = async (exerciseId: number, setIndex: number, breakTime?: number) => {
+  const toggleSetComplete = async (
+    exerciseId: number,
+    setIndex: number,
+    breakTime?: number
+  ) => {
     const allData = await loadAppData(userId);
     const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
     const updatedWorkouts = allWorkouts.map((exercise) => {
       if (exercise.id === exerciseId && exercise.sets) {
         const updatedSets = [...exercise.sets];
         updatedSets[setIndex].completed = !updatedSets[setIndex].completed;
-        if (breakTime && updatedSets[setIndex].completed && !updatedSets[setIndex].breakTime) {
+        if (
+          breakTime &&
+          updatedSets[setIndex].completed &&
+          !updatedSets[setIndex].breakTime
+        ) {
           updatedSets[setIndex].breakTime = breakTime;
         }
         return { ...exercise, sets: updatedSets };
@@ -507,10 +634,12 @@ export function GetFitWorkoutTracker({
     });
     await saveDayWorkouts(updatedWorkouts);
     await loadDayWorkouts();
-    
-    // Start break timer if set was completed and break time is set
+
     const exercise = updatedWorkouts.find((e) => e.id === exerciseId);
-    if (exercise?.sets?.[setIndex]?.completed && exercise.sets[setIndex].breakTime) {
+    if (
+      exercise?.sets?.[setIndex]?.completed &&
+      exercise.sets[setIndex].breakTime
+    ) {
       setActiveBreakTimer({
         exerciseId,
         setIndex,
@@ -519,23 +648,54 @@ export function GetFitWorkoutTracker({
     }
   };
 
-  const selectAllSets = async (exerciseId: number) => {
+  // Mark all done + undo
+  const markAllDone = async (exerciseId: number) => {
+    const exercise = workouts.find((e) => e.id === exerciseId);
+    if (!exercise?.sets) return;
+
+    const allAlreadyDone = exercise.sets.every((s) => s.completed);
+    if (allAlreadyDone) return; // nothing to do
+
+    // Save previous state for undo
+    setUndoData({
+      exerciseId,
+      previousSets: exercise.sets.map((s) => ({ ...s })),
+    });
+
     const allData = await loadAppData(userId);
     const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
-    const updatedWorkouts = allWorkouts.map((exercise) => {
-      if (exercise.id === exerciseId && exercise.sets) {
-        const allCompleted = exercise.sets.every((set) => set.completed);
-        const updatedSets = exercise.sets.map((set) => ({
-          ...set,
-          completed: !allCompleted,
-        }));
-        return { ...exercise, sets: updatedSets };
+    const updatedWorkouts = allWorkouts.map((ex) => {
+      if (ex.id === exerciseId && ex.sets) {
+        return {
+          ...ex,
+          sets: ex.sets.map((s) => ({ ...s, completed: true })),
+        };
       }
-      return exercise;
+      return ex;
     });
     await saveDayWorkouts(updatedWorkouts);
     await loadDayWorkouts();
+
+    showToast("Marked all sets done — tap to undo", "success", 5000);
   };
+
+  // Undo mark all done
+  const undoMarkAllDone = useCallback(async () => {
+    if (!undoData) return;
+    const allData = await loadAppData(userId);
+    const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
+    const updatedWorkouts = allWorkouts.map((ex) => {
+      if (ex.id === undoData.exerciseId) {
+        return { ...ex, sets: undoData.previousSets };
+      }
+      return ex;
+    });
+    await saveDayWorkouts(updatedWorkouts);
+    await loadDayWorkouts();
+    setUndoData(null);
+    showToast("Undone", "info", 2000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undoData, userId]);
 
   const updateExerciseSets = async (exerciseId: number, newSets: Set[]) => {
     const allData = await loadAppData(userId);
@@ -550,27 +710,55 @@ export function GetFitWorkoutTracker({
   const addSetToExercise = async (exerciseId: number) => {
     const exercise = workouts.find((e) => e.id === exerciseId);
     if (!exercise?.sets) return;
-    const defaultRest = preferredRestSec ?? 0;
+
+    // Remember rest from last set in this exercise (per-exercise memory)
     const lastSet = exercise.sets[exercise.sets.length - 1];
+    const lastRest = lastSet?.breakTime ?? preferredRestSec ?? 0;
+
     const newSet: Set = {
       setNumber: exercise.sets.length + 1,
       reps: lastSet?.reps ?? 10,
       weight: lastSet?.weight ?? null,
       completed: false,
-      breakTime: lastSet?.breakTime ?? (defaultRest > 0 ? defaultRest : undefined),
+      breakTime: lastRest > 0 ? lastRest : undefined,
     };
-    const newSets = [...exercise.sets, newSet].map((s, i) => ({ ...s, setNumber: i + 1 }));
+    const newSets = [...exercise.sets, newSet].map((s, i) => ({
+      ...s,
+      setNumber: i + 1,
+    }));
     await updateExerciseSets(exerciseId, newSets);
+
+    // Remember rest if > 0
+    if (lastRest > 0) {
+      await updateAppData(userId, (d) => ({
+        ...d,
+        preferred_rest_sec: lastRest,
+      }));
+      setPreferredRestSec(lastRest);
+    }
+
+    // Auto-focus the new set's reps input
+    setFocusSetKey(`${exerciseId}-${newSets.length - 1}-reps`);
   };
 
-  const removeSetFromExercise = async (exerciseId: number, setIndex: number) => {
+  const removeSetFromExercise = async (
+    exerciseId: number,
+    setIndex: number
+  ) => {
     const exercise = workouts.find((e) => e.id === exerciseId);
     if (!exercise?.sets || exercise.sets.length <= 1) return;
-    const newSets = exercise.sets.filter((_, i) => i !== setIndex).map((s, i) => ({ ...s, setNumber: i + 1 }));
+    const newSets = exercise.sets
+      .filter((_, i) => i !== setIndex)
+      .map((s, i) => ({ ...s, setNumber: i + 1 }));
     await updateExerciseSets(exerciseId, newSets);
   };
 
-  const updateSetField = async (exerciseId: number, setIndex: number, field: "reps" | "weight", value: number | null) => {
+  const updateSetField = async (
+    exerciseId: number,
+    setIndex: number,
+    field: "reps" | "weight",
+    value: number | null
+  ) => {
     const exercise = workouts.find((e) => e.id === exerciseId);
     if (!exercise?.sets?.[setIndex]) return;
     const newSets = exercise.sets.map((s, i) =>
@@ -579,7 +767,11 @@ export function GetFitWorkoutTracker({
     await updateExerciseSets(exerciseId, newSets);
   };
 
-  const updateSetRest = async (exerciseId: number, setIndex: number, sec: number) => {
+  const updateSetRest = async (
+    exerciseId: number,
+    setIndex: number,
+    sec: number
+  ) => {
     const exercise = workouts.find((e) => e.id === exerciseId);
     if (!exercise?.sets?.[setIndex]) return;
     const newSets = exercise.sets.map((s, i) =>
@@ -587,7 +779,10 @@ export function GetFitWorkoutTracker({
     );
     await updateExerciseSets(exerciseId, newSets);
     if (sec > 0) {
-      await updateAppData(userId, (d) => ({ ...d, preferred_rest_sec: sec }));
+      await updateAppData(userId, (d) => ({
+        ...d,
+        preferred_rest_sec: sec,
+      }));
       setPreferredRestSec(sec);
     }
   };
@@ -596,8 +791,10 @@ export function GetFitWorkoutTracker({
     const allData = await loadAppData(userId);
     const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
     const updatedWorkouts = allWorkouts.map((exercise) => {
-      // Only reset exercises that appear on current day
-      const appearsToday = !exercise.selectedDays || exercise.selectedDays.length === 0 || exercise.selectedDays.includes(currentDayIndex);
+      const appearsToday =
+        !exercise.selectedDays ||
+        exercise.selectedDays.length === 0 ||
+        exercise.selectedDays.includes(currentDayIndex);
       if (appearsToday && exercise.sets) {
         const resetSets = exercise.sets.map((set) => ({
           ...set,
@@ -613,7 +810,10 @@ export function GetFitWorkoutTracker({
 
   const completeWorkout = async () => {
     if (workouts.length === 0) {
-      showToast("Add at least one exercise before completing the workout", "error");
+      showToast(
+        "Add at least one exercise before completing the workout",
+        "error"
+      );
       return;
     }
 
@@ -632,25 +832,35 @@ export function GetFitWorkoutTracker({
     const data = await loadAppData(userId);
     setWorkoutHistory(data.workoutHistory ?? []);
 
-    // Mirror completion into workout_logs so Feed/Stats sync across devices.
     try {
       const totalReps = workouts.reduce(
-        (sum, ex) => sum + (ex.sets?.reduce((s, set) => s + (set.reps ?? 0), 0) ?? 0),
+        (sum, ex) =>
+          sum +
+          (ex.sets?.reduce((s, set) => s + (set.reps ?? 0), 0) ?? 0),
         0
       );
-      const totalSets = workouts.reduce((sum, ex) => sum + (ex.sets?.length ?? 0), 0);
+      const totalSets = workouts.reduce(
+        (sum, ex) => sum + (ex.sets?.length ?? 0),
+        0
+      );
       const weightedSum = workouts.reduce(
-        (sum, ex) => sum + (ex.sets?.reduce((s, set) => s + (set.weight ?? 0), 0) ?? 0),
+        (sum, ex) =>
+          sum +
+          (ex.sets?.reduce((s, set) => s + (set.weight ?? 0), 0) ?? 0),
         0
       );
       const weightedCount = workouts.reduce(
         (sum, ex) =>
-          sum + (ex.sets?.reduce((s, set) => s + (set.weight != null ? 1 : 0), 0) ?? 0),
+          sum +
+          (ex.sets?.reduce(
+            (s, set) => s + (set.weight != null ? 1 : 0),
+            0
+          ) ?? 0),
         0
       );
-      const avgWeight = weightedCount > 0 ? Math.round(weightedSum / weightedCount) : null;
+      const avgWeight =
+        weightedCount > 0 ? Math.round(weightedSum / weightedCount) : null;
 
-      // Encode exercise details into notes for the feed to display
       const exerciseDetails = workouts.map((ex) => ({
         name: sanitizeExerciseDisplayText(ex.name) || "Exercise",
         sets: (ex.sets ?? []).map((s) => ({
@@ -663,10 +873,14 @@ export function GetFitWorkoutTracker({
       await insertLog(userId, {
         date: workoutEntry.date,
         workout_type:
-          sanitizeExerciseDisplayText(workoutEntry.workoutType || "workout")
+          sanitizeExerciseDisplayText(
+            workoutEntry.workoutType || "workout"
+          )
             .toLowerCase()
             .replace(/\s+/g, "_") || "workout",
-        workout_name: sanitizeExerciseDisplayText(workoutEntry.workoutType || "Workout"),
+        workout_name: sanitizeExerciseDisplayText(
+          workoutEntry.workoutType || "Workout"
+        ),
         reps: totalReps > 0 ? totalReps : null,
         sets: totalSets > 0 ? totalSets : null,
         lbs: avgWeight,
@@ -677,33 +891,62 @@ export function GetFitWorkoutTracker({
       console.warn("Failed to sync completed workout to feed", error);
     }
 
-    // Reset progress but keep workouts
     await resetDayProgress();
     showToast("Workout completed and saved to history!", "success");
 
-    // Day advance is handled by the useEffect that watches totalSequenceWorkouts /
-    // workoutHistory.length – no manual navigateDay("next") needed for sequence mode.
-    // For schedule (weekday) mode, stay on today's weekday.
     if (!isInconsistent) {
       setCurrentDayIndex(new Date().getDay());
     }
-    // For sequence mode, the useEffect below will snap to the correct next slot
-    // when workoutHistory state updates and totalSequenceWorkouts changes.
   };
 
   const navigateDay = (direction: "prev" | "next") => {
-    const sequenceLabels =
-      settingsProp?.tracking_style === "sequence" && settingsProp?.rotation?.length
-        ? settingsProp.rotation.map((r) => r.label ?? `Day ${(r.index ?? 0) + 1}`)
+    // Check for unsaved changes (any set with reps > 0 that's completed or has data)
+    const hasData = workouts.some(
+      (ex) =>
+        ex.sets?.some(
+          (s) => s.completed || (s.reps > 0 && s.reps !== 10)
+        )
+    );
+    if (hasData) {
+      if (
+        !window.confirm(
+          "Switch days? Any in-progress changes will stay on this day."
+        )
+      ) {
+        return;
+      }
+    }
+
+    const sequenceLabelsLocal =
+      settingsProp?.tracking_style === "sequence" &&
+      settingsProp?.rotation?.length
+        ? settingsProp.rotation.map(
+            (r) => r.label ?? `Day ${(r.index ?? 0) + 1}`
+          )
         : trackingStyle === "inconsistent" && rotationOrder.length > 0
           ? rotationOrder
           : null;
-    const maxIndex = sequenceLabels && sequenceLabels.length > 0 ? sequenceLabels.length - 1 : 6;
+    const maxIndex =
+      sequenceLabelsLocal && sequenceLabelsLocal.length > 0
+        ? sequenceLabelsLocal.length - 1
+        : 6;
     if (direction === "prev") {
       setCurrentDayIndex((prev) => (prev === 0 ? maxIndex : prev - 1));
     } else {
       setCurrentDayIndex((prev) => (prev === maxIndex ? 0 : prev + 1));
     }
+  };
+
+  const toggleCollapse = (exerciseId: number) => {
+    setCollapsedExercises((prev) => {
+      const next = new globalThis.Set(prev);
+      if (next.has(exerciseId)) {
+        next.delete(exerciseId);
+      } else {
+        next.add(exerciseId);
+      }
+      return next;
+    });
   };
 
   const formatTime = (seconds: number) => {
@@ -713,15 +956,16 @@ export function GetFitWorkoutTracker({
   };
 
   const sequenceLabels =
-    settingsProp?.tracking_style === "sequence" && settingsProp?.rotation?.length
-      ? settingsProp.rotation.map((r) => r.label ?? `Day ${(r.index ?? 0) + 1}`)
+    settingsProp?.tracking_style === "sequence" &&
+    settingsProp?.rotation?.length
+      ? settingsProp.rotation.map(
+          (r) => r.label ?? `Day ${(r.index ?? 0) + 1}`
+        )
       : trackingStyle === "inconsistent" && rotationOrder.length > 0
         ? rotationOrder
         : null;
   const isInconsistent = !!sequenceLabels;
   const navigatorLabels = isInconsistent ? sequenceLabels : days;
-  // For sequence mode, use total completed workouts (all time) so the
-  // current day carries over across weeks instead of resetting every Monday.
   const totalSequenceWorkouts = workoutHistory.length;
   const currentSequenceSlot = isInconsistent
     ? totalSequenceWorkouts % Math.max(1, navigatorLabels.length)
@@ -736,19 +980,32 @@ export function GetFitWorkoutTracker({
     return days[currentDayIndex] ?? "Today";
   };
 
-  // When workout history changes (e.g. on load or after completing), snap to the correct "today" slot.
+  // Summary stats for current day
+  const totalExercises = workouts.length;
+  const totalSetsCount = workouts.reduce(
+    (sum, ex) => sum + (ex.sets?.length ?? 0),
+    0
+  );
+  const totalRepsCount = workouts.reduce(
+    (sum, ex) =>
+      sum + (ex.sets?.reduce((s, set) => s + (set.reps ?? 0), 0) ?? 0),
+    0
+  );
+
   useEffect(() => {
     const maxIndex = Math.max(0, navigatorLabels.length - 1);
     if (isInconsistent) {
-      const slot = totalSequenceWorkouts % Math.max(1, navigatorLabels.length);
+      const slot =
+        totalSequenceWorkouts % Math.max(1, navigatorLabels.length);
       setCurrentDayIndex(Math.min(slot, maxIndex));
     } else {
       setCurrentDayIndex((prev) => (prev > maxIndex ? 0 : prev));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigatorLabels.length, totalSequenceWorkouts, isInconsistent]);
 
   return (
-    <div className="mx-auto w-full max-w-lg">
+    <div className="mx-auto w-full max-w-lg pb-24">
       {/* Break Timer Display */}
       {activeBreakTimer && (
         <AnimatePresence>
@@ -763,7 +1020,11 @@ export function GetFitWorkoutTracker({
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", damping: 20, stiffness: 250 }}
+              transition={{
+                type: "spring",
+                damping: 20,
+                stiffness: 250,
+              }}
               className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-6 text-center shadow-xl"
             >
               <div className="mb-3 text-xs font-medium uppercase tracking-wider text-[var(--ice)]">
@@ -787,143 +1048,320 @@ export function GetFitWorkoutTracker({
         </AnimatePresence>
       )}
 
-      {/* Day Navigator */}
-      <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 px-3 py-2">
-        <button
-          type="button"
-          onClick={() => navigateDay("prev")}
-          className="rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--text)]"
-          aria-label="Previous day"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <div className="text-center">
-          <p className="text-sm font-semibold text-[var(--text)]">{getDateLabel()}</p>
-          {isToday && (
-            <p className="text-[10px] text-[var(--ice)]">Today</p>
-          )}
+      {/* Sticky Day Navigator */}
+      <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-[var(--border)] bg-[var(--bg)]/90 px-4 pb-2 pt-1 backdrop-blur-md">
+        <div className="flex items-center justify-between py-1.5">
+          <button
+            type="button"
+            onClick={() => navigateDay("prev")}
+            className="rounded-lg p-2 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--text)] active:scale-95"
+            aria-label="Previous day"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[var(--text)]">
+              {getDateLabel()}
+            </p>
+            {isToday && (
+              <p className="text-[10px] font-medium text-[var(--ice)]">
+                Today
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => navigateDay("next")}
+            className="rounded-lg p-2 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--text)] active:scale-95"
+            aria-label="Next day"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => navigateDay("next")}
-          className="rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--text)]"
-          aria-label="Next day"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Primary CTA: Add Exercise */}
-      <div className="mb-6">
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.01 }}
-          whileTap={{ scale: 0.99 }}
-          onClick={() => {
-            setEditingExercise(null);
-            setShowModal(true);
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--ice)]/50 bg-[var(--iceSoft)] px-5 py-4 text-base font-semibold text-[var(--ice)] transition-colors hover:border-[var(--ice)] hover:bg-[var(--iceSoft)]"
-        >
-          <Plus className="h-5 w-5" />
-          Add Exercise
-        </motion.button>
+        {/* Summary line */}
+        {totalExercises > 0 && (
+          <p className="text-center text-[11px] text-[var(--textMuted)] pb-0.5">
+            {totalExercises} exercise{totalExercises !== 1 ? "s" : ""} ·{" "}
+            {totalSetsCount} sets · {totalRepsCount} reps
+          </p>
+        )}
       </div>
 
       {/* Exercise List */}
       <div className="mb-6">
         {workouts.length === 0 ? (
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 py-10 text-center">
-            <p className="text-sm text-[var(--textMuted)]">No exercises yet.</p>
-            <p className="mt-1 text-xs text-[var(--textMuted)]">Tap &quot;Add Exercise&quot; above to get started.</p>
+            <Dumbbell className="mx-auto mb-2 h-8 w-8 text-[var(--textMuted)] opacity-40" />
+            <p className="text-sm text-[var(--textMuted)]">
+              No exercises yet.
+            </p>
+            <p className="mt-1 text-xs text-[var(--textMuted)]">
+              Tap &quot;+ Add Exercise&quot; below to get started.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
-        <AnimatePresence>
-          {workouts.map((exercise) => (
-            <motion.div
-              key={exercise.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              className="rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 p-4"
-            >
-              <div className="mb-3 flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-base font-medium text-[var(--text)]">{sanitizeExerciseDisplayText(exercise.name) || "Exercise"}</h3>
-                      <span className="mt-1 inline-block rounded border border-[var(--border)] bg-[var(--bg3)]/60 px-2 py-0.5 text-xs text-[var(--textMuted)]">
-                        {exercise.categories && exercise.categories.length > 0
-                          ? exercise.categories.map((cat) => ALL_CATEGORIES.find((c) => c.value === cat)?.label || cat).join(", ")
-                          : "Uncategorized"}
-                  </span>
-                </div>
-                    <div className="flex gap-2 ml-2 flex-shrink-0">
-                  <button
-                    onClick={() => {
-                      setEditingExercise(exercise);
-                      setShowModal(true);
-                    }}
-                        className="rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--ice)]"
-                        aria-label="Edit exercise"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => removeExercise(exercise.id)}
-                        className="rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-red-500/10 hover:text-red-400"
-                        aria-label="Delete exercise"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+            <AnimatePresence>
+              {workouts.map((exercise) => {
+                const isCollapsed = collapsedExercises.has(exercise.id);
+                // Determine if ANY set in this exercise has weight
+                const exerciseHasWeight = exercise.sets?.some(
+                  (s) => s.weight != null && s.weight > 0
+                );
 
-                  {exercise.sets && exercise.sets.length > 0 && (
-                <div className="space-y-2">
-                      <span className="text-xs text-[var(--textMuted)]">Sets</span>
-                  {exercise.sets.map((set, index) => (
-                    <SetRowCard
-                      key={`${exercise.id}-${index}`}
-                      set={set}
-                      exerciseId={exercise.id}
-                      index={index}
-                      canRemove={false}
-                      onRepsBlur={(v) => updateSetField(exercise.id, index, "reps", v)}
-                      onWeightBlur={(v) => updateSetField(exercise.id, index, "weight", v)}
-                      onRestChange={(sec) => updateSetRest(exercise.id, index, sec)}
-                      onToggleComplete={() => toggleSetComplete(exercise.id, index, set.breakTime)}
-                      onRemove={() => {}}
-                    />
-                  ))}
-                </div>
-              )}
+                return (
+                  <motion.div
+                    key={exercise.id}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, x: -12 }}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 overflow-hidden"
+                  >
+                    {/* Exercise header */}
+                    <div className="flex items-center gap-2 px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleCollapse(exercise.id)}
+                        className="shrink-0 rounded-lg p-0.5 text-[var(--textMuted)] transition-transform hover:text-[var(--text)]"
+                        aria-label={
+                          isCollapsed ? "Expand exercise" : "Collapse exercise"
+                        }
+                      >
+                        <ChevronDown
+                          className={`h-4 w-4 transition-transform duration-200 ${
+                            isCollapsed ? "-rotate-90" : ""
+                          }`}
+                        />
+                      </button>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-base font-medium text-[var(--text)]">
+                          {sanitizeExerciseDisplayText(exercise.name) ||
+                            "Exercise"}
+                        </h3>
+                        <span className="mt-0.5 inline-block rounded border border-[var(--border)] bg-[var(--bg3)]/60 px-2 py-0.5 text-[10px] text-[var(--textMuted)]">
+                          {exercise.categories &&
+                          exercise.categories.length > 0
+                            ? exercise.categories
+                                .map(
+                                  (cat) =>
+                                    ALL_CATEGORIES.find(
+                                      (c) => c.value === cat
+                                    )?.label || cat
+                                )
+                                .join(", ")
+                            : "Uncategorized"}
+                        </span>
+                      </div>
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          onClick={() => {
+                            setEditingExercise(exercise);
+                            setShowModal(true);
+                          }}
+                          className="rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--ice)]"
+                          aria-label="Edit exercise"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => removeExercise(exercise.id)}
+                          className="rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-red-500/10 hover:text-red-400"
+                          aria-label="Delete exercise"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
 
-              {exercise.notes && (
-                <div className="mt-3 border-t border-[var(--border)] pt-3 text-sm text-[var(--textMuted)]">
-                  {sanitizeExerciseDisplayText(exercise.notes)}
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
+                    {/* Collapsible body */}
+                    <AnimatePresence initial={false}>
+                      {!isCollapsed && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          {exercise.sets && exercise.sets.length > 0 && (
+                            <div className="border-t border-[var(--border)] px-2 py-2">
+                              {/* Column headers */}
+                              <div
+                                className={`mb-1 grid items-end gap-1.5 px-2 text-[10px] font-medium uppercase tracking-wide text-[var(--textMuted)] ${
+                                  exerciseHasWeight
+                                    ? "grid-cols-[2rem_1fr_1fr_1fr_2.5rem]"
+                                    : "grid-cols-[2rem_1fr_1fr_2.5rem]"
+                                }`}
+                              >
+                                <span className="text-center">Set</span>
+                                <span>Reps</span>
+                                {exerciseHasWeight && <span>Weight</span>}
+                                <span>Rest</span>
+                                <span className="text-center">Done</span>
+                              </div>
+
+                              <div className="space-y-0.5">
+                                {exercise.sets.map((set, index) => (
+                                  <SetRowCard
+                                    key={`${exercise.id}-${index}`}
+                                    set={set}
+                                    showWeightColumn={!!exerciseHasWeight}
+                                    canRemove={exercise.sets!.length > 1}
+                                    isLast={
+                                      index === exercise.sets!.length - 1
+                                    }
+                                    repsRef={{
+                                      current:
+                                        setRepsRefs.current.get(
+                                          `${exercise.id}-${index}-reps`
+                                        ) ?? null,
+                                    }}
+                                    onRepsBlur={(v) =>
+                                      updateSetField(
+                                        exercise.id,
+                                        index,
+                                        "reps",
+                                        v
+                                      )
+                                    }
+                                    onWeightBlur={(v) =>
+                                      updateSetField(
+                                        exercise.id,
+                                        index,
+                                        "weight",
+                                        v
+                                      )
+                                    }
+                                    onRestChange={(sec) =>
+                                      updateSetRest(
+                                        exercise.id,
+                                        index,
+                                        sec
+                                      )
+                                    }
+                                    onToggleComplete={() =>
+                                      toggleSetComplete(
+                                        exercise.id,
+                                        index,
+                                        set.breakTime
+                                      )
+                                    }
+                                    onRemove={() =>
+                                      removeSetFromExercise(
+                                        exercise.id,
+                                        index
+                                      )
+                                    }
+                                    onFieldKeyDown={(e, field) => {
+                                      // Focus next set's reps on Enter from rest
+                                      if (
+                                        field === "rest" &&
+                                        e.key === "Enter"
+                                      ) {
+                                        const nextKey = `${exercise.id}-${index + 1}-reps`;
+                                        const nextRef =
+                                          setRepsRefs.current.get(nextKey);
+                                        if (nextRef) nextRef.focus();
+                                      }
+                                    }}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Add Set + Mark All Done row */}
+                          <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-2">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                addSetToExercise(exercise.id)
+                              }
+                              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--ice)] transition-colors hover:bg-[var(--iceSoft)]"
+                            >
+                              <Plus className="h-3.5 w-3.5" />
+                              Add set
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                markAllDone(exercise.id)
+                              }
+                              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--text)]"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                              Mark all done
+                            </button>
+                          </div>
+
+                          {exercise.notes && (
+                            <div className="border-t border-[var(--border)] px-4 py-2 text-xs text-[var(--textMuted)]">
+                              {sanitizeExerciseDisplayText(exercise.notes)}
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         )}
       </div>
 
-      {/* Complete Workout Button */}
-      {workouts.length > 0 && (
-        <div className="mb-6 pb-6">
+      {/* Undo toast for Mark All Done */}
+      <AnimatePresence>
+        {undoData && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-24 left-1/2 z-40 -translate-x-1/2"
+          >
+            <button
+              type="button"
+              onClick={undoMarkAllDone}
+              className="rounded-xl border border-[var(--ice)]/40 bg-[var(--bg2)] px-4 py-2.5 text-sm font-medium text-[var(--ice)] shadow-lg backdrop-blur-sm transition-colors hover:bg-[var(--iceSoft)]"
+            >
+              Undo
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Auto-dismiss undo after 5 seconds */}
+      {undoData && (
+        <UndoAutoDissmiss onExpire={() => setUndoData(null)} />
+      )}
+
+      {/* Sticky Bottom Bar: Add Exercise + Finish */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[var(--border)] bg-[var(--bg)]/95 px-4 py-3 backdrop-blur-md">
+        <div className="mx-auto flex max-w-lg gap-2">
           <motion.button
             type="button"
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.99 }}
-            onClick={completeWorkout}
-            className="w-full rounded-xl border border-[var(--ice)]/50 bg-[var(--iceSoft)] px-4 py-3 text-sm font-medium text-[var(--ice)] transition-colors hover:border-[var(--ice)]"
+            whileTap={{ scale: 0.97 }}
+            onClick={() => {
+              setEditingExercise(null);
+              setShowModal(true);
+            }}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[var(--ice)]/50 bg-[var(--iceSoft)] px-4 py-3 text-sm font-semibold text-[var(--ice)] transition-colors hover:border-[var(--ice)]"
           >
-            Complete workout
+            <Plus className="h-4 w-4" />
+            Add Exercise
           </motion.button>
+          {workouts.length > 0 && (
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.97 }}
+              onClick={completeWorkout}
+              className="rounded-xl border border-[var(--ice)] bg-[var(--ice)] px-5 py-3 text-sm font-semibold text-[var(--bg)] transition-opacity hover:opacity-90"
+            >
+              Finish
+            </motion.button>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Exercise Modal */}
       <ExerciseModal
@@ -936,32 +1374,45 @@ export function GetFitWorkoutTracker({
         editingExercise={editingExercise}
         currentDayIndex={currentDayIndex}
         dayLabels={
-          sequenceLabels && sequenceLabels.length > 0 ? sequenceLabels : undefined
+          sequenceLabels && sequenceLabels.length > 0
+            ? sequenceLabels
+            : undefined
         }
         modes={settingsProp?.modes}
         defaultBreakTime={
-          settingsProp?.preferences?.timer_enabled && settingsProp?.preferences?.timer_default_sec != null
+          settingsProp?.preferences?.timer_enabled &&
+          settingsProp?.preferences?.timer_default_sec != null
             ? settingsProp.preferences.timer_default_sec
             : 0
         }
         onBreakTimeChange={async (sec) => {
-          await updateAppData(userId, (d) => ({ ...d, preferred_rest_sec: sec }));
+          await updateAppData(userId, (d) => ({
+            ...d,
+            preferred_rest_sec: sec,
+          }));
           setPreferredRestSec(sec);
         }}
         userId={userId}
       />
     </div>
   );
-};
+}
 
-/** One editable row in Add/Edit Exercise (reps, optional weight, rest, optional RPE, drop set). */
-type SetRow = {
-  reps: number | null;
-  weight: number | null;
-  restSec: number;
-  rpe?: number | null;
-  isDropSet?: boolean;
-};
+// ─────────────────────────────────────────────
+// Undo auto-dismiss timer
+// ─────────────────────────────────────────────
+
+function UndoAutoDissmiss({ onExpire }: { onExpire: () => void }) {
+  useEffect(() => {
+    const timer = setTimeout(onExpire, 5000);
+    return () => clearTimeout(timer);
+  }, [onExpire]);
+  return null;
+}
+
+// ─────────────────────────────────────────────
+// Exercise Modal (Add / Edit)
+// ─────────────────────────────────────────────
 
 function defaultSetRows(restSec: number): SetRow[] {
   return [
@@ -977,16 +1428,26 @@ interface ExerciseModalProps {
   onSave: (exercise: Exercise) => void;
   editingExercise: Exercise | null;
   currentDayIndex: number;
-  /** When in "No schedule" mode, e.g. ["Day 1", "Day 2", "Day 3"]. Otherwise weekdays. */
   dayLabels?: string[];
-  /** From setup wizard; controls RPE, drop set, progressive overload in the modal. */
-  modes?: { progressiveOverload?: boolean; dropSets?: boolean; rpe?: boolean };
+  modes?: {
+    progressiveOverload?: boolean;
+    dropSets?: boolean;
+    rpe?: boolean;
+  };
   defaultBreakTime?: number;
   onBreakTimeChange?: (sec: number) => void;
   userId: string;
 }
 
-const WEEKDAY_LABELS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEKDAY_LABELS = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 const ExerciseModal = ({
   show,
@@ -1002,13 +1463,21 @@ const ExerciseModal = ({
 }: ExerciseModalProps) => {
   const { showToast } = useToast();
   const [name, setName] = useState("");
-  const [selectedCategories, setSelectedCategories] = useState<ExerciseCategory[]>([]);
-  const [setRows, setSetRows] = useState<SetRow[]>(() => defaultSetRows(defaultBreakTime));
-  const [selectedDays, setSelectedDays] = useState<number[]>([currentDayIndex]);
+  const [selectedCategories, setSelectedCategories] = useState<
+    ExerciseCategory[]
+  >([]);
+  const [setRows, setSetRows] = useState<SetRow[]>(() =>
+    defaultSetRows(defaultBreakTime)
+  );
+  const [selectedDays, setSelectedDays] = useState<number[]>([
+    currentDayIndex,
+  ]);
   const [notes, setNotes] = useState("");
   const [isSavingExercise, setIsSavingExercise] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>(
+    []
+  );
   const [isNameFocused, setIsNameFocused] = useState(false);
   const [lastWeight, setLastWeight] = useState<number | null>(null);
   const clickingCategoryRef = useRef(false);
@@ -1025,10 +1494,17 @@ const ExerciseModal = ({
       const searchName = name.trim().toLowerCase();
       for (let i = history.length - 1; i >= 0; i--) {
         const entry = history[i];
-        const exercises = (entry as { exercises?: unknown[] }).exercises ?? [];
+        const exercises =
+          (entry as { exercises?: unknown[] }).exercises ?? [];
         for (const ex of exercises) {
-          const e = ex as { name?: string; sets?: { weight?: number | null }[] };
-          if (e.name?.trim().toLowerCase() === searchName && e.sets?.length) {
+          const e = ex as {
+            name?: string;
+            sets?: { weight?: number | null }[];
+          };
+          if (
+            e.name?.trim().toLowerCase() === searchName &&
+            e.sets?.length
+          ) {
             let maxW = 0;
             for (const s of e.sets) {
               const w = s.weight;
@@ -1043,172 +1519,95 @@ const ExerciseModal = ({
       }
       setLastWeight(null);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [show, name, modes?.progressiveOverload, userId]);
 
-  const days = dayLabels && dayLabels.length > 0 ? dayLabels : WEEKDAY_LABELS;
+  const mdDays =
+    dayLabels && dayLabels.length > 0 ? dayLabels : WEEKDAY_LABELS;
   const isWeekdayMode = !dayLabels?.length;
 
-  // Exercise database with Planet Fitness equipment and exercises
+  // Exercise database
   const exerciseDatabase: Record<ExerciseCategory, string[]> = {
     chest: [
       "Bench Press", "Incline Bench Press", "Decline Bench Press", "Dumbbell Press",
       "Incline Dumbbell Press", "Decline Dumbbell Press", "Cable Fly", "Pec Deck Machine",
       "Push-ups", "Dips", "Chest Press Machine", "Smith Machine Bench Press",
       "Chest Fly Machine", "Pec Deck", "Cable Crossover", "Dumbbell Flyes",
-      "Incline Cable Fly", "Decline Cable Fly", "Flat Chest Press Machine",
-      "Incline Chest Press Machine", "Decline Chest Press Machine", "Cable Chest Press",
-      "Smith Machine Incline Press", "Smith Machine Decline Press", "Dumbbell Pullover",
-      "Cable Pullover", "Push-up Variations", "Diamond Push-ups", "Wide Push-ups",
-      "Incline Push-ups", "Decline Push-ups", "Chest Dips", "Assisted Dips"
     ],
     back: [
       "Pull-ups", "Lat Pulldown", "Barbell Row", "Dumbbell Row", "Cable Row",
       "Seated Row Machine", "T-Bar Row", "Bent Over Row", "One-Arm Row",
       "Wide Grip Pulldown", "Close Grip Pulldown", "Reverse Grip Pulldown",
-      "Reverse Fly", "Face Pull", "Shrugs", "Deadlift", "Rack Pull",
-      "Hyperextension", "Cable Lat Pulldown", "Cable High Row", "Cable Low Row",
-      "Seated Cable Row", "Standing Cable Row", "Wide Grip Cable Row",
-      "Close Grip Cable Row", "Cable Face Pull", "Cable Reverse Fly",
-      "Smith Machine Row", "Smith Machine Shrugs", "Dumbbell Shrugs",
-      "Barbell Shrugs", "Cable Shrugs", "Hyperextension Machine",
-      "Back Extension Machine", "Assisted Pull-ups", "Lat Pulldown Machine",
-      "Seated Row Machine", "Cable Reverse Fly", "Cable Upright Row"
+      "Reverse Fly", "Face Pull", "Shrugs", "Deadlift",
     ],
     shoulders: [
       "Overhead Press", "Dumbbell Shoulder Press", "Lateral Raise", "Front Raise",
       "Rear Delt Fly", "Arnold Press", "Cable Lateral Raise", "Face Pull",
-      "Upright Row", "Shrugs", "Reverse Fly", "Shoulder Press Machine",
-      "Pike Push-ups", "Handstand Push-ups", "Cable Rear Delt Fly",
-      "Lateral Raise Machine", "Rear Deltoid Machine", "Shoulder Press Machine",
-      "Smith Machine Shoulder Press", "Cable Shoulder Press", "Dumbbell Lateral Raise",
-      "Cable Front Raise", "Barbell Front Raise", "Dumbbell Front Raise",
-      "Cable Upright Row", "Barbell Upright Row", "Dumbbell Upright Row",
-      "Reverse Pec Deck", "Rear Delt Machine", "Cable Lateral Raise",
-      "Dumbbell Rear Delt Fly", "Cable Rear Delt Fly", "Face Pull Machine",
-      "Shoulder Press Machine", "Overhead Press Machine", "Pike Push-ups",
-      "Wall Handstand Push-ups", "Dumbbell Arnold Press", "Cable Arnold Press"
+      "Upright Row", "Shoulder Press Machine", "Pike Push-ups",
+      "Smith Machine Shoulder Press", "Reverse Pec Deck", "Rear Delt Machine",
     ],
     legs: [
       "Squats", "Leg Press", "Leg Extension", "Leg Curl", "Romanian Deadlift",
       "Bulgarian Split Squat", "Lunges", "Walking Lunges", "Calf Raises",
       "Hack Squat", "Smith Machine Squat", "Goblet Squat", "Step-ups",
-      "Leg Press Machine", "Seated Calf Raise", "Standing Calf Raise", "Hip Thrust",
-      "Leg Extension Machine", "Seated Leg Curl", "Lying Leg Curl",
-      "Standing Leg Curl", "Hack Squat Machine", "Smith Machine Lunges",
-      "Dumbbell Lunges", "Barbell Lunges", "Reverse Lunges", "Side Lunges",
-      "Curtsy Lunges", "Jump Lunges", "Leg Press 45 Degree", "Leg Press Horizontal",
-      "Seated Leg Press", "Calf Raise Machine", "Seated Calf Raise Machine",
-      "Standing Calf Raise Machine", "Smith Machine Calf Raises", "Hip Abductor Machine",
-      "Hip Adductor Machine", "Glute Kickback Machine", "Leg Press Machine",
-      "Smith Machine Leg Press", "Dumbbell Step-ups", "Box Step-ups",
-      "Romanian Deadlift Machine", "Smith Machine RDL", "Dumbbell RDL",
-      "Barbell RDL", "Good Mornings", "Smith Machine Good Mornings",
-      "Hip Thrust Machine", "Glute Bridge", "Single Leg Press", "Pistol Squats"
+      "Hip Thrust", "Hip Abductor Machine", "Hip Adductor Machine",
     ],
     arms: [
       "Bicep Curl", "Hammer Curl", "Tricep Extension", "Tricep Dips",
       "Cable Curl", "Preacher Curl", "Concentration Curl", "Overhead Tricep Extension",
       "Close Grip Bench Press", "Skull Crushers", "Cable Tricep Pushdown",
       "Barbell Curl", "Dumbbell Curl", "Tricep Kickback", "Rope Cable Curl",
-      "Bicep Curl Machine", "Preacher Curl Machine", "Tricep Extension Machine",
-      "Cable Bicep Curl", "Cable Hammer Curl", "Cable Preacher Curl",
-      "Cable Concentration Curl", "Dumbbell Hammer Curl", "Barbell Hammer Curl",
-      "Cable Tricep Extension", "Overhead Cable Tricep Extension", "Dumbbell Tricep Extension",
-      "Dumbbell Overhead Extension", "Cable Overhead Extension", "Rope Tricep Pushdown",
-      "Straight Bar Tricep Pushdown", "Close Grip Cable Press", "Smith Machine Close Grip Press",
-      "Dumbbell Skull Crushers", "Cable Skull Crushers", "Tricep Dips Machine",
-      "Assisted Tricep Dips", "Cable Tricep Kickback", "Dumbbell Tricep Kickback",
-      "Reverse Grip Cable Curl", "Cable Reverse Curl", "Barbell Reverse Curl",
-      "Dumbbell Reverse Curl", "21s Bicep Curls", "Cable 21s", "Spider Curls",
-      "Cable Spider Curls", "Incline Dumbbell Curl", "Standing Cable Curl",
-      "Seated Cable Curl", "Cable Rope Hammer Curl"
     ],
     core: [
       "Plank", "Crunches", "Sit-ups", "Russian Twists", "Leg Raises",
       "Mountain Climbers", "Bicycle Crunches", "Dead Bug", "Hollow Hold",
       "Ab Wheel", "Cable Crunch", "Hanging Leg Raise", "Side Plank",
-      "Reverse Crunch", "Flutter Kicks", "V-Ups", "Dragon Flag",
-      "Ab Crunch Machine", "Abdominal Crunch Machine", "Torso Rotation Machine",
-      "Roman Chair", "Roman Chair Sit-ups", "Roman Chair Leg Raises",
-      "Cable Crunch", "Cable Woodchopper", "Cable Side Crunch", "Cable Reverse Crunch",
-      "Cable Leg Raise", "Hanging Knee Raises", "Hanging Leg Raises",
-      "Hanging Windshield Wipers", "Plank Variations", "Side Plank",
-      "Reverse Plank", "Plank to Pike", "Plank Jacks", "Mountain Climbers",
-      "Bicycle Crunches", "Reverse Crunches", "Flutter Kicks", "Scissor Kicks",
-      "Dead Bug", "Hollow Hold", "V-Ups", "Dragon Flag", "Ab Wheel Rollout",
-      "Cable Ab Crunch", "Cable Oblique Crunch", "Russian Twists", "Weighted Russian Twists",
-      "Medicine Ball Crunches", "Stability Ball Crunches", "Decline Crunches",
-      "Incline Crunches", "Reverse Crunch Machine", "Ab Coaster", "Ab Crunch Bench"
+      "Reverse Crunch", "Flutter Kicks", "V-Ups",
     ],
     cardio: [
       "Running", "Treadmill", "Elliptical", "Bike", "Rowing Machine",
       "Stair Climber", "Jump Rope", "Burpees", "High Knees", "Jumping Jacks",
       "Boxing", "Swimming", "Cycling", "HIIT", "Sprint Intervals",
-      "Treadmill Walking", "Treadmill Jogging", "Treadmill Running", "Treadmill Incline",
-      "Elliptical Trainer", "Elliptical Cross Trainer", "ARC Trainer",
-      "Stationary Bike", "Upright Bike", "Recumbent Bike", "Rowing Machine",
-      "Concept2 Rower", "Stair Climber", "StepMill", "Stepper Machine",
-      "Recumbent Stepper", "Low Impact Stepper", "Jump Rope", "Jumping Rope",
-      "Burpees", "High Knees", "Jumping Jacks", "Mountain Climbers",
-      "Boxing Bag", "Heavy Bag", "Speed Bag", "Swimming", "Pool Swimming",
-      "Cycling", "Indoor Cycling", "HIIT Cardio", "Sprint Intervals",
-      "Tabata", "Circuit Training", "Interval Training", "Steady State Cardio",
-      "LISS Cardio", "Walking", "Power Walking", "Jogging", "Running",
-      "Treadmill Intervals", "Elliptical Intervals", "Bike Intervals",
-      "Rowing Intervals", "Stair Climber Intervals", "Jump Rope Intervals"
     ],
     full_body: [
       "Burpees", "Thrusters", "Clean and Press", "Kettlebell Swing",
       "Turkish Get-up", "Man Makers", "Bear Crawl", "Mountain Climbers",
       "Jump Squats", "Box Jumps", "Battle Ropes", "Sled Push",
-      "Full Body Circuit", "Compound Movements", "Clean and Jerk",
-      "Snatch", "Power Clean", "Deadlift", "Squat to Press", "Dumbbell Thrusters",
-      "Barbell Thrusters", "Kettlebell Thrusters", "Turkish Get-ups",
-      "Man Makers", "Bear Crawl", "Crab Walk", "Duck Walk", "Jump Squats",
-      "Box Jumps", "Plyometric Box Jumps", "Battle Ropes", "Sled Push",
-      "Farmers Walk", "Suitcase Carry", "Overhead Carry", "Rowing Machine",
-      "Full Body Rowing", "Cable Full Body", "Smith Machine Full Body",
-      "Circuit Training", "HIIT Full Body", "Tabata Full Body",
-      "Full Body Dumbbell", "Full Body Barbell", "Full Body Kettlebell"
+      "Farmers Walk", "Circuit Training",
     ],
   };
 
-  // Get example exercises based on selected categories
-  const getExampleExercises = (): string[] => {
-    if (selectedCategories.length === 0) return [];
-    const examples: string[] = [];
-    selectedCategories.forEach((cat) => {
-      if (exerciseDatabase[cat]) {
-        examples.push(...exerciseDatabase[cat].slice(0, 3));
-      }
-    });
-    return [...new Set(examples)].slice(0, 6);
-  };
-
-  // Filter exercise suggestions based on input
   useEffect(() => {
     if (name.trim().length > 0) {
       const searchTerm = name.toLowerCase();
-      const allExercises = selectedCategories.length > 0
-        ? selectedCategories.flatMap((cat) => exerciseDatabase[cat] || [])
-        : Object.values(exerciseDatabase).flat();
-      
+      const allExercises =
+        selectedCategories.length > 0
+          ? selectedCategories.flatMap(
+              (cat) => exerciseDatabase[cat] || []
+            )
+          : Object.values(exerciseDatabase).flat();
+
       const filtered = allExercises
         .filter((ex) => ex.toLowerCase().includes(searchTerm))
         .slice(0, 8);
-      
+
       setFilteredSuggestions(filtered);
     } else {
       setFilteredSuggestions([]);
       setShowSuggestions(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, selectedCategories]);
 
   useEffect(() => {
     if (editingExercise) {
       setName(editingExercise.name);
-      if (editingExercise.categories && editingExercise.categories.length > 0) {
+      if (
+        editingExercise.categories &&
+        editingExercise.categories.length > 0
+      ) {
         setSelectedCategories(editingExercise.categories);
       } else if ((editingExercise as any).category) {
         setSelectedCategories([(editingExercise as any).category]);
@@ -1216,21 +1615,26 @@ const ExerciseModal = ({
         setSelectedCategories([]);
       }
       if (editingExercise.sets && editingExercise.sets.length > 0) {
-        setSetRows(editingExercise.sets.map((s) => ({
-          reps: s.reps,
-          weight: s.weight ?? null,
-          restSec: s.breakTime ?? 0,
-          rpe: (s as Set).rpe ?? null,
-          isDropSet: (s as Set).isDropSet ?? false,
-        })));
+        setSetRows(
+          editingExercise.sets.map((s) => ({
+            reps: s.reps,
+            weight: s.weight ?? null,
+            restSec: s.breakTime ?? 0,
+            rpe: (s as Set).rpe ?? null,
+            isDropSet: (s as Set).isDropSet ?? false,
+          }))
+        );
       } else {
         setSetRows(defaultSetRows(defaultBreakTime));
       }
-      setSelectedDays(editingExercise.selectedDays || [currentDayIndex]);
+      setSelectedDays(
+        editingExercise.selectedDays || [currentDayIndex]
+      );
       setNotes(editingExercise.notes || "");
     } else {
       resetForm();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingExercise, show, currentDayIndex]);
 
   const resetForm = () => {
@@ -1260,14 +1664,16 @@ const ExerciseModal = ({
   };
   const addDropSetRow = () => {
     const last = setRows[setRows.length - 1];
-    const lastWeight = last?.weight ?? null;
-    const lastReps = last?.reps ?? null;
+    const lastW = last?.weight ?? null;
+    const lastR = last?.reps ?? null;
     const dropWeight =
-      lastWeight != null && lastWeight > 0 ? Math.round(lastWeight * 0.8 * 2) / 2 : null;
+      lastW != null && lastW > 0
+        ? Math.round(lastW * 0.8 * 2) / 2
+        : null;
     setSetRows((prev) => [
       ...prev,
       {
-        reps: lastReps,
+        reps: lastR,
         weight: dropWeight,
         restSec: defaultBreakTime,
         rpe: null,
@@ -1276,15 +1682,22 @@ const ExerciseModal = ({
     ]);
   };
   const removeSetRow = (index: number) => {
-    setSetRows((prev) => (prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)));
+    setSetRows((prev) =>
+      prev.length <= 1 ? prev : prev.filter((_, i) => i !== index)
+    );
   };
   const updateSetRow = (
     index: number,
     field: "reps" | "weight" | "restSec" | "rpe",
     value: number | null
   ) => {
-    setSetRows((prev) => prev.map((row, i) => (i === index ? { ...row, [field]: value } : row)));
-    if (field === "restSec" && typeof value === "number" && value > 0) onBreakTimeChange?.(value);
+    setSetRows((prev) =>
+      prev.map((row, i) =>
+        i === index ? { ...row, [field]: value } : row
+      )
+    );
+    if (field === "restSec" && typeof value === "number" && value > 0)
+      onBreakTimeChange?.(value);
   };
 
   const toggleCategory = (category: ExerciseCategory) => {
@@ -1295,11 +1708,8 @@ const ExerciseModal = ({
     );
   };
 
-
   const handleSave = async () => {
-    if (isSavingExercise) {
-      return; // Prevent duplicate saves
-    }
+    if (isSavingExercise) return;
 
     if (!name.trim()) {
       showToast("Please enter an exercise name", "error");
@@ -1311,36 +1721,37 @@ const ExerciseModal = ({
     }
 
     setIsSavingExercise(true);
-    
-    try {
-    const exercise: Exercise = {
-      id: editingExercise?.id || Date.now(),
-      name: name.trim(),
-      categories: selectedCategories.length > 0 ? selectedCategories : [],
-      notes: notes.trim() || undefined,
-      completed: false,
-      selectedDays: selectedDays.length > 0 ? selectedDays : undefined,
-      sets: setRows.map((row, i) => ({
-        setNumber: i + 1,
-        reps: row.reps ?? 0,
-        weight: row.weight,
-        completed: false,
-        breakTime: row.restSec > 0 ? row.restSec : undefined,
-        rpe: modes?.rpe && row.rpe != null ? row.rpe : undefined,
-        isDropSet: row.isDropSet === true,
-      })),
-    };
 
-      // Add timeout protection
+    try {
+      const exercise: Exercise = {
+        id: editingExercise?.id || Date.now(),
+        name: name.trim(),
+        categories:
+          selectedCategories.length > 0 ? selectedCategories : [],
+        notes: notes.trim() || undefined,
+        completed: false,
+        selectedDays:
+          selectedDays.length > 0 ? selectedDays : undefined,
+        sets: setRows.map((row, i) => ({
+          setNumber: i + 1,
+          reps: row.reps ?? 0,
+          weight: row.weight,
+          completed: false,
+          breakTime: row.restSec > 0 ? row.restSec : undefined,
+          rpe:
+            modes?.rpe && row.rpe != null ? row.rpe : undefined,
+          isDropSet: row.isDropSet === true,
+        })),
+      };
+
       const savePromise = Promise.resolve(onSave(exercise));
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("Save timeout")), 10000)
       );
 
       await Promise.race([savePromise, timeoutPromise]);
-      
-    resetForm();
-      onClose(); // Close modal after successful save
+      resetForm();
+      onClose();
     } catch (error) {
       console.error("Error saving exercise:", error);
       showToast("Failed to save exercise. Please try again.", "error");
@@ -1356,30 +1767,32 @@ const ExerciseModal = ({
       {show && (
         <>
           {/* Backdrop */}
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onClose}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
             className="fixed inset-0 z-50 bg-[var(--bg)]/70 backdrop-blur-sm"
           />
-          
+
           {/* Modal */}
-      <motion.div
+          <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
-        onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
             className="fixed inset-0 z-50 grid place-items-center p-4"
           >
             <div className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5 shadow-xl lg:p-6">
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3 className="mb-1 text-lg font-semibold text-[var(--text)]">
-            {editingExercise ? "Edit Exercise" : "Add Exercise"}
+                    {editingExercise ? "Edit Exercise" : "Add Exercise"}
                   </h3>
                   <p className="text-xs text-[var(--textMuted)]">
-                    {editingExercise ? "Update exercise details" : "Create a new exercise"}
+                    {editingExercise
+                      ? "Update exercise details"
+                      : "Create a new exercise"}
                   </p>
                 </div>
                 <button
@@ -1390,9 +1803,9 @@ const ExerciseModal = ({
                 >
                   <X className="h-5 w-5" />
                 </button>
-        </div>
+              </div>
 
-              <div className="space-y-3 mb-4">
+              <div className="mb-4 space-y-3">
                 <div className="relative">
                   <label className="mb-1 block text-xs text-[var(--textMuted)]">
                     Exercise Name
@@ -1418,27 +1831,32 @@ const ExerciseModal = ({
                     placeholder="Start typing to see suggestions..."
                     className="w-full rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-3 py-2 text-sm text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
                   />
-                  {showSuggestions && filteredSuggestions.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg2)] shadow-xl">
-                      {filteredSuggestions.map((suggestion, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setName(suggestion);
-                            setShowSuggestions(false);
-                          }}
-                          className="w-full text-left px-3 py-2 text-sm text-[var(--text)] transition-colors hover:bg-[var(--bg3)]"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-          </div>
+                  {showSuggestions &&
+                    filteredSuggestions.length > 0 && (
+                      <div className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg2)] shadow-xl">
+                        {filteredSuggestions.map(
+                          (suggestion, idx) => (
+                            <button
+                              key={idx}
+                              type="button"
+                              onMouseDown={(e) =>
+                                e.preventDefault()
+                              }
+                              onClick={() => {
+                                setName(suggestion);
+                                setShowSuggestions(false);
+                              }}
+                              className="w-full px-3 py-2 text-left text-sm text-[var(--text)] transition-colors hover:bg-[var(--bg3)]"
+                            >
+                              {suggestion}
+                            </button>
+                          )
+                        )}
+                      </div>
+                    )}
+                </div>
 
-          <div>
+                <div>
                   <label className="mb-1 block text-xs text-[var(--textMuted)]">
                     Categories (Select Multiple)
                   </label>
@@ -1474,20 +1892,24 @@ const ExerciseModal = ({
                       Please select at least one category
                     </p>
                   )}
-          </div>
+                </div>
 
                 <div>
                   <label className="mb-1.5 block text-xs text-[var(--textMuted)]">
-                    {isWeekdayMode ? "Which day(s)?" : "Which workout day(s)?"}
+                    {isWeekdayMode
+                      ? "Which day(s)?"
+                      : "Which workout day(s)?"}
                   </label>
                   <div className="flex flex-wrap gap-1.5">
-                    {days.map((day, index) => (
+                    {mdDays.map((day, index) => (
                       <button
                         key={`${day}-${index}`}
                         type="button"
                         onClick={() => {
                           setSelectedDays((prev) =>
-                            prev.includes(index) ? prev.filter((d) => d !== index) : [...prev, index]
+                            prev.includes(index)
+                              ? prev.filter((d) => d !== index)
+                              : [...prev, index]
                           );
                         }}
                         className={`rounded-lg border px-2 py-1 text-xs font-medium transition-colors ${
@@ -1496,144 +1918,204 @@ const ExerciseModal = ({
                             : "border-[var(--border)] bg-[var(--bg3)]/60 text-[var(--textMuted)] hover:border-[var(--ice)]/40"
                         }`}
                       >
-                        {isWeekdayMode ? day.substring(0, 3) : day}
+                        {isWeekdayMode
+                          ? day.substring(0, 3)
+                          : day}
                       </button>
                     ))}
                   </div>
                 </div>
 
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="block text-xs text-[var(--textMuted)]">Sets</label>
-                  <div className="flex gap-3">
-                    {modes?.dropSets && (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <label className="block text-xs text-[var(--textMuted)]">
+                      Sets
+                    </label>
+                    <div className="flex gap-3">
+                      {modes?.dropSets && (
+                        <button
+                          type="button"
+                          onClick={addDropSetRow}
+                          className="text-xs font-medium text-[var(--ice)] hover:underline"
+                        >
+                          + Drop set
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={addDropSetRow}
+                        onClick={addSetRow}
                         className="text-xs font-medium text-[var(--ice)] hover:underline"
                       >
-                        + Drop set
+                        + Add set
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={addSetRow}
-                      className="text-xs font-medium text-[var(--ice)] hover:underline"
-                    >
-                      + Add set
-                    </button>
+                    </div>
                   </div>
-                </div>
 
-                {/* Column headers */}
-                <div className="mb-1 grid items-end gap-1.5 px-1 text-[10px] font-medium uppercase tracking-wide text-[var(--textMuted)]" style={{ gridTemplateColumns: `1.5rem 1fr 1fr 1fr${modes?.rpe ? " 2rem" : ""} 1.25rem` }}>
-                  <span></span>
-                  <span>Reps</span>
-                  <span>Weight</span>
-                  <span>Rest</span>
-                  {modes?.rpe && <span>RPE</span>}
-                  <span></span>
-                </div>
+                  {/* Column headers */}
+                  <div
+                    className="mb-1 grid items-end gap-1.5 px-1 text-[10px] font-medium uppercase tracking-wide text-[var(--textMuted)]"
+                    style={{
+                      gridTemplateColumns: `1.5rem 1fr 1fr 1fr${modes?.rpe ? " 2rem" : ""} 1.25rem`,
+                    }}
+                  >
+                    <span></span>
+                    <span>Reps</span>
+                    <span>Weight</span>
+                    <span>Rest</span>
+                    {modes?.rpe && <span>RPE</span>}
+                    <span></span>
+                  </div>
 
-                <div className="space-y-1.5">
-                  {setRows.map((row, index) => (
-                    <div
-                      key={index}
-                      className={`grid items-center gap-1.5 rounded-lg border px-1.5 py-1.5 ${
-                        row.isDropSet
-                          ? "border-[var(--ice)]/40 bg-[var(--iceSoft)]/20"
-                          : "border-[var(--border)] bg-[var(--bg3)]/40"
-                      }`}
-                      style={{ gridTemplateColumns: `1.5rem 1fr 1fr 1fr${modes?.rpe ? " 2rem" : ""} 1.25rem` }}
-                    >
-                      {/* Set label */}
-                      <span className="text-center text-[11px] font-medium text-[var(--textMuted)]">
-                        {row.isDropSet ? "D" : index + 1}
-                      </span>
-
-                      {/* Reps */}
-                      <input
-                        type="number"
-                        min="0"
-                        placeholder="—"
-                        value={row.reps != null ? String(row.reps) : ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          updateSetRow(index, "reps", v === "" ? null : (parseInt(v, 10) || 0));
+                  <div className="space-y-1.5">
+                    {setRows.map((row, index) => (
+                      <div
+                        key={index}
+                        className={`grid items-center gap-1.5 rounded-lg border px-1.5 py-1.5 ${
+                          row.isDropSet
+                            ? "border-[var(--ice)]/40 bg-[var(--iceSoft)]/20"
+                            : "border-[var(--border)] bg-[var(--bg3)]/40"
+                        }`}
+                        style={{
+                          gridTemplateColumns: `1.5rem 1fr 1fr 1fr${modes?.rpe ? " 2rem" : ""} 1.25rem`,
                         }}
-                        onFocus={(e) => e.target.select()}
-                        className="w-full rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1 text-center text-xs text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
-                      />
+                      >
+                        <span className="text-center text-[11px] font-medium text-[var(--textMuted)]">
+                          {row.isDropSet ? "D" : index + 1}
+                        </span>
 
-                      {/* Weight */}
-                      <input
-                        type="number"
-                        min="0"
-                        step="2.5"
-                        placeholder={modes?.progressiveOverload && lastWeight ? String(lastWeight) : "—"}
-                        value={row.weight != null ? String(row.weight) : ""}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          updateSetRow(index, "weight", v === "" ? null : (parseFloat(v) || 0));
-                        }}
-                        onFocus={(e) => e.target.select()}
-                        className="w-full rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1 text-center text-xs text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
-                      />
-
-                      {/* Rest */}
-                      <div className="flex items-center gap-0.5">
                         <input
                           type="number"
                           min="0"
-                          aria-label="Rest seconds"
-                          value={row.restSec > 0 ? String(row.restSec) : ""}
-                          onChange={(e) => updateSetRow(index, "restSec", parseInt(e.target.value, 10) || 0)}
-                          onFocus={(e) => e.target.select()}
                           placeholder="—"
-                          className="w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1 text-center text-xs text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
-                        />
-                        <span className="shrink-0 text-[9px] text-[var(--textMuted)]">s</span>
-                      </div>
-
-                      {/* RPE */}
-                      {modes?.rpe && (
-                        <input
-                          type="number"
-                          min={1}
-                          max={10}
-                          aria-label="RPE 1-10"
-                          value={row.rpe ?? ""}
+                          value={
+                            row.reps != null
+                              ? String(row.reps)
+                              : ""
+                          }
                           onChange={(e) => {
                             const v = e.target.value;
-                            updateSetRow(index, "rpe", v === "" ? null : Math.min(10, Math.max(1, parseInt(v, 10) || 0)));
+                            updateSetRow(
+                              index,
+                              "reps",
+                              v === ""
+                                ? null
+                                : parseInt(v, 10) || 0
+                            );
                           }}
                           onFocus={(e) => e.target.select()}
-                          placeholder="—"
-                          className="w-full rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1 py-1 text-center text-xs text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
+                          className="w-full rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1 text-center text-xs text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
                         />
-                      )}
 
-                      {/* Delete */}
-                      <button
-                        type="button"
-                        onClick={() => removeSetRow(index)}
-                        disabled={setRows.length <= 1}
-                        className="mx-auto rounded p-0.5 text-[var(--textMuted)] hover:text-[var(--text)] disabled:opacity-30"
-                        aria-label="Remove set"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
+                        <input
+                          type="number"
+                          min="0"
+                          step="2.5"
+                          placeholder={
+                            modes?.progressiveOverload &&
+                            lastWeight
+                              ? String(lastWeight)
+                              : "—"
+                          }
+                          value={
+                            row.weight != null
+                              ? String(row.weight)
+                              : ""
+                          }
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            updateSetRow(
+                              index,
+                              "weight",
+                              v === ""
+                                ? null
+                                : parseFloat(v) || 0
+                            );
+                          }}
+                          onFocus={(e) => e.target.select()}
+                          className="w-full rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1 text-center text-xs text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
+                        />
+
+                        <div className="flex items-center gap-0.5">
+                          <input
+                            type="number"
+                            min="0"
+                            aria-label="Rest seconds"
+                            value={
+                              row.restSec > 0
+                                ? String(row.restSec)
+                                : ""
+                            }
+                            onChange={(e) =>
+                              updateSetRow(
+                                index,
+                                "restSec",
+                                parseInt(e.target.value, 10) || 0
+                              )
+                            }
+                            onFocus={(e) => e.target.select()}
+                            placeholder="—"
+                            className="w-full min-w-0 rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1 text-center text-xs text-[var(--text)] placeholder:text-[var(--textMuted)]/50 focus:border-[var(--ice)]/50 focus:outline-none"
+                          />
+                          <span className="shrink-0 text-[9px] text-[var(--textMuted)]">
+                            s
+                          </span>
+                        </div>
+
+                        {modes?.rpe && (
+                          <input
+                            type="number"
+                            min={1}
+                            max={10}
+                            aria-label="RPE 1-10"
+                            value={row.rpe ?? ""}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              updateSetRow(
+                                index,
+                                "rpe",
+                                v === ""
+                                  ? null
+                                  : Math.min(
+                                      10,
+                                      Math.max(
+                                        1,
+                                        parseInt(v, 10) || 0
+                                      )
+                                    )
+                              );
+                            }}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="—"
+                            className="w-full rounded-md border border-[var(--border)] bg-[var(--bg2)] px-1 py-1 text-center text-xs text-[var(--text)] focus:border-[var(--ice)]/50 focus:outline-none"
+                          />
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => removeSetRow(index)}
+                          disabled={setRows.length <= 1}
+                          className="mx-auto rounded p-0.5 text-[var(--textMuted)] hover:text-[var(--text)] disabled:opacity-30"
+                          aria-label="Remove set"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {modes?.progressiveOverload &&
+                    lastWeight != null &&
+                    lastWeight > 0 && (
+                      <p className="mt-1 text-[10px] text-[var(--textMuted)]">
+                        Last weight: {lastWeight} lb
+                      </p>
+                    )}
                 </div>
 
-                {modes?.progressiveOverload && lastWeight != null && lastWeight > 0 && (
-                  <p className="mt-1 text-[10px] text-[var(--textMuted)]">Last weight: {lastWeight} lb</p>
-                )}
-              </div>
-
                 <div>
-                  <label className="mb-1 block text-xs text-[var(--textMuted)]">Notes (optional)</label>
+                  <label className="mb-1 block text-xs text-[var(--textMuted)]">
+                    Notes (optional)
+                  </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
@@ -1657,13 +2139,17 @@ const ExerciseModal = ({
                   disabled={isSavingExercise}
                   className="flex-1 rounded-xl border border-[var(--ice)]/50 bg-[var(--iceSoft)] py-2.5 text-sm font-semibold text-[var(--ice)] transition-colors hover:border-[var(--ice)] disabled:opacity-60"
                 >
-                  {isSavingExercise ? "Saving..." : editingExercise ? "Update" : "Save"}
+                  {isSavingExercise
+                    ? "Saving..."
+                    : editingExercise
+                      ? "Update"
+                      : "Save"}
                 </button>
               </div>
             </div>
           </motion.div>
-            </>
-          )}
+        </>
+      )}
     </AnimatePresence>
   );
 };
