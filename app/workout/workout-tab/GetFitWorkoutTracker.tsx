@@ -8,10 +8,12 @@ import {
   ChevronDown,
   Plus,
   Check,
-  Pencil,
+  MoreHorizontal,
   Trash2,
   X,
   Dumbbell,
+  Pencil,
+  RotateCcw,
 } from "lucide-react";
 import { loadAppData, updateAppData } from "./getfit/dataStore";
 import {
@@ -44,26 +46,20 @@ type Set = WorkoutSet;
 function SetRowCard({
   set,
   showWeightColumn,
-  canRemove,
-  isLast,
   repsRef,
   onRepsBlur,
   onWeightBlur,
   onRestChange,
   onToggleComplete,
-  onRemove,
   onFieldKeyDown,
 }: {
   set: Set;
   showWeightColumn: boolean;
-  canRemove: boolean;
-  isLast: boolean;
   repsRef?: React.RefObject<HTMLInputElement | null>;
   onRepsBlur: (v: number) => void;
   onWeightBlur: (v: number | null) => void;
   onRestChange: (sec: number) => void;
   onToggleComplete: () => void;
-  onRemove: () => void;
   onFieldKeyDown?: (
     e: React.KeyboardEvent<HTMLInputElement>,
     field: "reps" | "weight" | "rest"
@@ -200,8 +196,8 @@ function SetRowCard({
         <span className="shrink-0 text-[10px] text-[var(--textMuted)]">s</span>
       </div>
 
-      {/* Done checkbox + delete */}
-      <div className="flex items-center justify-center gap-0.5">
+      {/* Done checkbox */}
+      <div className="flex items-center justify-center">
         <button
           type="button"
           onClick={(e) => {
@@ -218,24 +214,6 @@ function SetRowCard({
           {isDone && <Check className="h-4 w-4" />}
         </button>
       </div>
-
-      {/* Delete: only show on hover (desktop) via group, always visible on touch as a smaller icon below the row */}
-      {canRemove && (
-        <div className="col-span-full flex justify-end -mt-0.5 mb-0.5">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove();
-            }}
-            className="rounded p-0.5 text-[var(--textMuted)]/50 transition-colors hover:text-red-400 text-[10px] flex items-center gap-0.5"
-            aria-label="Remove set"
-          >
-            <Trash2 className="h-3 w-3" />
-            <span>Remove</span>
-          </button>
-        </div>
-      )}
     </div>
   );
 }
@@ -296,6 +274,8 @@ export function GetFitWorkoutTracker({
   const [collapsedExercises, setCollapsedExercises] = useState<
     globalThis.Set<number>
   >(new globalThis.Set());
+  // Which exercise's "⋯" menu is open (null = none)
+  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
   // Track which exercise just had a set added (for auto-focus)
   const [focusSetKey, setFocusSetKey] = useState<string | null>(null);
   // Refs for set inputs (for auto-focus)
@@ -1117,7 +1097,7 @@ export function GetFitWorkoutTracker({
                     exit={{ opacity: 0, x: -12 }}
                     className="rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 overflow-hidden"
                   >
-                    {/* Exercise header */}
+                    {/* Exercise header: name + category + ⋯ menu */}
                     <div className="flex items-center gap-2 px-4 py-3">
                       <button
                         type="button"
@@ -1152,24 +1132,112 @@ export function GetFitWorkoutTracker({
                             : "Uncategorized"}
                         </span>
                       </div>
-                      <div className="flex shrink-0 gap-1">
+
+                      {/* ⋯ More menu */}
+                      <div className="relative shrink-0">
                         <button
-                          onClick={() => {
-                            setEditingExercise(exercise);
-                            setShowModal(true);
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(
+                              openMenuId === exercise.id ? null : exercise.id
+                            );
                           }}
-                          className="rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--ice)]"
-                          aria-label="Edit exercise"
+                          className="rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--text)]"
+                          aria-label="Exercise options"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <MoreHorizontal className="h-5 w-5" />
                         </button>
-                        <button
-                          onClick={() => removeExercise(exercise.id)}
-                          className="rounded-lg p-1.5 text-[var(--textMuted)] transition-colors hover:bg-red-500/10 hover:text-red-400"
-                          aria-label="Delete exercise"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
+
+                        {/* Dropdown */}
+                        <AnimatePresence>
+                          {openMenuId === exercise.id && (
+                            <>
+                              {/* Click-away backdrop */}
+                              <div
+                                className="fixed inset-0 z-30"
+                                onClick={() => setOpenMenuId(null)}
+                              />
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: -4 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: -4 }}
+                                transition={{ duration: 0.12 }}
+                                className="absolute right-0 top-full z-40 mt-1 w-44 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg2)] shadow-xl"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    setEditingExercise(exercise);
+                                    setShowModal(true);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[var(--text)] transition-colors hover:bg-[var(--bg3)]/60"
+                                >
+                                  <Pencil className="h-3.5 w-3.5 text-[var(--textMuted)]" />
+                                  Edit exercise
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    markAllDone(exercise.id);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[var(--text)] transition-colors hover:bg-[var(--bg3)]/60"
+                                >
+                                  <Check className="h-3.5 w-3.5 text-[var(--textMuted)]" />
+                                  Mark all done
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setOpenMenuId(null);
+                                    // Reset checks for this exercise
+                                    const allData = await loadAppData(userId);
+                                    const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
+                                    const updated = allWorkouts.map((ex) => {
+                                      if (ex.id === exercise.id && ex.sets) {
+                                        return {
+                                          ...ex,
+                                          sets: ex.sets.map((s) => ({
+                                            ...s,
+                                            completed: false,
+                                          })),
+                                        };
+                                      }
+                                      return ex;
+                                    });
+                                    await saveDayWorkouts(updated);
+                                    await loadDayWorkouts();
+                                    showToast("Checks reset", "info", 2000);
+                                  }}
+                                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[var(--text)] transition-colors hover:bg-[var(--bg3)]/60"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5 text-[var(--textMuted)]" />
+                                  Reset checks
+                                </button>
+                                <div className="border-t border-[var(--border)]" />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    if (
+                                      window.confirm(
+                                        `Delete "${sanitizeExerciseDisplayText(exercise.name)}"? This cannot be undone.`
+                                      )
+                                    ) {
+                                      removeExercise(exercise.id);
+                                    }
+                                  }}
+                                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-red-400 transition-colors hover:bg-red-500/10"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                  Delete exercise
+                                </button>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
 
@@ -1206,10 +1274,6 @@ export function GetFitWorkoutTracker({
                                     key={`${exercise.id}-${index}`}
                                     set={set}
                                     showWeightColumn={!!exerciseHasWeight}
-                                    canRemove={exercise.sets!.length > 1}
-                                    isLast={
-                                      index === exercise.sets!.length - 1
-                                    }
                                     repsRef={{
                                       current:
                                         setRepsRefs.current.get(
@@ -1246,14 +1310,7 @@ export function GetFitWorkoutTracker({
                                         set.breakTime
                                       )
                                     }
-                                    onRemove={() =>
-                                      removeSetFromExercise(
-                                        exercise.id,
-                                        index
-                                      )
-                                    }
                                     onFieldKeyDown={(e, field) => {
-                                      // Focus next set's reps on Enter from rest
                                       if (
                                         field === "rest" &&
                                         e.key === "Enter"
@@ -1270,27 +1327,17 @@ export function GetFitWorkoutTracker({
                             </div>
                           )}
 
-                          {/* Add Set + Mark All Done row */}
-                          <div className="flex items-center justify-between border-t border-[var(--border)] px-4 py-2">
+                          {/* Add Set */}
+                          <div className="border-t border-[var(--border)] px-4 py-2">
                             <button
                               type="button"
                               onClick={() =>
                                 addSetToExercise(exercise.id)
                               }
-                              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--ice)] transition-colors hover:bg-[var(--iceSoft)]"
+                              className="flex items-center gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg3)]/40 px-3 py-1.5 text-xs font-medium text-[var(--textMuted)] transition-colors hover:border-[var(--ice)]/40 hover:text-[var(--ice)]"
                             >
-                              <Plus className="h-3.5 w-3.5" />
+                              <Plus className="h-3 w-3" />
                               Add set
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                markAllDone(exercise.id)
-                              }
-                              className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--text)]"
-                            >
-                              <Check className="h-3.5 w-3.5" />
-                              Mark all done
                             </button>
                           </div>
 

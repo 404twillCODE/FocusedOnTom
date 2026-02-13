@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Dumbbell, User, Loader2, ChevronDown, Trash2, BarChart3 } from "lucide-react";
+import { Dumbbell, User, Loader2, ChevronDown, Trash2 } from "lucide-react";
 import {
   getCommunityFeed,
   getReactionsForLogs,
@@ -84,7 +84,6 @@ function FeedEntryCard({
   onSelectMember,
   onAdminDelete,
   onToggleReaction,
-  onViewDetails,
 }: {
   log: WorkoutLogWithProfile;
   isAdmin: boolean;
@@ -93,7 +92,6 @@ function FeedEntryCard({
   onSelectMember: (username: string) => void;
   onAdminDelete: (logId: string) => void;
   onToggleReaction: (logId: string, emoji: string) => void;
-  onViewDetails?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [expandedExercise, setExpandedExercise] = useState<number | null>(
@@ -358,18 +356,6 @@ function FeedEntryCard({
                   {textNotes}
                 </p>
               )}
-
-              {/* View details link to Stats tab */}
-              {onViewDetails && (
-                <button
-                  type="button"
-                  onClick={onViewDetails}
-                  className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-[var(--ice)] transition-colors hover:bg-[var(--iceSoft)]"
-                >
-                  <BarChart3 className="h-3.5 w-3.5" />
-                  View in Stats
-                </button>
-              )}
             </div>
           </motion.div>
         )}
@@ -418,11 +404,9 @@ function FeedEntryCard({
 export function WorkoutFeedTab({
   userId,
   onSelectMember,
-  onNavigateToStats,
 }: {
   userId: string;
   onSelectMember: (username: string) => void;
-  onNavigateToStats?: () => void;
 }) {
   const [logs, setLogs] = useState<WorkoutLogWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -605,7 +589,6 @@ export function WorkoutFeedTab({
             onSelectMember={onSelectMember}
             onAdminDelete={handleAdminDelete}
             onToggleReaction={handleToggleReaction}
-            onViewDetails={onNavigateToStats}
           />
         </motion.div>
       ))}
