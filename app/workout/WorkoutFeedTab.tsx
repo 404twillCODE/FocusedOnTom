@@ -122,10 +122,17 @@ function FeedEntryCard({
     <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60">
       {/* Header */}
       <div className="flex items-center">
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => setExpanded(!expanded)}
-          className="flex min-w-0 flex-1 items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--bg3)]/20"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setExpanded((prev) => !prev);
+            }
+          }}
+          className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--bg3)]/20"
         >
           {/* Avatar */}
           <button
@@ -194,7 +201,7 @@ function FeedEntryCard({
               expanded ? "rotate-180" : ""
             }`}
           />
-        </button>
+        </div>
 
         {/* Admin delete */}
         {isAdmin && (

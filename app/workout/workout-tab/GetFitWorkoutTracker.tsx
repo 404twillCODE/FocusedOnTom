@@ -944,12 +944,12 @@ export function GetFitWorkoutTracker({
       )}
 
       {/* Sticky Day Navigator */}
-      <div className="sticky top-0 z-30 -mx-4 mb-4 border-b border-[var(--border)] bg-[var(--bg)]/90 px-4 pb-2 pt-1 backdrop-blur-md">
+      <div className="sticky top-0 z-30 -mx-4 mb-4 rounded-b-2xl border-b border-white/10 bg-[var(--bg)]/50 px-4 pb-2 pt-1 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.2)] backdrop-blur-xl">
         <div className="flex items-center justify-between py-1.5">
           <button
             type="button"
             onClick={() => navigateDay("prev")}
-            className="rounded-lg p-2 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--text)] active:scale-95"
+            className="rounded-xl p-2 text-[var(--textMuted)] transition-colors hover:bg-white/10 hover:text-[var(--text)] active:scale-95"
             aria-label="Previous day"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -967,7 +967,7 @@ export function GetFitWorkoutTracker({
           <button
             type="button"
             onClick={() => navigateDay("next")}
-            className="rounded-lg p-2 text-[var(--textMuted)] transition-colors hover:bg-[var(--bg3)] hover:text-[var(--text)] active:scale-95"
+            className="rounded-xl p-2 text-[var(--textMuted)] transition-colors hover:bg-white/10 hover:text-[var(--text)] active:scale-95"
             aria-label="Next day"
           >
             <ChevronRight className="h-5 w-5" />
