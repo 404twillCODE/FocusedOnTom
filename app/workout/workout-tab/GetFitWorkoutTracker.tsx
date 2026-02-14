@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,7 +15,9 @@ import {
   Pencil,
   RotateCcw,
 } from "lucide-react";
-import { loadAppData, updateAppData } from "./getfit/dataStore";
+import { loadAppData, updateAppData, flushWorkoutData } from "./getfit/dataStore";
+import { subscribe } from "@/lib/workoutLocalFirst";
+import type { AppData } from "./getfit/storage";
 import {
   formatDateKey,
   sanitizeExerciseDisplayText,
@@ -36,14 +38,50 @@ import {
   ALL_CATEGORIES,
 } from "@/types/workout";
 
+const PERF_DEBUG =
+  typeof process !== "undefined" && process.env.NEXT_PUBLIC_WORKOUT_PERF_DEBUG === "true";
+
 // Re-export for local compat
 type Set = WorkoutSet;
 
+/** Derive current day workouts from AppData with migration and sanitization. */
+function deriveDayWorkouts(data: AppData | null, dayIndex: number): Exercise[] {
+  if (!data?.savedWorkouts?.length) return [];
+  const dayWorkouts = (data.savedWorkouts[dayIndex] ?? []) as unknown[];
+  const migrated = dayWorkouts.map((exercise: unknown) => {
+    const ex = exercise as Record<string, unknown>;
+    if (!ex.categories) {
+      if (ex.category) return { ...ex, categories: [ex.category] } as Exercise;
+      return { ...ex, categories: ["legs"] } as Exercise;
+    }
+    if (!Array.isArray(ex.categories)) {
+      return { ...ex, categories: [ex.categories] } as Exercise;
+    }
+    return ex as unknown as Exercise;
+  });
+  const withSetWeight = migrated.map((ex) => {
+    if (!ex.sets?.length) return ex;
+    return {
+      ...ex,
+      sets: ex.sets.map((s: Set) => ({
+        ...s,
+        weight: s.weight === 0 ? null : (s.weight ?? null),
+      })),
+    };
+  });
+  const sanitized = withSetWeight.map((ex) => ({
+    ...ex,
+    name: sanitizeExerciseDisplayText(ex.name) || ex.name || "Exercise",
+    notes: ex.notes ? sanitizeExerciseDisplayText(ex.notes) : undefined,
+  }));
+  return Array.from(new Map(sanitized.map((e) => [e.id, e])).values());
+}
+
 // ─────────────────────────────────────────────
-// SetRowCard – redesigned compact row
+// SetRowCard – memoized compact row (instant input, commit on blur)
 // ─────────────────────────────────────────────
 
-function SetRowCard({
+const SetRowCard = React.memo(function SetRowCard({
   set,
   showWeightColumn,
   repsRef,
@@ -216,7 +254,7 @@ function SetRowCard({
       </div>
     </div>
   );
-}
+});
 
 // ─────────────────────────────────────────────
 // Main Tracker
@@ -229,6 +267,12 @@ export function GetFitWorkoutTracker({
   userId: string;
   settings: WorkoutSettings;
 }) {
+  const renderStartRef = useRef(0);
+  if (PERF_DEBUG && typeof performance !== "undefined") {
+    renderStartRef.current = performance.now();
+  }
+
+  const [appData, setAppData] = useState<AppData | null>(null);
   const [currentDayIndex, setCurrentDayIndex] = useState(() => {
     if (
       settingsProp?.tracking_style === "sequence" &&
@@ -238,7 +282,6 @@ export function GetFitWorkoutTracker({
     }
     return new Date().getDay();
   });
-  const [workouts, setWorkouts] = useState<Exercise[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | null>(null);
   const [activeBreakTimer, setActiveBreakTimer] = useState<{
@@ -246,45 +289,46 @@ export function GetFitWorkoutTracker({
     setIndex: number;
     timeLeft: number;
   } | null>(null);
-  const [workoutSchedule, setWorkoutSchedule] = useState<string[]>(
-    Array(7).fill("Rest Day")
-  );
-  const [trackingStyle, setTrackingStyle] = useState<TrackingStyle>("scheduled");
-  const [rotationOrder, setRotationOrder] = useState<string[]>([]);
-  const [workoutHistory, setWorkoutHistory] = useState<
-    {
-      date: string;
-      timestamp: number;
-      dayOfWeek: number;
-      workoutType?: string;
-      exercises: unknown[];
-    }[]
-  >([]);
-  const [preferredRestSec, setPreferredRestSec] = useState(() => {
-    if (
-      settingsProp?.preferences?.timer_enabled &&
-      settingsProp.preferences.timer_default_sec
-    ) {
-      return settingsProp.preferences.timer_default_sec;
-    }
-    return 0;
-  });
 
   // Collapse state: track which exercise IDs are collapsed
   const [collapsedExercises, setCollapsedExercises] = useState<
     globalThis.Set<number>
   >(new globalThis.Set());
-  // Which exercise's "⋯" menu is open (null = none)
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
-  // Track which exercise just had a set added (for auto-focus)
   const [focusSetKey, setFocusSetKey] = useState<string | null>(null);
-  // Refs for set inputs (for auto-focus)
   const setRepsRefs = useRef<Map<string, HTMLInputElement | null>>(new Map());
-  // Undo state for "Mark all done"
+  const justAdvancedAfterCompleteRef = useRef(false);
   const [undoData, setUndoData] = useState<{
     exerciseId: number;
     previousSets: Set[];
   } | null>(null);
+
+  // Derive from appData (single source of truth; subscription updates appData)
+  const workoutSchedule = useMemo(
+    () => appData?.workoutSchedule ?? Array(7).fill("Rest Day"),
+    [appData?.workoutSchedule]
+  );
+  const trackingStyle = useMemo(
+    () => (appData?.trackingStyle as TrackingStyle) ?? "scheduled",
+    [appData?.trackingStyle]
+  );
+  const rotationOrder = useMemo(() => appData?.rotationOrder ?? [], [appData?.rotationOrder]);
+  const workoutHistory = useMemo(
+    () => appData?.workoutHistory ?? [],
+    [appData?.workoutHistory]
+  );
+  const preferredRestSec = useMemo(
+    () =>
+      appData?.preferred_rest_sec ??
+      (settingsProp?.preferences?.timer_enabled && settingsProp?.preferences?.timer_default_sec != null
+        ? settingsProp.preferences.timer_default_sec
+        : 0),
+    [appData?.preferred_rest_sec, settingsProp?.preferences?.timer_enabled, settingsProp?.preferences?.timer_default_sec]
+  );
+  const workouts = useMemo(
+    () => deriveDayWorkouts(appData, currentDayIndex),
+    [appData, currentDayIndex]
+  );
 
   const { showToast } = useToast();
   const days = [
@@ -297,34 +341,36 @@ export function GetFitWorkoutTracker({
     "Saturday",
   ];
 
-  // ───── Auto-focus when a new set is added ─────
-  useEffect(() => {
-    if (focusSetKey) {
-      const ref = setRepsRefs.current.get(focusSetKey);
-      if (ref) {
-        setTimeout(() => ref.focus(), 50);
-      }
-      setFocusSetKey(null);
-    }
-  }, [focusSetKey, workouts]);
-
+  // ───── Local-first: subscribe to cache updates so UI updates without await loadDayWorkouts ─────
   useEffect(() => {
     let cancelled = false;
+    loadAppData(userId).then((data) => {
+      if (!cancelled) setAppData(data);
+    });
+    const unsub = subscribe(userId, (data) => {
+      if (!cancelled) setAppData(data);
+    });
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, [userId]);
+
+  // ───── Sync schedule from Supabase settings once (when app data has default schedule) ─────
+  useEffect(() => {
+    if (!appData) return;
+    const isDefaultSchedule =
+      !appData.workoutSetupComplete &&
+      appData.workoutSchedule?.length === 7 &&
+      appData.workoutSchedule.every((d) => d === "Rest Day");
+    if (!isDefaultSchedule) return;
+    let cancelled = false;
     (async () => {
-      await loadWorkoutSchedule();
-      await loadDayWorkouts();
-      const data = await loadAppData(userId);
-      const isDefaultSchedule =
-        !data.workoutSetupComplete &&
-        data.workoutSchedule?.length === 7 &&
-        data.workoutSchedule.every((d) => d === "Rest Day");
-      if (cancelled || !isDefaultSchedule) return;
       try {
         const settings = await getWorkoutSettings(userId);
-        if (!settings?.setup_completed) return;
+        if (cancelled || !settings?.setup_completed) return;
         const schedule: string[] = Array(7).fill("Rest Day");
         let rotOrder: string[] = [];
-
         if (settings.tracking_style === "schedule") {
           if (settings.schedule_map) {
             const templates = await getUserTemplates(userId);
@@ -351,50 +397,47 @@ export function GetFitWorkoutTracker({
             if (i < 7) schedule[i] = label;
           });
         }
-
+        if (cancelled) return;
         const isSequence =
           settings.tracking_style === "sequence" && rotOrder.length > 0;
         const restFromSetup =
           settings.preferences?.timer_enabled &&
-          settings.preferences.timer_default_sec
+          settings.preferences.timer_default_sec != null
             ? settings.preferences.timer_default_sec
             : 0;
-        await updateAppData(userId, (current) => ({
+        updateAppData(userId, (current) => ({
           ...current,
           workoutSchedule: schedule,
           workoutSetupComplete: true,
           trackingStyle: isSequence ? "inconsistent" : "scheduled",
           rotationOrder: rotOrder,
-          preferred_rest_sec:
-            restFromSetup || current.preferred_rest_sec || 0,
+          preferred_rest_sec: restFromSetup || current.preferred_rest_sec || 0,
         }));
-        if (!cancelled) {
-          setWorkoutSchedule(schedule);
-          if (restFromSetup > 0) setPreferredRestSec(restFromSetup);
-          await loadDayWorkouts();
-        }
       } catch {
-        // ignore; keep default schedule
+        // ignore
       }
     })();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  }, [userId, appData?.workoutSetupComplete, appData?.workoutSchedule]);
 
+  // ───── Auto-focus when a new set is added ─────
   useEffect(() => {
-    loadDayWorkouts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDayIndex, userId]);
-
-  useEffect(() => {
-    if (showModal) {
-      loadAppData(userId).then((data) => {
-        setPreferredRestSec(data.preferred_rest_sec ?? 0);
-      });
+    if (focusSetKey) {
+      const ref = setRepsRefs.current.get(focusSetKey);
+      if (ref) setTimeout(() => ref.focus(), 50);
+      setFocusSetKey(null);
     }
-  }, [showModal, userId]);
+  }, [focusSetKey, workouts]);
+
+  // ───── Perf: log render duration (dev only) ─────
+  useEffect(() => {
+    if (PERF_DEBUG && typeof performance !== "undefined" && renderStartRef.current > 0) {
+      const ms = performance.now() - renderStartRef.current;
+      if (ms > 16) console.log(`[workout-perf] tracker render ${ms.toFixed(1)}ms`);
+    }
+  });
 
   // Break timer countdown
   useEffect(() => {
@@ -418,68 +461,8 @@ export function GetFitWorkoutTracker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBreakTimer]);
 
-  const loadWorkoutSchedule = async () => {
-    const data = await loadAppData(userId);
-    setWorkoutSchedule(data.workoutSchedule);
-    const style = (data.trackingStyle as TrackingStyle) ?? "scheduled";
-    setTrackingStyle(style);
-    const order = data.rotationOrder ?? [];
-    setRotationOrder(order);
-    setWorkoutHistory(data.workoutHistory ?? []);
-    if (style === "inconsistent" && order.length > 0) {
-      const history = data.workoutHistory ?? [];
-      const nextDay = history.length % order.length;
-      setCurrentDayIndex(nextDay);
-    }
-  };
-
-  const loadDayWorkouts = async () => {
-    try {
-      const data = await loadAppData(userId);
-      const dayWorkouts = (data.savedWorkouts[currentDayIndex] || []) as any[];
-
-      const migratedWorkouts = dayWorkouts.map((exercise) => {
-        if (!exercise.categories) {
-          if ((exercise as any).category) {
-            return { ...exercise, categories: [(exercise as any).category] } as Exercise;
-          } else {
-            return { ...exercise, categories: ["legs"] } as Exercise;
-          }
-        }
-        if (!Array.isArray(exercise.categories)) {
-          return { ...exercise, categories: [exercise.categories] } as Exercise;
-        }
-        return exercise as Exercise;
-      });
-
-      const withSetWeight = migratedWorkouts.map((ex) => {
-        if (!ex.sets?.length) return ex;
-        return {
-          ...ex,
-          sets: ex.sets.map((s: Set) => ({
-            ...s,
-            weight: s.weight === 0 ? null : (s.weight ?? null),
-          })),
-        };
-      });
-
-      const sanitized = withSetWeight.map((ex) => ({
-        ...ex,
-        name: sanitizeExerciseDisplayText(ex.name) || ex.name || "Exercise",
-        notes: ex.notes ? sanitizeExerciseDisplayText(ex.notes) : undefined,
-      }));
-      const uniqueWorkouts = Array.from(
-        new Map(sanitized.map((exercise) => [exercise.id, exercise])).values()
-      );
-      setWorkouts(uniqueWorkouts);
-    } catch (error) {
-      console.error("Error loading workouts:", error);
-      setWorkouts([]);
-    }
-  };
-
-  const saveDayWorkouts = async (updatedWorkouts: Exercise[]) => {
-    await updateAppData(userId, (current) => {
+  const saveDayWorkouts = useCallback((updatedWorkouts: Exercise[]) => {
+    updateAppData(userId, (current) => {
       const allWorkouts = current.savedWorkouts.flat() as Exercise[];
       const workoutMap = new Map<number, Exercise>();
 
@@ -508,13 +491,12 @@ export function GetFitWorkoutTracker({
 
       return { ...current, savedWorkouts };
     });
-  };
+  }, [userId]);
 
-  const addExercise = async (exercise: Exercise) => {
+  const addExercise = useCallback(async (exercise: Exercise) => {
     try {
-      const savePromise = (async () => {
-        if (editingExercise) {
-          await updateAppData(userId, (current) => {
+      if (editingExercise) {
+        updateAppData(userId, (current) => {
             const savedWorkouts: Exercise[][] = Array.from(
               { length: 7 },
               () => []
@@ -536,71 +518,51 @@ export function GetFitWorkoutTracker({
             }
             return { ...current, savedWorkouts };
           });
-          setEditingExercise(null);
-        } else {
-          await updateAppData(userId, (current) => {
-            const savedWorkouts = [...current.savedWorkouts];
-            if (!exercise.selectedDays || exercise.selectedDays.length === 0) {
-              for (let i = 0; i < 7; i++) {
-                savedWorkouts[i] = [...(savedWorkouts[i] || []), exercise];
-              }
-            } else {
-              exercise.selectedDays.forEach((day) => {
-                savedWorkouts[day] = [...(savedWorkouts[day] || []), exercise];
-              });
+        setEditingExercise(null);
+      } else {
+        updateAppData(userId, (current) => {
+          const savedWorkouts = [...current.savedWorkouts];
+          if (!exercise.selectedDays || exercise.selectedDays.length === 0) {
+            for (let i = 0; i < 7; i++) {
+              savedWorkouts[i] = [...(savedWorkouts[i] || []), exercise];
             }
-            return { ...current, savedWorkouts };
-          });
-        }
-        await loadDayWorkouts();
-      })();
-
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Save timeout")), 10000)
-      );
-
-      await Promise.race([savePromise, timeoutPromise]);
+          } else {
+            exercise.selectedDays.forEach((day) => {
+              savedWorkouts[day] = [...(savedWorkouts[day] || []), exercise];
+            });
+          }
+          return { ...current, savedWorkouts };
+        });
+      }
       setShowModal(false);
     } catch (error) {
       console.error("Error saving exercise:", error);
-      const errorMsg =
-        error instanceof Error ? error.message : "Unknown error";
-      showToast(
-        errorMsg.includes("timeout")
-          ? "Save is taking longer than expected. Please try again."
-          : "Failed to save exercise. Please try again.",
-        "error"
-      );
+      showToast("Failed to save exercise. Please try again.", "error");
       throw error;
     }
-  };
+  }, [userId, editingExercise, showToast]);
 
-  const removeExercise = async (id: number) => {
-    await updateAppData(userId, (current) => {
-      const savedWorkouts: Exercise[][] = Array.from(
-        { length: 7 },
-        () => []
-      );
+  const removeExercise = useCallback((id: number) => {
+    updateAppData(userId, (current) => {
+      const savedWorkouts: Exercise[][] = Array.from({ length: 7 }, () => []);
       for (let day = 0; day < 7; day++) {
         const dayWorkouts = (current.savedWorkouts[day] || []) as Exercise[];
         savedWorkouts[day] = dayWorkouts.filter((e) => e.id !== id);
       }
       return { ...current, savedWorkouts };
     });
-    await loadDayWorkouts();
-  };
+  }, [userId]);
 
-  const toggleSetComplete = async (
-    exerciseId: number,
-    setIndex: number,
-    breakTime?: number
-  ) => {
-    const allData = await loadAppData(userId);
-    const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
-    const updatedWorkouts = allWorkouts.map((exercise) => {
-      if (exercise.id === exerciseId && exercise.sets) {
+  const toggleSetComplete = useCallback(
+    (exerciseId: number, setIndex: number, breakTime?: number) => {
+      const currentWorkouts = appData ? deriveDayWorkouts(appData, currentDayIndex) : [];
+      const updatedWorkouts = currentWorkouts.map((exercise) => {
+        if (exercise.id !== exerciseId || !exercise.sets) return exercise;
         const updatedSets = [...exercise.sets];
-        updatedSets[setIndex].completed = !updatedSets[setIndex].completed;
+        updatedSets[setIndex] = {
+          ...updatedSets[setIndex],
+          completed: !updatedSets[setIndex].completed,
+        };
         if (
           breakTime &&
           updatedSets[setIndex].completed &&
@@ -609,191 +571,152 @@ export function GetFitWorkoutTracker({
           updatedSets[setIndex].breakTime = breakTime;
         }
         return { ...exercise, sets: updatedSets };
-      }
-      return exercise;
-    });
-    await saveDayWorkouts(updatedWorkouts);
-    await loadDayWorkouts();
-
-    const exercise = updatedWorkouts.find((e) => e.id === exerciseId);
-    if (
-      exercise?.sets?.[setIndex]?.completed &&
-      exercise.sets[setIndex].breakTime
-    ) {
-      setActiveBreakTimer({
-        exerciseId,
-        setIndex,
-        timeLeft: exercise.sets[setIndex].breakTime!,
       });
-    }
-  };
-
-  // Mark all done + undo
-  const markAllDone = async (exerciseId: number) => {
-    const exercise = workouts.find((e) => e.id === exerciseId);
-    if (!exercise?.sets) return;
-
-    const allAlreadyDone = exercise.sets.every((s) => s.completed);
-    if (allAlreadyDone) return; // nothing to do
-
-    // Save previous state for undo
-    setUndoData({
-      exerciseId,
-      previousSets: exercise.sets.map((s) => ({ ...s })),
-    });
-
-    const allData = await loadAppData(userId);
-    const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
-    const updatedWorkouts = allWorkouts.map((ex) => {
-      if (ex.id === exerciseId && ex.sets) {
-        return {
-          ...ex,
-          sets: ex.sets.map((s) => ({ ...s, completed: true })),
-        };
+      saveDayWorkouts(updatedWorkouts);
+      const exercise = updatedWorkouts.find((e) => e.id === exerciseId);
+      if (
+        exercise?.sets?.[setIndex]?.completed &&
+        exercise.sets[setIndex].breakTime
+      ) {
+        setActiveBreakTimer({
+          exerciseId,
+          setIndex,
+          timeLeft: exercise.sets[setIndex].breakTime!,
+        });
       }
-      return ex;
-    });
-    await saveDayWorkouts(updatedWorkouts);
-    await loadDayWorkouts();
+    },
+    [currentDayIndex, appData, saveDayWorkouts]
+  );
 
-    showToast("Marked all sets done — tap to undo", "success", 5000);
-  };
+  const markAllDone = useCallback(
+    (exerciseId: number) => {
+      const exercise = workouts.find((e) => e.id === exerciseId);
+      if (!exercise?.sets) return;
+      if (exercise.sets.every((s) => s.completed)) return;
 
-  // Undo mark all done
-  const undoMarkAllDone = useCallback(async () => {
+      setUndoData({
+        exerciseId,
+        previousSets: exercise.sets.map((s) => ({ ...s })),
+      });
+
+      const currentWorkouts = appData ? deriveDayWorkouts(appData, currentDayIndex) : [];
+      const updatedWorkouts = currentWorkouts.map((ex) =>
+        ex.id === exerciseId && ex.sets
+          ? { ...ex, sets: ex.sets.map((s) => ({ ...s, completed: true })) }
+          : ex
+      );
+      saveDayWorkouts(updatedWorkouts);
+      showToast("Marked all sets done — tap to undo", "success", 5000);
+    },
+    [workouts, appData, currentDayIndex, saveDayWorkouts, showToast]
+  );
+
+  const undoMarkAllDone = useCallback(() => {
     if (!undoData) return;
-    const allData = await loadAppData(userId);
-    const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
-    const updatedWorkouts = allWorkouts.map((ex) => {
-      if (ex.id === undoData.exerciseId) {
-        return { ...ex, sets: undoData.previousSets };
-      }
-      return ex;
-    });
-    await saveDayWorkouts(updatedWorkouts);
-    await loadDayWorkouts();
+    const currentWorkouts = appData ? deriveDayWorkouts(appData, currentDayIndex) : [];
+    const updatedWorkouts = currentWorkouts.map((ex) =>
+      ex.id === undoData.exerciseId ? { ...ex, sets: undoData.previousSets } : ex
+    );
+    saveDayWorkouts(updatedWorkouts);
     setUndoData(null);
     showToast("Undone", "info", 2000);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [undoData, userId]);
+  }, [undoData, appData, currentDayIndex, saveDayWorkouts, showToast]);
 
-  const updateExerciseSets = async (exerciseId: number, newSets: Set[]) => {
-    const allData = await loadAppData(userId);
-    const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
-    const updatedWorkouts = allWorkouts.map((ex) =>
-      ex.id === exerciseId ? { ...ex, sets: newSets } : ex
-    );
-    await saveDayWorkouts(updatedWorkouts);
-    await loadDayWorkouts();
-  };
-
-  const addSetToExercise = async (exerciseId: number) => {
-    const exercise = workouts.find((e) => e.id === exerciseId);
-    if (!exercise?.sets) return;
-
-    // Remember rest from last set in this exercise (per-exercise memory)
-    const lastSet = exercise.sets[exercise.sets.length - 1];
-    const lastRest = lastSet?.breakTime ?? preferredRestSec ?? 0;
-
-    const newSet: Set = {
-      setNumber: exercise.sets.length + 1,
-      reps: lastSet?.reps ?? 10,
-      weight: lastSet?.weight ?? null,
-      completed: false,
-      breakTime: lastRest > 0 ? lastRest : undefined,
-    };
-    const newSets = [...exercise.sets, newSet].map((s, i) => ({
-      ...s,
-      setNumber: i + 1,
-    }));
-    await updateExerciseSets(exerciseId, newSets);
-
-    // Remember rest if > 0
-    if (lastRest > 0) {
-      await updateAppData(userId, (d) => ({
-        ...d,
-        preferred_rest_sec: lastRest,
-      }));
-      setPreferredRestSec(lastRest);
-    }
-
-    // Auto-focus the new set's reps input
-    setFocusSetKey(`${exerciseId}-${newSets.length - 1}-reps`);
-  };
-
-  const removeSetFromExercise = async (
-    exerciseId: number,
-    setIndex: number
-  ) => {
-    const exercise = workouts.find((e) => e.id === exerciseId);
-    if (!exercise?.sets || exercise.sets.length <= 1) return;
-    const newSets = exercise.sets
-      .filter((_, i) => i !== setIndex)
-      .map((s, i) => ({ ...s, setNumber: i + 1 }));
-    await updateExerciseSets(exerciseId, newSets);
-  };
-
-  const updateSetField = async (
-    exerciseId: number,
-    setIndex: number,
-    field: "reps" | "weight",
-    value: number | null
-  ) => {
-    const exercise = workouts.find((e) => e.id === exerciseId);
-    if (!exercise?.sets?.[setIndex]) return;
-    const newSets = exercise.sets.map((s, i) =>
-      i === setIndex ? { ...s, [field]: value } : s
-    );
-    await updateExerciseSets(exerciseId, newSets);
-  };
-
-  const updateSetRest = async (
-    exerciseId: number,
-    setIndex: number,
-    sec: number
-  ) => {
-    const exercise = workouts.find((e) => e.id === exerciseId);
-    if (!exercise?.sets?.[setIndex]) return;
-    const newSets = exercise.sets.map((s, i) =>
-      i === setIndex ? { ...s, breakTime: sec > 0 ? sec : undefined } : s
-    );
-    await updateExerciseSets(exerciseId, newSets);
-    if (sec > 0) {
-      await updateAppData(userId, (d) => ({
-        ...d,
-        preferred_rest_sec: sec,
-      }));
-      setPreferredRestSec(sec);
-    }
-  };
-
-  const resetDayProgress = async () => {
-    const allData = await loadAppData(userId);
-    const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
-    const updatedWorkouts = allWorkouts.map((exercise) => {
-      const appearsToday =
-        !exercise.selectedDays ||
-        exercise.selectedDays.length === 0 ||
-        exercise.selectedDays.includes(currentDayIndex);
-      if (appearsToday && exercise.sets) {
-        const resetSets = exercise.sets.map((set) => ({
-          ...set,
-          completed: false,
-        }));
-        return { ...exercise, sets: resetSets, completed: false };
-      }
-      return exercise;
-    });
-    await saveDayWorkouts(updatedWorkouts);
-    await loadDayWorkouts();
-  };
-
-  const completeWorkout = async () => {
-    if (workouts.length === 0) {
-      showToast(
-        "Add at least one exercise before completing the workout",
-        "error"
+  const updateExerciseSets = useCallback(
+    (exerciseId: number, newSets: Set[]) => {
+      const currentWorkouts = appData ? deriveDayWorkouts(appData, currentDayIndex) : [];
+      const updatedWorkouts = currentWorkouts.map((ex) =>
+        ex.id === exerciseId ? { ...ex, sets: newSets } : ex
       );
+      saveDayWorkouts(updatedWorkouts);
+    },
+    [appData, currentDayIndex, saveDayWorkouts]
+  );
+
+  const addSetToExercise = useCallback(
+    (exerciseId: number) => {
+      const exercise = workouts.find((e) => e.id === exerciseId);
+      if (!exercise?.sets) return;
+
+      const lastSet = exercise.sets[exercise.sets.length - 1];
+      const lastRest = lastSet?.breakTime ?? preferredRestSec ?? 0;
+
+      const newSet: Set = {
+        setNumber: exercise.sets.length + 1,
+        reps: lastSet?.reps ?? 10,
+        weight: lastSet?.weight ?? null,
+        completed: false,
+        breakTime: lastRest > 0 ? lastRest : undefined,
+      };
+      const newSets = [...exercise.sets, newSet].map((s, i) => ({
+        ...s,
+        setNumber: i + 1,
+      }));
+      updateExerciseSets(exerciseId, newSets);
+
+      if (lastRest > 0) {
+        updateAppData(userId, (d) => ({
+          ...d,
+          preferred_rest_sec: lastRest,
+        }));
+      }
+      setFocusSetKey(`${exerciseId}-${newSets.length - 1}-reps`);
+    },
+    [workouts, preferredRestSec, updateExerciseSets, userId]
+  );
+
+  const removeSetFromExercise = useCallback(
+    (exerciseId: number, setIndex: number) => {
+      const exercise = workouts.find((e) => e.id === exerciseId);
+      if (!exercise?.sets || exercise.sets.length <= 1) return;
+      const newSets = exercise.sets
+        .filter((_, i) => i !== setIndex)
+        .map((s, i) => ({ ...s, setNumber: i + 1 }));
+      updateExerciseSets(exerciseId, newSets);
+    },
+    [workouts, updateExerciseSets]
+  );
+
+  const updateSetField = useCallback(
+    (exerciseId: number, setIndex: number, field: "reps" | "weight", value: number | null) => {
+      const exercise = workouts.find((e) => e.id === exerciseId);
+      if (!exercise?.sets?.[setIndex]) return;
+      const newSets = exercise.sets.map((s, i) =>
+        i === setIndex ? { ...s, [field]: value } : s
+      );
+      updateExerciseSets(exerciseId, newSets);
+    },
+    [workouts, updateExerciseSets]
+  );
+
+  const updateSetRest = useCallback(
+    (exerciseId: number, setIndex: number, sec: number) => {
+      const exercise = workouts.find((e) => e.id === exerciseId);
+      if (!exercise?.sets?.[setIndex]) return;
+      const newSets = exercise.sets.map((s, i) =>
+        i === setIndex ? { ...s, breakTime: sec > 0 ? sec : undefined } : s
+      );
+      updateExerciseSets(exerciseId, newSets);
+      if (sec > 0) {
+        updateAppData(userId, (d) => ({ ...d, preferred_rest_sec: sec }));
+      }
+    },
+    [workouts, updateExerciseSets, userId]
+  );
+
+  const resetDayProgress = useCallback(() => {
+    const currentWorkouts = appData ? deriveDayWorkouts(appData, currentDayIndex) : [];
+    const updatedWorkouts = currentWorkouts.map((exercise) => {
+      if (!exercise.sets) return exercise;
+      const resetSets = exercise.sets.map((set) => ({ ...set, completed: false }));
+      return { ...exercise, sets: resetSets, completed: false };
+    });
+    saveDayWorkouts(updatedWorkouts);
+  }, [appData, currentDayIndex, saveDayWorkouts]);
+
+  const completeWorkout = useCallback(() => {
+    if (workouts.length === 0) {
+      showToast("Add at least one exercise before completing the workout", "error");
       return;
     }
 
@@ -805,98 +728,80 @@ export function GetFitWorkoutTracker({
       exercises: [...workouts],
     };
 
-    await updateAppData(userId, (current) => ({
-      ...current,
-      workoutHistory: [...current.workoutHistory, workoutEntry],
-    }));
-    const data = await loadAppData(userId);
-    setWorkoutHistory(data.workoutHistory ?? []);
-
-    try {
-      const totalReps = workouts.reduce(
-        (sum, ex) =>
-          sum +
-          (ex.sets?.reduce((s, set) => s + (set.reps ?? 0), 0) ?? 0),
-        0
-      );
-      const totalSets = workouts.reduce(
-        (sum, ex) => sum + (ex.sets?.length ?? 0),
-        0
-      );
-      const weightedSum = workouts.reduce(
-        (sum, ex) =>
-          sum +
-          (ex.sets?.reduce((s, set) => s + (set.weight ?? 0), 0) ?? 0),
-        0
-      );
-      const weightedCount = workouts.reduce(
-        (sum, ex) =>
-          sum +
-          (ex.sets?.reduce(
-            (s, set) => s + (set.weight != null ? 1 : 0),
-            0
-          ) ?? 0),
-        0
-      );
-      const avgWeight =
-        weightedCount > 0 ? Math.round(weightedSum / weightedCount) : null;
-
-      const exerciseDetails = workouts.map((ex) => ({
-        name: sanitizeExerciseDisplayText(ex.name) || "Exercise",
-        sets: (ex.sets ?? []).map((s) => ({
-          r: s.reps ?? 0,
-          w: s.weight,
-          done: s.completed,
-        })),
-      }));
-
-      await insertLog(userId, {
-        date: workoutEntry.date,
-        workout_type:
-          sanitizeExerciseDisplayText(
-            workoutEntry.workoutType || "workout"
-          )
-            .toLowerCase()
-            .replace(/\s+/g, "_") || "workout",
-        workout_name: sanitizeExerciseDisplayText(
-          workoutEntry.workoutType || "Workout"
-        ),
-        reps: totalReps > 0 ? totalReps : null,
-        sets: totalSets > 0 ? totalSets : null,
-        lbs: avgWeight,
-        duration_min: undefined,
-        notes: JSON.stringify(exerciseDetails),
+    // 1) Update history and reset day progress in one patch (instant UI)
+    updateAppData(userId, (current) => {
+      const nextHistory = [...current.workoutHistory, workoutEntry];
+      const nextSaved = current.savedWorkouts.map((day, dayIdx) => {
+        if (dayIdx !== currentDayIndex) return day;
+        return (day as Exercise[]).map((ex) =>
+          ex.sets
+            ? { ...ex, sets: ex.sets.map((s) => ({ ...s, completed: false })), completed: false }
+            : ex
+        );
       });
-    } catch (error) {
-      console.warn("Failed to sync completed workout to feed", error);
-    }
+      return { ...current, workoutHistory: nextHistory, savedWorkouts: nextSaved };
+    });
 
-    await resetDayProgress();
+    // 2) Best-effort flush so sync runs before user leaves
+    flushWorkoutData(userId);
+
+    // 3) Sync to feed in background (fire-and-forget)
+    const totalReps = workouts.reduce(
+      (sum, ex) => sum + (ex.sets?.reduce((s, set) => s + (set.reps ?? 0), 0) ?? 0),
+      0
+    );
+    const totalSets = workouts.reduce((sum, ex) => sum + (ex.sets?.length ?? 0), 0);
+    const weightedSum = workouts.reduce(
+      (sum, ex) => sum + (ex.sets?.reduce((s, set) => s + (set.weight ?? 0), 0) ?? 0),
+      0
+    );
+    const weightedCount = workouts.reduce(
+      (sum, ex) =>
+        sum +
+        (ex.sets?.reduce((s, set) => s + (set.weight != null ? 1 : 0), 0) ?? 0),
+      0
+    );
+    const avgWeight = weightedCount > 0 ? Math.round(weightedSum / weightedCount) : null;
+    const exerciseDetails = workouts.map((ex) => ({
+      name: sanitizeExerciseDisplayText(ex.name) || "Exercise",
+      sets: (ex.sets ?? []).map((s) => ({ r: s.reps ?? 0, w: s.weight, done: s.completed })),
+    }));
+    insertLog(userId, {
+      date: workoutEntry.date,
+      workout_type:
+        sanitizeExerciseDisplayText(workoutEntry.workoutType || "workout")
+          .toLowerCase()
+          .replace(/\s+/g, "_") || "workout",
+      workout_name: sanitizeExerciseDisplayText(workoutEntry.workoutType || "Workout"),
+      reps: totalReps > 0 ? totalReps : null,
+      sets: totalSets > 0 ? totalSets : null,
+      lbs: avgWeight,
+      duration_min: undefined,
+      notes: JSON.stringify(exerciseDetails),
+    }).catch((err) => console.warn("Failed to sync completed workout to feed", err));
+
     showToast("Workout completed and saved to history!", "success");
-
-    if (!isInconsistent) {
+    const rotationLength =
+      settingsProp?.tracking_style === "sequence" && settingsProp?.rotation?.length
+        ? settingsProp.rotation.length
+        : 0;
+    if (rotationLength > 0) {
+      justAdvancedAfterCompleteRef.current = true;
+      setCurrentDayIndex((currentDayIndex + 1) % rotationLength);
+    } else {
       setCurrentDayIndex(new Date().getDay());
     }
-  };
+  }, [
+    workouts,
+    currentDayIndex,
+    workoutSchedule,
+    userId,
+    showToast,
+    settingsProp?.tracking_style,
+    settingsProp?.rotation?.length,
+  ]);
 
   const navigateDay = (direction: "prev" | "next") => {
-    // Check for unsaved changes (any set with reps > 0 that's completed or has data)
-    const hasData = workouts.some(
-      (ex) =>
-        ex.sets?.some(
-          (s) => s.completed || (s.reps > 0 && s.reps !== 10)
-        )
-    );
-    if (hasData) {
-      if (
-        !window.confirm(
-          "Switch days? Any in-progress changes will stay on this day."
-        )
-      ) {
-        return;
-      }
-    }
-
     const sequenceLabelsLocal =
       settingsProp?.tracking_style === "sequence" &&
       settingsProp?.rotation?.length
@@ -973,6 +878,10 @@ export function GetFitWorkoutTracker({
   );
 
   useEffect(() => {
+    if (isInconsistent && justAdvancedAfterCompleteRef.current) {
+      justAdvancedAfterCompleteRef.current = false;
+      return;
+    }
     const maxIndex = Math.max(0, navigatorLabels.length - 1);
     if (isInconsistent) {
       const slot =
@@ -1190,25 +1099,22 @@ export function GetFitWorkoutTracker({
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={async () => {
+                                  onClick={() => {
                                     setOpenMenuId(null);
-                                    // Reset checks for this exercise
-                                    const allData = await loadAppData(userId);
-                                    const allWorkouts = allData.savedWorkouts.flat() as Exercise[];
-                                    const updated = allWorkouts.map((ex) => {
-                                      if (ex.id === exercise.id && ex.sets) {
-                                        return {
-                                          ...ex,
-                                          sets: ex.sets.map((s) => ({
-                                            ...s,
-                                            completed: false,
-                                          })),
-                                        };
-                                      }
-                                      return ex;
+                                    if (!appData) return;
+                                    const allWorkouts = appData.savedWorkouts.flat() as Exercise[];
+                                    const workoutMap = new Map<number, Exercise>();
+                                    allWorkouts.forEach((w) => {
+                                      if (!workoutMap.has(w.id)) workoutMap.set(w.id, w);
                                     });
-                                    await saveDayWorkouts(updated);
-                                    await loadDayWorkouts();
+                                    const exToReset = workoutMap.get(exercise.id);
+                                    if (exToReset?.sets) {
+                                      workoutMap.set(exercise.id, {
+                                        ...exToReset,
+                                        sets: exToReset.sets.map((s) => ({ ...s, completed: false })),
+                                      });
+                                    }
+                                    saveDayWorkouts(Array.from(workoutMap.values()));
                                     showToast("Checks reset", "info", 2000);
                                   }}
                                   className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-[var(--text)] transition-colors hover:bg-[var(--bg3)]/60"
@@ -1432,12 +1338,11 @@ export function GetFitWorkoutTracker({
             ? settingsProp.preferences.timer_default_sec
             : 0
         }
-        onBreakTimeChange={async (sec) => {
-          await updateAppData(userId, (d) => ({
+        onBreakTimeChange={(sec) => {
+          updateAppData(userId, (d) => ({
             ...d,
             preferred_rest_sec: sec,
           }));
-          setPreferredRestSec(sec);
         }}
         userId={userId}
       />

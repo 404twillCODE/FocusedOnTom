@@ -8,7 +8,13 @@
  * - Safe defaults
  */
 
-import { loadAppData, updateAppData } from "@/app/workout/workout-tab/getfit/dataStore";
+import {
+  loadAppData,
+  updateAppData,
+  flushWorkoutData,
+  scheduleWorkoutSync,
+  flushAllWorkoutData,
+} from "@/app/workout/workout-tab/getfit/dataStore";
 import {
   type AppData,
   getDefaultData,
@@ -19,7 +25,17 @@ import {
 
 // ───────── Re-exports ─────────
 
-export { loadAppData, updateAppData, getDefaultData, normalizeAppData, getLocalData, setLocalData };
+export {
+  loadAppData,
+  updateAppData,
+  flushWorkoutData,
+  scheduleWorkoutSync,
+  flushAllWorkoutData,
+  getDefaultData,
+  normalizeAppData,
+  getLocalData,
+  setLocalData,
+};
 export type { AppData };
 
 // ───────── Schema versioning ─────────
@@ -61,10 +77,10 @@ export function debouncedUpdateAppData(
   const existing = timers.get(timerKey);
   if (existing) clearTimeout(existing);
 
-  const timer = setTimeout(async () => {
+  const timer = setTimeout(() => {
     timers.delete(timerKey);
     try {
-      await updateAppData(userId, updater);
+      updateAppData(userId, updater);
     } catch (err) {
       console.error("[workoutStorage] debounced write failed:", err);
     }
@@ -73,11 +89,11 @@ export function debouncedUpdateAppData(
   timers.set(timerKey, timer);
 }
 
-/** Flush all pending debounced writes immediately. */
+/** Flush all pending debounced writes and trigger persist+sync for all users. */
 export function flushPendingWrites(): void {
-  // Note: we can't easily await these. This is a best-effort flush.
-  for (const [key, timer] of timers.entries()) {
+  for (const [, timer] of timers.entries()) {
     clearTimeout(timer);
-    timers.delete(key);
   }
+  timers.clear();
+  flushAllWorkoutData();
 }

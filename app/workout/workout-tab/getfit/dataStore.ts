@@ -1,40 +1,44 @@
-// GetFit-style data store for the Workout tab (Supabase sync + local fallback/cache).
-import { getLocalData, normalizeAppData, setLocalData, type AppData } from "./storage";
+// GetFit-style data store — local-first: uses workoutLocalFirst for cache, applyPatch, and background sync.
 import {
-  getWorkoutGetfitSync,
-  upsertWorkoutGetfitSync,
-} from "@/lib/supabase/workout";
+  getAppData,
+  loadAppData as loadFromLocalFirst,
+  applyPatch,
+  flush,
+  scheduleSync,
+  flushAll,
+} from "@/lib/workoutLocalFirst";
+import type { AppData } from "./storage";
 
-const hasMeaningfulAppData = (data: AppData): boolean => {
-  const hasSavedWorkouts = data.savedWorkouts.some((day) => day.length > 0);
-  const hasHistory = data.workoutHistory.length > 0;
-  const hasWeights = data.weightHistory.length > 0;
-  const hasDeficit = data.deficitEntries.length > 0;
-  return hasSavedWorkouts || hasHistory || hasWeights || hasDeficit;
-};
+export type { AppData };
 
-export const loadAppData = async (userId: string): Promise<AppData> => {
-  const local = getLocalData(userId);
-  const remote = await getWorkoutGetfitSync(userId);
-  if (!remote) {
-    // First-device bootstrap: push existing local data to Supabase once.
-    if (hasMeaningfulAppData(local)) {
-      await upsertWorkoutGetfitSync(userId, local as Record<string, unknown>);
-    }
-    return local;
-  }
-  const normalized = normalizeAppData(remote as Partial<AppData>);
-  setLocalData(userId, normalized);
-  return normalized;
-};
+/** Load data: from memory cache if present, else from localStorage into cache; remote merge happens in background. */
+export async function loadAppData(userId: string): Promise<AppData> {
+  return loadFromLocalFirst(userId);
+}
 
-export const updateAppData = async (
+/**
+ * Update data: applies patch to in-memory cache immediately, notifies subscribers, schedules persist & sync.
+ * Returns the new data (from cache). Never awaits Supabase.
+ */
+export async function updateAppData(
   userId: string,
   updater: (current: AppData) => AppData
-): Promise<AppData> => {
-  const current = await loadAppData(userId);
-  const updated = updater(current);
-  setLocalData(userId, updated);
-  await upsertWorkoutGetfitSync(userId, updated as Record<string, unknown>);
+): Promise<AppData> {
+  const updated = applyPatch(userId, updater);
   return updated;
-};
+}
+
+/** Flush persist + sync for a user (e.g. before Finish workout). */
+export function flushWorkoutData(userId: string): void {
+  flush(userId);
+}
+
+/** Schedule sync in background (debounced). */
+export function scheduleWorkoutSync(userId: string): void {
+  scheduleSync(userId);
+}
+
+/** Flush all users (e.g. pagehide). */
+export function flushAllWorkoutData(): void {
+  flushAll();
+}
