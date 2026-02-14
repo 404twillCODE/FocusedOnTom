@@ -103,24 +103,30 @@ const SetRowCard = React.memo(function SetRowCard({
     field: "reps" | "weight" | "rest"
   ) => void;
 }) {
-  const [repsInput, setRepsInput] = useState(String(set.reps ?? ""));
-  const [weightInput, setWeightInput] = useState(
-    set.weight != null ? String(set.weight) : ""
+  const [repsInput, setRepsInput] = useState(
+    set.reps != null && set.reps !== 0 ? String(set.reps) : ""
   );
-  const [restInput, setRestInput] = useState(String(set.breakTime ?? 0));
+  const [weightInput, setWeightInput] = useState(
+    set.weight != null && set.weight !== 0 ? String(set.weight) : ""
+  );
+  const [restInput, setRestInput] = useState(
+    set.breakTime != null && set.breakTime > 0 ? String(set.breakTime) : ""
+  );
   const [editing, setEditing] = useState(!set.completed);
   const weightRef = useRef<HTMLInputElement>(null);
   const restRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setRepsInput(String(set.reps ?? ""));
-    setWeightInput(set.weight != null ? String(set.weight) : "");
-    setRestInput(String(set.breakTime ?? 0));
+    setRepsInput(set.reps != null && set.reps !== 0 ? String(set.reps) : "");
+    setWeightInput(set.weight != null && set.weight !== 0 ? String(set.weight) : "");
+    setRestInput(set.breakTime != null && set.breakTime > 0 ? String(set.breakTime) : "");
     setEditing(!set.completed);
   }, [set.reps, set.weight, set.breakTime, set.completed]);
 
   const restSec = Math.max(0, parseInt(restInput, 10) || 0);
   const isDone = set.completed;
+
+  const displayRestValue = restSec > 0 ? restInput : "";
 
   // Handle Enter key: move focus reps → weight → rest → next set
   const handleKeyDown = (
@@ -222,7 +228,7 @@ const SetRowCard = React.memo(function SetRowCard({
           inputMode="numeric"
           min="0"
           aria-label="Rest seconds"
-          value={restSec > 0 ? restInput : ""}
+          value={displayRestValue}
           readOnly={isDone && !editing}
           onChange={(e) => setRestInput(e.target.value)}
           onFocus={(e) => e.target.select()}
@@ -319,11 +325,8 @@ export function GetFitWorkoutTracker({
   );
   const preferredRestSec = useMemo(
     () =>
-      appData?.preferred_rest_sec ??
-      (settingsProp?.preferences?.timer_enabled && settingsProp?.preferences?.timer_default_sec != null
-        ? settingsProp.preferences.timer_default_sec
-        : 0),
-    [appData?.preferred_rest_sec, settingsProp?.preferences?.timer_enabled, settingsProp?.preferences?.timer_default_sec]
+      appData?.preferred_rest_sec ?? (settingsProp?.preferences?.timer_default_sec ?? 0),
+    [appData?.preferred_rest_sec, settingsProp?.preferences?.timer_default_sec]
   );
   const workouts = useMemo(
     () => deriveDayWorkouts(appData, currentDayIndex),
@@ -639,14 +642,17 @@ export function GetFitWorkoutTracker({
       if (!exercise?.sets) return;
 
       const lastSet = exercise.sets[exercise.sets.length - 1];
-      const lastRest = lastSet?.breakTime ?? preferredRestSec ?? 0;
+      const lastRest =
+        lastSet != null && lastSet.breakTime !== undefined && lastSet.breakTime !== null
+          ? lastSet.breakTime
+          : preferredRestSec ?? 0;
 
       const newSet: Set = {
         setNumber: exercise.sets.length + 1,
-        reps: lastSet?.reps ?? 10,
+        reps: lastSet?.reps ?? 0,
         weight: lastSet?.weight ?? null,
         completed: false,
-        breakTime: lastRest > 0 ? lastRest : undefined,
+        breakTime: lastRest,
       };
       const newSets = [...exercise.sets, newSet].map((s, i) => ({
         ...s,
@@ -694,7 +700,7 @@ export function GetFitWorkoutTracker({
       const exercise = workouts.find((e) => e.id === exerciseId);
       if (!exercise?.sets?.[setIndex]) return;
       const newSets = exercise.sets.map((s, i) =>
-        i === setIndex ? { ...s, breakTime: sec > 0 ? sec : undefined } : s
+        i === setIndex ? { ...s, breakTime: sec } : s
       );
       updateExerciseSets(exerciseId, newSets);
       if (sec > 0) {
@@ -993,10 +999,8 @@ export function GetFitWorkoutTracker({
             <AnimatePresence>
               {workouts.map((exercise) => {
                 const isCollapsed = collapsedExercises.has(exercise.id);
-                // Determine if ANY set in this exercise has weight
-                const exerciseHasWeight = exercise.sets?.some(
-                  (s) => s.weight != null && s.weight > 0
-                );
+                // Always show weight column so user can fill it in (even for new/blank exercises)
+                const exerciseHasWeight = true;
 
                 return (
                   <motion.div
@@ -1332,12 +1336,7 @@ export function GetFitWorkoutTracker({
             : undefined
         }
         modes={settingsProp?.modes}
-        defaultBreakTime={
-          settingsProp?.preferences?.timer_enabled &&
-          settingsProp?.preferences?.timer_default_sec != null
-            ? settingsProp.preferences.timer_default_sec
-            : 0
-        }
+        defaultBreakTime={settingsProp?.preferences?.timer_default_sec ?? 0}
         onBreakTimeChange={(sec) => {
           updateAppData(userId, (d) => ({
             ...d,

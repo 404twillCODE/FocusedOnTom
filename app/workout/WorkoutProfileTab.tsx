@@ -3,7 +3,13 @@
 import { useState, useEffect } from "react";
 import { User, LogOut, Loader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
-import { getMyProfile, upsertProfile } from "@/lib/supabase/workout";
+import {
+  getMyProfile,
+  upsertProfile,
+  getWorkoutSettings,
+  upsertWorkoutSettings,
+} from "@/lib/supabase/workout";
+import type { WorkoutSettings } from "@/lib/supabase/workout";
 import type { Profile } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -41,6 +47,9 @@ export function WorkoutProfileTab({
   // "Type RESET" confirmation state
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetInput, setResetInput] = useState("");
+  const [workoutSettings, setWorkoutSettings] = useState<WorkoutSettings | null>(null);
+  const [defaultRestSec, setDefaultRestSec] = useState<string>("");
+  const [defaultRestSaving, setDefaultRestSaving] = useState(false);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -59,6 +68,67 @@ export function WorkoutProfileTab({
       )
       .finally(() => setLoading(false));
   }, [userId]);
+
+  useEffect(() => {
+    getWorkoutSettings(userId)
+      .then((s) => {
+        setWorkoutSettings(s ?? null);
+        if (s?.preferences?.timer_default_sec != null) {
+          setDefaultRestSec(String(s.preferences.timer_default_sec));
+        } else {
+          setDefaultRestSec("0");
+        }
+      })
+      .catch(() => {});
+  }, [userId]);
+
+  async function handleSaveDefaultRest() {
+    const sec = Math.max(0, Math.min(600, parseInt(defaultRestSec, 10) || 0));
+    setDefaultRestSaving(true);
+    try {
+      const current = workoutSettings ?? {
+        user_id: userId,
+        tracking_style: "schedule",
+        selected_days: null,
+        schedule_map: null,
+        rotation: null,
+        modes: {
+          progressiveOverload: true,
+          dropSets: false,
+          rpe: false,
+          supersets: false,
+          amrap: false,
+        },
+        preferences: {
+          timer_enabled: false,
+          timer_default_sec: 0,
+          units: "lbs",
+          show_suggestions: true,
+        },
+        setup_completed: false,
+        updated_at: new Date().toISOString(),
+      };
+      const updated = await upsertWorkoutSettings(userId, {
+        tracking_style: current.tracking_style,
+        selected_days: current.selected_days ?? null,
+        schedule_map: current.schedule_map ?? null,
+        rotation: current.rotation ?? null,
+        modes: current.modes,
+        preferences: {
+          ...current.preferences,
+          timer_default_sec: sec,
+        },
+        setup_completed: current.setup_completed,
+      });
+      setWorkoutSettings(updated);
+      setDefaultRestSec(String(sec));
+      showToast("Default rest time saved.", "success");
+    } catch {
+      showToast("Failed to save default rest time.", "error");
+    } finally {
+      setDefaultRestSaving(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -331,6 +401,35 @@ export function WorkoutProfileTab({
             Control how the Workout tab behaves.
           </p>
           <div className="mt-3 flex flex-col gap-2 text-xs">
+            {/* Default rest time */}
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-3">
+              <label className="font-medium text-[var(--text)]">
+                Default rest time (seconds)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={600}
+                value={defaultRestSec}
+                onChange={(e) => setDefaultRestSec(e.target.value)}
+                className="w-20 rounded-lg border border-[var(--border)] bg-[var(--bg2)] px-2 py-1.5 text-right text-sm text-[var(--text)] focus:border-[var(--ice)] focus:outline-none"
+              />
+              <span className="text-[var(--textMuted)]">Used when adding a new exercise or set</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="ml-auto border-[var(--ice)]/50 text-[var(--ice)] hover:bg-[var(--iceSoft)]"
+                onClick={handleSaveDefaultRest}
+                disabled={defaultRestSaving}
+              >
+                {defaultRestSaving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  "Save"
+                )}
+              </Button>
+            </div>
             {/* Edit workout setup (keeps history) */}
             <button
               type="button"
