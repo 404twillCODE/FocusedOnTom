@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { LayoutGrid, Plus, BarChart3, User } from "lucide-react";
+import { LayoutGrid, Plus, BarChart3, User, TrendingUp } from "lucide-react";
 import { WorkoutFeedTab } from "./WorkoutFeedTab";
 import { WorkoutTab } from "./workout-tab";
 import { WorkoutStatsTab } from "./WorkoutStatsTab";
 import { WorkoutProfileTab } from "./WorkoutProfileTab";
+import { WorkoutProgressTab } from "./components/WorkoutProgressTab";
 import { WorkoutMemberProfile } from "./WorkoutMemberProfile";
 
 const TABS = [
   { id: "feed", label: "Feed", icon: LayoutGrid },
   { id: "log", label: "Workout", icon: Plus },
+  { id: "progress", label: "Progress", icon: TrendingUp },
   { id: "stats", label: "Stats", icon: BarChart3 },
   { id: "profile", label: "Profile", icon: User },
 ] as const;
@@ -67,6 +69,7 @@ export function WorkoutAppTabs({
           />
         )}
         {tab === "log" && <WorkoutTab userId={userId} />}
+        {tab === "progress" && <WorkoutProgressTab userId={userId} />}
         {tab === "stats" && <WorkoutStatsTab userId={userId} />}
         {tab === "profile" && (
           <WorkoutProfileTab
