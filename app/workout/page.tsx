@@ -88,7 +88,7 @@ export default function WorkoutPage() {
 
   return (
     <ToastProvider>
-      <main className="min-h-screen -mt-16 sm:-mt-20">
+      <main className="workout-no-zoom workout-hide-scrollbars min-h-screen -mt-16 sm:-mt-20">
         <div className="mx-auto max-w-2xl px-4 pt-2 pb-8">
           <AnimatePresence mode="wait">
             {showGate && (

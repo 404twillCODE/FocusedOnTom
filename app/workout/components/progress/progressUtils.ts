@@ -27,25 +27,24 @@ function exName(raw: unknown): string {
   return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "").trim();
 }
 
-/** Volume for one set: reps * (weight ?? 0). Only count if completed. */
-function setVolume(s: SetLike, completedOnly: boolean): number {
+/** Total weight for one set: weight only. Only count if completed. */
+function setWeight(s: SetLike, completedOnly: boolean): number {
   if (completedOnly && !s.completed) return 0;
-  const r = s.reps ?? 0;
   const w = s.weight ?? 0;
-  return r * (w != null ? w : 0);
+  return w != null ? w : 0;
 }
 
 export type OverviewMetrics = {
   workouts: number;
   sets: number;
   reps: number;
-  volume: number;
+  weight: number;
   minutes: number;
 };
 
 /**
  * Compute overview for entries within the last `days` days (by entry.date).
- * Single pass. Only completed sets count for sets/reps/volume.
+ * Single pass. Only completed sets count for sets/reps/total weight.
  */
 export function computeOverview(
   history: HistoryEntryLike[],
@@ -57,7 +56,7 @@ export function computeOverview(
   let workouts = 0;
   let sets = 0;
   let reps = 0;
-  let volume = 0;
+  let weight = 0;
   let minutes = 0;
   const seenDates = new Set<string>();
 
@@ -76,17 +75,17 @@ export function computeOverview(
         if (!s.completed) continue;
         sets += 1;
         reps += s.reps ?? 0;
-        volume += setVolume(s, true);
+        weight += setWeight(s, true);
       }
     }
   }
-  return { workouts, sets, reps, volume, minutes };
+  return { workouts, sets, reps, weight, minutes };
 }
 
 export type WeekBucket = {
   weekStart: string; // YYYY-MM-DD Monday
   workouts: number;
-  volume: number;
+  weight: number;
 };
 
 /**
@@ -105,7 +104,7 @@ export function computeWeeklyBuckets(
     const end = new Date(start);
     end.setDate(end.getDate() + 7);
     const weekKey = start.toISOString().slice(0, 10);
-    buckets.push({ weekStart: weekKey, workouts: 0, volume: 0 });
+    buckets.push({ weekStart: weekKey, workouts: 0, weight: 0 });
   }
   const weekStartToIndex = new Map<string, number>();
   buckets.forEach((b, i) => weekStartToIndex.set(b.weekStart, i));
@@ -121,7 +120,7 @@ export function computeWeeklyBuckets(
     for (const ex of exercises) {
       for (const s of ex.sets ?? []) {
         if (!s.completed) continue;
-        buckets[idx].volume += setVolume(s, true);
+        buckets[idx].weight += setWeight(s, true);
       }
     }
   }
@@ -157,7 +156,7 @@ export type ExerciseSessionPoint = {
   date: string;
   timestamp: number;
   bestWeight: number;
-  bestVolumeInSession: number;
+  totalWeightInSession: number;
   bestRepsInSet: number;
   bestSetFormatted: string; // e.g. "100 × 10" or "15 reps"
 };
@@ -165,7 +164,7 @@ export type ExerciseSessionPoint = {
 export type ExerciseSeriesResult = {
   sessions: ExerciseSessionPoint[];
   prBestWeight: number;
-  prBestVolume: number;
+  prBestTotalWeight: number;
   prBestReps: number;
   bestWeightOverTime: number[]; // ordered by session date (oldest first) for sparkline
 };
@@ -185,7 +184,7 @@ export function computeExerciseSeries(
     return {
       sessions: [],
       prBestWeight: 0,
-      prBestVolume: 0,
+      prBestTotalWeight: 0,
       prBestReps: 0,
       bestWeightOverTime: [],
     };
@@ -201,7 +200,7 @@ export function computeExerciseSeries(
       if (n !== nameKey) continue;
       let bestWeight = 0;
       let bestReps = 0;
-      let sessionVolume = 0;
+      let sessionWeight = 0;
       let bestRepsForSet = 0;
       let bestWeightForSet: number | null = null;
 
@@ -211,9 +210,9 @@ export function computeExerciseSeries(
         const w = s.weight ?? 0;
         if (w > bestWeight) bestWeight = w;
         if (r > bestReps) bestReps = r;
-        sessionVolume += setVolume(s, true);
-        const vol = setVolume(s, true);
-        if (vol > bestRepsForSet * (bestWeightForSet ?? 0)) {
+        sessionWeight += setWeight(s, true);
+        const totalWeight = setWeight(s, true);
+        if (totalWeight > bestRepsForSet * (bestWeightForSet ?? 0)) {
           bestRepsForSet = r;
           bestWeightForSet = w != null ? w : null;
         }
@@ -226,7 +225,7 @@ export function computeExerciseSeries(
         date: entry.date,
         timestamp: entry.timestamp,
         bestWeight,
-        bestVolumeInSession: sessionVolume,
+        totalWeightInSession: sessionWeight,
         bestRepsInSet: bestReps,
         bestSetFormatted,
       });
@@ -236,11 +235,11 @@ export function computeExerciseSeries(
 
   const lastSessions = sessions.slice(-maxSessions);
   let prWeight = 0;
-  let prVolume = 0;
+  let prTotalWeight = 0;
   let prReps = 0;
   for (const s of lastSessions) {
     if (s.bestWeight > prWeight) prWeight = s.bestWeight;
-    if (s.bestVolumeInSession > prVolume) prVolume = s.bestVolumeInSession;
+    if (s.totalWeightInSession > prTotalWeight) prTotalWeight = s.totalWeightInSession;
     if (s.bestRepsInSet > prReps) prReps = s.bestRepsInSet;
   }
   const bestWeightOverTime = lastSessions.map((s) => s.bestWeight);
@@ -248,7 +247,7 @@ export function computeExerciseSeries(
   return {
     sessions: lastSessions,
     prBestWeight: prWeight,
-    prBestVolume: prVolume,
+    prBestTotalWeight: prTotalWeight,
     prBestReps: prReps,
     bestWeightOverTime,
   };

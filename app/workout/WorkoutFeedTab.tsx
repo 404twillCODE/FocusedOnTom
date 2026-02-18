@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Dumbbell, User, Loader2, ChevronDown, Trash2 } from "lucide-react";
 import {
   getCommunityFeed,
+  getWorkoutSettings,
   getReactionsForLogs,
   toggleReaction,
   type ReactionSummary,
@@ -61,13 +62,13 @@ function formatDate(d: string) {
   return date.toLocaleDateString();
 }
 
-/** Compute total volume from parsed exercises. */
-function computeFeedVolume(exercises: ParsedExercise[]): number {
+/** Compute total lifted weight from parsed exercises (sum of set weights). */
+function computeFeedWeight(exercises: ParsedExercise[]): number {
   let total = 0;
   for (const ex of exercises) {
     for (const s of ex.sets) {
       if (s.w != null && s.w > 0) {
-        total += s.r * s.w;
+        total += s.w;
       }
     }
   }
@@ -84,6 +85,7 @@ function FeedEntryCard({
   onSelectMember,
   onAdminDelete,
   onToggleReaction,
+  units,
 }: {
   log: WorkoutLogWithProfile;
   isAdmin: boolean;
@@ -92,6 +94,7 @@ function FeedEntryCard({
   onSelectMember: (username: string) => void;
   onAdminDelete: (logId: string) => void;
   onToggleReaction: (logId: string, emoji: string) => void;
+  units: "lbs" | "kg";
 }) {
   const [expanded, setExpanded] = useState(false);
   const [expandedExercise, setExpandedExercise] = useState<number | null>(
@@ -114,9 +117,10 @@ function FeedEntryCard({
     (log.lbs != null && log.lbs > 0);
   const textNotes = exerciseDetails ? null : log.notes?.trim();
   const exerciseCount = exerciseDetails?.length ?? 0;
-  const feedVolume = exerciseDetails
-    ? computeFeedVolume(exerciseDetails)
+  const feedWeight = exerciseDetails
+    ? computeFeedWeight(exerciseDetails)
     : 0;
+  const displayWeight = feedWeight > 0 ? feedWeight : (log.lbs ?? 0);
 
   return (
     <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60">
@@ -182,12 +186,9 @@ function FeedEntryCard({
               {log.reps != null && log.reps > 0 && (
                 <span>{log.reps} reps</span>
               )}
-              {log.lbs != null && log.lbs > 0 && (
-                <span>{log.lbs} lbs</span>
-              )}
-              {feedVolume > 0 && (
-                <span className="font-medium text-[var(--text)]">
-                  {Math.round(feedVolume).toLocaleString()} vol
+              {displayWeight > 0 && (
+                <span className="text-[var(--textMuted)]">
+                  {Math.round(displayWeight).toLocaleString()} {units}
                 </span>
               )}
               {(log.duration_min ?? 0) > 0 && (
@@ -313,7 +314,7 @@ function FeedEntryCard({
                                   <span className="w-16 text-[var(--textMuted)]">
                                     {set.w != null &&
                                     set.w > 0
-                                      ? `${set.w} lbs`
+                                      ? `${set.w} ${units}`
                                       : "—"}
                                   </span>
                                   <span className="ml-auto">
@@ -347,7 +348,7 @@ function FeedEntryCard({
                       `${log.reps} reps`,
                     log.lbs != null &&
                       log.lbs > 0 &&
-                      `${log.lbs} lbs avg`,
+                      `${log.lbs} ${units}`,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -423,6 +424,7 @@ export function WorkoutFeedTab({
   >(new Map());
   const [isAdmin, setIsAdmin] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [units, setUnits] = useState<"lbs" | "kg">("lbs");
 
   const loadReactions = useCallback(
     async (logIds: string[]) => {
@@ -432,6 +434,20 @@ export function WorkoutFeedTab({
     },
     [userId]
   );
+
+  useEffect(() => {
+    let cancelled = false;
+    getWorkoutSettings(userId)
+      .then((settings) => {
+        if (!cancelled) setUnits(settings?.preferences.units ?? "lbs");
+      })
+      .catch(() => {
+        if (!cancelled) setUnits("lbs");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
 
   useEffect(() => {
     (async () => {
@@ -596,6 +612,7 @@ export function WorkoutFeedTab({
             onSelectMember={onSelectMember}
             onAdminDelete={handleAdminDelete}
             onToggleReaction={handleToggleReaction}
+            units={units}
           />
         </motion.div>
       ))}

@@ -2,16 +2,18 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { LayoutGrid, Plus, BarChart3, User } from "lucide-react";
+import { LayoutGrid, Dumbbell, BarChart3, User, Clock3 } from "lucide-react";
 import { WorkoutFeedTab } from "./WorkoutFeedTab";
 import { WorkoutTab } from "./workout-tab";
 import { WorkoutStatsTab } from "./WorkoutStatsTab";
 import { WorkoutProfileTab } from "./WorkoutProfileTab";
 import { WorkoutMemberProfile } from "./WorkoutMemberProfile";
+import { WorkoutRecoveryTab } from "./WorkoutRecoveryTab";
 
 const TABS = [
   { id: "feed", label: "Feed", icon: LayoutGrid },
-  { id: "log", label: "Workout", icon: Plus },
+  { id: "recovery", label: "Recovery", icon: Clock3 },
+  { id: "log", label: "Workout", icon: Dumbbell },
   { id: "stats", label: "Stats", icon: BarChart3 },
   { id: "profile", label: "Profile", icon: User },
 ] as const;
@@ -66,6 +68,7 @@ export function WorkoutAppTabs({
             onSelectMember={(username) => setMemberUsername(username)}
           />
         )}
+        {tab === "recovery" && <WorkoutRecoveryTab userId={userId} />}
         {tab === "log" && <WorkoutTab userId={userId} />}
         {tab === "stats" && <WorkoutStatsTab userId={userId} />}
         {tab === "profile" && (

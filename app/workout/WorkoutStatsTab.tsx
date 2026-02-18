@@ -17,6 +17,7 @@ import {
   getMyLogs,
   getWorkoutStatsSummary,
   deleteLog,
+  getWorkoutSettings,
 } from "@/lib/supabase/workout";
 import { loadAppData, updateAppData } from "./workout-tab/getfit/dataStore";
 import {
@@ -24,11 +25,20 @@ import {
   type WorkoutHistoryEntry,
 } from "./workout-tab/getfit/storage";
 import {
-  computeVolume,
   getBestSet,
   formatBestSet,
   type HistoryExercise,
 } from "@/types/workout";
+
+function computeTotalWeight(exercises: HistoryExercise[]): number {
+  let total = 0;
+  for (const ex of exercises) {
+    for (const s of ex.sets ?? []) {
+      if (s.weight != null && s.weight > 0) total += s.weight;
+    }
+  }
+  return total;
+}
 
 function computeStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
@@ -72,17 +82,17 @@ function formatHistoryTime(timestamp?: number): string {
 
 // ─── PR detection helpers ───
 
-/** Build a map of exercise name → all-time best weight and best volume across all history. */
+/** Build a map of exercise name → all-time best weight and best reps across all history. */
 function buildPRMap(
   history: WorkoutHistoryEntry[],
   excludeEntry?: WorkoutHistoryEntry
 ): Map<
   string,
-  { bestWeight: number; bestVolume: number; bestReps: number }
+  { bestWeight: number; bestReps: number }
 > {
   const prMap = new Map<
     string,
-    { bestWeight: number; bestVolume: number; bestReps: number }
+    { bestWeight: number; bestReps: number }
   >();
   for (const entry of history) {
     if (
@@ -99,14 +109,12 @@ function buildPRMap(
       if (!name) continue;
       const current = prMap.get(name) ?? {
         bestWeight: 0,
-        bestVolume: 0,
         bestReps: 0,
       };
       for (const s of ex.sets ?? []) {
         const r = s.reps ?? 0;
         const w = s.weight ?? 0;
         if (w > current.bestWeight) current.bestWeight = w;
-        if (w > 0 && r * w > current.bestVolume) current.bestVolume = r * w;
         if (r > current.bestReps) current.bestReps = r;
       }
       prMap.set(name, current);
@@ -120,7 +128,7 @@ function getExercisePRs(
   ex: HistoryExercise,
   prMapBefore: Map<
     string,
-    { bestWeight: number; bestVolume: number; bestReps: number }
+    { bestWeight: number; bestReps: number }
   >
 ): string[] {
   const name = sanitizeExerciseDisplayText(ex.name)
@@ -134,9 +142,6 @@ function getExercisePRs(
     const w = s.weight ?? 0;
     if (w > 0 && (!prior || w > prior.bestWeight)) {
       if (!prs.includes("Best Weight")) prs.push("Best Weight");
-    }
-    if (w > 0 && r * w > 0 && (!prior || r * w > prior.bestVolume)) {
-      if (!prs.includes("Best Volume")) prs.push("Best Volume");
     }
     if (r > 0 && (!prior || r > prior.bestReps)) {
       if (!prs.includes("Best Reps")) prs.push("Best Reps");
@@ -152,11 +157,13 @@ function HistoryEntryCard({
   index,
   onDelete,
   allHistory,
+  units,
 }: {
   entry: WorkoutHistoryEntry;
   index: number;
   onDelete: (entry: WorkoutHistoryEntry) => void;
   allHistory: WorkoutHistoryEntry[];
+  units: "lbs" | "kg";
 }) {
   const [expanded, setExpanded] = useState(false);
   const [expandedExercise, setExpandedExercise] = useState<number | null>(
@@ -179,7 +186,7 @@ function HistoryEntryCard({
       sum + (ex.sets?.reduce((s, set) => s + (set.reps ?? 0), 0) ?? 0),
     0
   );
-  const totalVolume = computeVolume(exercises);
+  const totalWeight = computeTotalWeight(exercises);
 
   // Build PR map for entries BEFORE this one
   const prMapBefore = useMemo(() => {
@@ -242,9 +249,9 @@ function HistoryEntryCard({
               </span>
               <span>{totalSets} sets</span>
               <span>{totalReps} reps</span>
-              {totalVolume > 0 && (
-                <span className="font-medium text-[var(--text)]">
-                  {Math.round(totalVolume).toLocaleString()} vol
+              {totalWeight > 0 && (
+                <span className="font-normal text-[var(--textMuted)]">
+                  {Math.round(totalWeight).toLocaleString()} {units}
                 </span>
               )}
             </div>
@@ -387,7 +394,7 @@ function HistoryEntryCard({
                                   <span className="w-16 text-[var(--textMuted)]">
                                     {set.weight != null &&
                                     set.weight > 0
-                                      ? `${set.weight} lbs`
+                                      ? `${set.weight} ${units}`
                                       : "—"}
                                   </span>
                                   <span className="ml-auto">
@@ -421,7 +428,13 @@ function HistoryEntryCard({
 
 // ─── Progress section ───
 
-function ProgressSection({ history }: { history: WorkoutHistoryEntry[] }) {
+function ProgressSection({
+  history,
+  units,
+}: {
+  history: WorkoutHistoryEntry[];
+  units: "lbs" | "kg";
+}) {
   const [selectedExercise, setSelectedExercise] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [showPicker, setShowPicker] = useState(false);
@@ -452,8 +465,8 @@ function ProgressSection({ history }: { history: WorkoutHistoryEntry[] }) {
     const sessions: {
       date: string;
       timestamp: number;
-      best: { reps: number; weight: number | null; volume: number } | null;
-      totalVolume: number;
+      best: ReturnType<typeof getBestSet>;
+      totalWeight: number;
       totalReps: number;
     }[] = [];
 
@@ -465,14 +478,14 @@ function ProgressSection({ history }: { history: WorkoutHistoryEntry[] }) {
           .toLowerCase();
         if (name === searchName) {
           const best = getBestSet(ex.sets);
-          const vol = computeVolume([ex]);
+          const totalWeight = computeTotalWeight([ex]);
           const reps =
             ex.sets?.reduce((s, set) => s + (set.reps ?? 0), 0) ?? 0;
           sessions.push({
             date: entry.date,
             timestamp: entry.timestamp,
             best,
-            totalVolume: vol,
+            totalWeight,
             totalReps: reps,
           });
         }
@@ -484,17 +497,18 @@ function ProgressSection({ history }: { history: WorkoutHistoryEntry[] }) {
 
   // Compute PRs for this exercise
   const prs = useMemo(() => {
-    if (exerciseSessions.length === 0) return { weight: 0, volume: 0, reps: 0 };
+    if (exerciseSessions.length === 0)
+      return { weight: 0, totalWeight: 0, reps: 0 };
     let weight = 0,
-      volume = 0,
+      totalWeight = 0,
       reps = 0;
     for (const s of exerciseSessions) {
       if (s.best?.weight != null && s.best.weight > weight)
         weight = s.best.weight;
-      if (s.totalVolume > volume) volume = s.totalVolume;
+      if (s.totalWeight > totalWeight) totalWeight = s.totalWeight;
       if (s.totalReps > reps) reps = s.totalReps;
     }
-    return { weight, volume, reps };
+    return { weight, totalWeight, reps };
   }, [exerciseSessions]);
 
   if (allExerciseNames.length === 0) return null;
@@ -585,16 +599,16 @@ function ProgressSection({ history }: { history: WorkoutHistoryEntry[] }) {
           {prs.weight > 0 && (
             <div className="flex items-center gap-1 rounded-lg border border-[var(--ice)]/30 bg-[var(--iceSoft)]/40 px-2.5 py-1.5">
               <Trophy className="h-3.5 w-3.5 text-[var(--ice)]" />
-              <span className="text-xs font-medium text-[var(--ice)]">
-                Best Weight: {prs.weight} lb
+              <span className="text-xs text-[var(--ice)]">
+                Best Weight: {prs.weight} {units}
               </span>
             </div>
           )}
-          {prs.volume > 0 && (
+          {prs.totalWeight > 0 && (
             <div className="flex items-center gap-1 rounded-lg border border-[var(--ice)]/30 bg-[var(--iceSoft)]/40 px-2.5 py-1.5">
               <Trophy className="h-3.5 w-3.5 text-[var(--ice)]" />
-              <span className="text-xs font-medium text-[var(--ice)]">
-                Best Volume: {Math.round(prs.volume).toLocaleString()}
+              <span className="text-xs text-[var(--ice)]">
+                Best Total Weight: {Math.round(prs.totalWeight).toLocaleString()} {units}
               </span>
             </div>
           )}
@@ -635,12 +649,12 @@ function ProgressSection({ history }: { history: WorkoutHistoryEntry[] }) {
                       {formatBestSet(session.best)}
                     </span>
                   )}
-                  {session.totalVolume > 0 && (
+                  {session.totalWeight > 0 && (
                     <span className="text-[var(--textMuted)]">
-                      {Math.round(session.totalVolume).toLocaleString()} vol
+                      {Math.round(session.totalWeight).toLocaleString()} {units}
                     </span>
                   )}
-                  {session.totalVolume === 0 &&
+                  {session.totalWeight === 0 &&
                     session.totalReps > 0 && (
                       <span className="text-[var(--textMuted)]">
                         {session.totalReps} reps
@@ -672,7 +686,7 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
   const [myLogs, setMyLogs] = useState<
     { date: string; duration_min: number }[]
   >([]);
-  const [volume, setVolume] = useState<number>(0);
+  const [units, setUnits] = useState<"lbs" | "kg">("lbs");
   const [topExercises, setTopExercises] = useState<
     { exercise_name: string; count: number }[]
   >([]);
@@ -690,8 +704,8 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([getMyLogs(userId), getWorkoutStatsSummary(userId)])
-      .then(([logs, summary]) => {
+    Promise.all([getMyLogs(userId), getWorkoutStatsSummary(userId), getWorkoutSettings(userId)])
+      .then(([logs, summary, settings]) => {
         if (cancelled) return;
         setMyLogs(
           logs.map((l) => ({
@@ -699,8 +713,8 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
             duration_min: l.duration_min ?? 0,
           }))
         );
-        setVolume(summary.totalVolume);
         setTopExercises(summary.topExercises);
+        setUnits(settings?.preferences.units ?? "lbs");
       })
       .catch((e) => {
         if (!cancelled)
@@ -788,6 +802,15 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
 
     return result;
   }, [history, historyFilter, searchQuery]);
+
+  const totalWeight = useMemo(
+    () =>
+      history.reduce((sum, entry) => {
+        const exercises = (entry.exercises ?? []) as HistoryExercise[];
+        return sum + computeTotalWeight(exercises);
+      }, 0),
+    [history]
+  );
 
   if (loading) {
     return (
@@ -888,12 +911,12 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
             Top Lifts
           </h2>
           <div className="space-y-2">
-            {volume > 0 && (
+            {totalWeight > 0 && (
               <div className="rounded-xl border border-[var(--border)] bg-[var(--bg2)]/60 p-3 text-xs text-[var(--textMuted)]">
-                <span className="font-medium text-[var(--text)]">
-                  Total volume:&nbsp;
+                <span className="text-[var(--text)]">
+                  Total weight:&nbsp;
                 </span>
-                {Math.round(volume).toLocaleString()}
+                {Math.round(totalWeight).toLocaleString()} {units}
               </div>
             )}
             <ul className="space-y-1 text-sm">
@@ -916,7 +939,7 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
       )}
 
       {/* Progress */}
-      {history.length > 0 && <ProgressSection history={history} />}
+      {history.length > 0 && <ProgressSection history={history} units={units} />}
 
       {/* Workout History */}
       <section>
@@ -1009,6 +1032,7 @@ export function WorkoutStatsTab({ userId }: { userId: string }) {
                 index={i}
                 onDelete={handleDeleteHistory}
                 allHistory={history}
+                units={units}
               />
             ))}
 

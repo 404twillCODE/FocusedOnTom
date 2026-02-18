@@ -154,8 +154,8 @@ export function WorkoutProgressTab({ userId }: { userId: string }) {
     () => weeklyBuckets.map((b) => b.workouts).reverse(),
     [weeklyBuckets]
   );
-  const volumePerWeekData = useMemo(
-    () => weeklyBuckets.map((b) => b.volume).reverse(),
+  const weightPerWeekData = useMemo(
+    () => weeklyBuckets.map((b) => b.weight).reverse(),
     [weeklyBuckets]
   );
 
@@ -188,8 +188,8 @@ export function WorkoutProgressTab({ userId }: { userId: string }) {
           <OverviewCard label="Last 7 days — Sets" value={overview7.sets} />
           <OverviewCard label="Last 7 days — Reps" value={overview7.reps} />
           <OverviewCard
-            label="Last 7 days — Volume"
-            value={overview7.volume.toLocaleString()}
+            label="Last 7 days — Total weight"
+            value={overview7.weight.toLocaleString()}
           />
           {overview7.minutes > 0 && (
             <OverviewCard label="Last 7 days — Minutes" value={overview7.minutes} />
@@ -200,8 +200,8 @@ export function WorkoutProgressTab({ userId }: { userId: string }) {
           <OverviewCard label="Last 30 days — Sets" value={overview30.sets} />
           <OverviewCard label="Last 30 days — Reps" value={overview30.reps} />
           <OverviewCard
-            label="Last 30 days — Volume"
-            value={overview30.volume.toLocaleString()}
+            label="Last 30 days — Total weight"
+            value={overview30.weight.toLocaleString()}
           />
           {overview30.minutes > 0 && (
             <OverviewCard label="Last 30 days — Minutes" value={overview30.minutes} />
@@ -232,10 +232,10 @@ export function WorkoutProgressTab({ userId }: { userId: string }) {
           </div>
           <div>
             <p className="mb-1 text-xs font-medium text-[var(--textMuted)]">
-              Volume per week (last 8 weeks)
+              Total weight per week (last 8 weeks)
             </p>
             <Sparkline
-              data={volumePerWeekData}
+              data={weightPerWeekData}
               width={280}
               height={40}
               fillBelow
@@ -307,9 +307,9 @@ export function WorkoutProgressTab({ userId }: { userId: string }) {
               </div>
               <div className="rounded-lg border border-[var(--border)] bg-[var(--bg2)]/60 p-3">
                 <p className="text-lg font-bold text-[var(--ice)]">
-                  {exerciseSeries.prBestVolume.toLocaleString()}
+                  {exerciseSeries.prBestTotalWeight.toLocaleString()}
                 </p>
-                <p className="text-[10px] text-[var(--textMuted)]">Best volume (session)</p>
+                <p className="text-[10px] text-[var(--textMuted)]">Best total weight (session)</p>
               </div>
               <div className="rounded-lg border border-[var(--border)] bg-[var(--bg2)]/60 p-3">
                 <p className="text-lg font-bold text-[var(--ice)]">

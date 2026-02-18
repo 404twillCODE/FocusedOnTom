@@ -1511,6 +1511,21 @@ const ExerciseModal = ({
       "Close Grip Bench Press", "Skull Crushers", "Cable Tricep Pushdown",
       "Barbell Curl", "Dumbbell Curl", "Tricep Kickback", "Rope Cable Curl",
     ],
+    biceps: [
+      "Bicep Curl", "Barbell Curl", "Dumbbell Curl", "Hammer Curl",
+      "Cable Curl", "Preacher Curl", "Concentration Curl", "Incline Dumbbell Curl",
+      "EZ-Bar Curl", "Reverse Curl",
+    ],
+    triceps: [
+      "Tricep Extension", "Overhead Tricep Extension", "Tricep Dips",
+      "Cable Tricep Pushdown", "Close Grip Bench Press", "Skull Crushers",
+      "Tricep Kickback", "Rope Pushdown", "JM Press",
+    ],
+    forearms: [
+      "Wrist Curl", "Reverse Wrist Curl", "Farmer's Carry", "Plate Pinch Hold",
+      "Dead Hang", "Hammer Curl", "Reverse Curl", "Towel Pull-up",
+      "Grip Trainer Squeeze",
+    ],
     core: [
       "Plank", "Crunches", "Sit-ups", "Russian Twists", "Leg Raises",
       "Mountain Climbers", "Bicycle Crunches", "Dead Bug", "Hollow Hold",
@@ -1658,6 +1673,10 @@ const ExerciseModal = ({
         : [...prev, category]
     );
   };
+
+  const selectableCategories = ALL_CATEGORIES.filter(
+    (cat) => cat.value !== "arms" && cat.value !== "full_body"
+  );
 
   const handleSave = async () => {
     if (isSavingExercise) return;
@@ -1812,7 +1831,7 @@ const ExerciseModal = ({
                     Categories (Select Multiple)
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {ALL_CATEGORIES.map((cat) => (
+                    {selectableCategories.map((cat) => (
                       <button
                         key={cat.value}
                         type="button"

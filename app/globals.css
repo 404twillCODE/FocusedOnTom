@@ -108,3 +108,24 @@
 .animate-gradient-sweep {
   animation: gradient-sweep 8s ease-in-out infinite;
 }
+
+/* Workout app: prevent iOS input-focus zoom */
+.workout-no-zoom input,
+.workout-no-zoom select,
+.workout-no-zoom textarea {
+  font-size: 16px;
+}
+
+/* Workout app: hide visual scrollbars but keep scrolling enabled */
+.workout-hide-scrollbars,
+.workout-hide-scrollbars * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+}
+
+.workout-hide-scrollbars::-webkit-scrollbar,
+.workout-hide-scrollbars *::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* WebKit */
+}

@@ -5,6 +5,9 @@
 export type ExerciseCategory =
   | "legs"
   | "arms"
+  | "biceps"
+  | "triceps"
+  | "forearms"
   | "chest"
   | "back"
   | "shoulders"
@@ -15,6 +18,9 @@ export type ExerciseCategory =
 export const ALL_CATEGORIES: { value: ExerciseCategory; label: string }[] = [
   { value: "legs", label: "Legs" },
   { value: "arms", label: "Arms" },
+  { value: "biceps", label: "Biceps" },
+  { value: "triceps", label: "Triceps" },
+  { value: "forearms", label: "Forearms" },
   { value: "chest", label: "Chest" },
   { value: "back", label: "Back" },
   { value: "shoulders", label: "Shoulders" },

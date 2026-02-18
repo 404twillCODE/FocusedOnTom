@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { User, LogOut, Loader2, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { User, LogOut, Loader2, AlertTriangle, Download, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import {
   getMyProfile,
@@ -9,6 +9,8 @@ import {
   getWorkoutSettings,
   upsertWorkoutSettings,
 } from "@/lib/supabase/workout";
+import { loadAppData, updateAppData } from "./workout-tab/getfit/dataStore";
+import { normalizeAppData } from "./workout-tab/getfit/storage";
 import type { WorkoutSettings } from "@/lib/supabase/workout";
 import type { Profile } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -50,6 +52,7 @@ export function WorkoutProfileTab({
   const [workoutSettings, setWorkoutSettings] = useState<WorkoutSettings | null>(null);
   const [defaultRestSec, setDefaultRestSec] = useState<string>("");
   const [defaultRestSaving, setDefaultRestSaving] = useState(false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -273,6 +276,61 @@ export function WorkoutProfileTab({
     onSignOut();
   }
 
+  async function handleExportWorkout() {
+    try {
+      const data = await loadAppData(userId);
+      const payload = {
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        userId,
+        appData: data,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `workout-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("Workout data exported.", "success");
+    } catch {
+      showToast("Failed to export workout data.", "error");
+    }
+  }
+
+  function handleImportWorkoutClick() {
+    importInputRef.current?.click();
+  }
+
+  async function handleImportWorkoutFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as { appData?: unknown } | unknown;
+      const maybeData =
+        typeof parsed === "object" &&
+        parsed !== null &&
+        "appData" in parsed
+          ? (parsed as { appData?: unknown }).appData
+          : parsed;
+      const normalized = normalizeAppData(
+        (maybeData as Parameters<typeof normalizeAppData>[0]) ?? null
+      );
+      await updateAppData(userId, () => normalized);
+      showToast("Workout data imported.", "success");
+      onNavigateToWorkout?.();
+    } catch {
+      showToast("Invalid workout file. Please import a valid JSON export.", "error");
+    } finally {
+      e.target.value = "";
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-12">
@@ -401,6 +459,33 @@ export function WorkoutProfileTab({
             Control how the Workout tab behaves.
           </p>
           <div className="mt-3 flex flex-col gap-2 text-xs">
+            {/* Import / Export */}
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={handleExportWorkout}
+                className="flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-2.5 text-xs font-medium text-[var(--text)] hover:border-[var(--ice)]/50 hover:text-[var(--ice)]"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Export workout
+              </button>
+              <button
+                type="button"
+                onClick={handleImportWorkoutClick}
+                className="flex items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-2.5 text-xs font-medium text-[var(--text)] hover:border-[var(--ice)]/50 hover:text-[var(--ice)]"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Import workout
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept="application/json,.json"
+                onChange={handleImportWorkoutFile}
+                className="hidden"
+              />
+            </div>
+
             {/* Default rest time */}
             <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/80 px-4 py-3">
               <label className="font-medium text-[var(--text)]">
