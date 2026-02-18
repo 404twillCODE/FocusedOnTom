@@ -36,8 +36,8 @@ self.addEventListener("push", (event) => {
 
   const options = {
     body,
-    icon: "/icons/workout-icon-192.png",
-    badge: "/icons/workout-icon-192.png",
+    icon: "/logo.png",
+    badge: "/logo.png",
     data: { url },
   };
 
@@ -67,4 +67,3 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
-

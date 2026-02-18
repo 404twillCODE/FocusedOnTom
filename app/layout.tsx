@@ -18,6 +18,17 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Focused on Tom",
   description: "Portfolio — CS student, photography & dev.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
+  openGraph: {
+    images: ["/logo.png"],
+  },
+  twitter: {
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({
