@@ -9,6 +9,7 @@ import {
   type WorkoutModes,
   type WorkoutPreferences,
 } from "@/lib/supabase/workout";
+import { ALL_CATEGORIES } from "@/types/workout";
 import { Button } from "@/components/ui/button";
 
 const TOTAL_STEPS = 3;
@@ -25,7 +26,15 @@ const TRACKING_OPTIONS = [
     title: "No schedule",
     description: "Day 1 / Day 2 rotation for inconsistent weeks.",
   },
+  {
+    id: "exercise_days" as const,
+    title: "Exercise days",
+    description: "Same categories as when adding an exercise (Legs, Cardio, Core, etc.).",
+  },
 ];
+
+/** Exercise day presets match the category tab when adding an exercise. */
+const EXERCISE_DAY_PRESETS = ALL_CATEGORIES.map((c) => c.label);
 
 const defaultModes: WorkoutModes = {
   progressiveOverload: true,
@@ -45,12 +54,86 @@ const defaultPrefs: WorkoutPreferences = {
 type Step = 1 | 2 | 3;
 
 type WizardState = {
-  tracking_style: "schedule" | "sequence";
+  tracking_style: "schedule" | "sequence" | "exercise_days";
   selected_days: number[];
   sequence_days_count: number;
+  /** Labels for "exercise_days" (e.g. Arm day, Cardio, Core). */
+  exercise_days_labels: string[];
   modes: WorkoutModes;
   preferences: WorkoutPreferences;
 };
+
+function ExerciseDaysPicker({
+  selected,
+  onChange,
+  presets,
+}: {
+  selected: string[];
+  onChange: (labels: string[]) => void;
+  presets: string[];
+}) {
+  const [customInput, setCustomInput] = useState("");
+
+  const togglePreset = (label: string) => {
+    const next = selected.includes(label)
+      ? selected.filter((l) => l !== label)
+      : [...selected, label];
+    onChange(next);
+  };
+
+  const addCustom = () => {
+    const trimmed = customInput.trim();
+    if (!trimmed || selected.includes(trimmed)) return;
+    onChange([...selected, trimmed]);
+    setCustomInput("");
+  };
+
+  return (
+    <div className="space-y-3 pt-2">
+      <p className="text-sm font-medium text-[var(--text)]">Pick your workout types</p>
+      <p className="text-xs text-[var(--textMuted)]">
+        You’ll cycle through these in the tracker (e.g. Arm day → Cardio → Core).
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {presets.map((label) => {
+          const isSelected = selected.includes(label);
+          return (
+            <button
+              key={label}
+              type="button"
+              onClick={() => togglePreset(label)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                isSelected
+                  ? "bg-[var(--iceSoft)] text-[var(--ice)]"
+                  : "bg-[var(--bg3)] text-[var(--textMuted)] hover:text-[var(--text)]"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          placeholder="Custom (e.g. HIIT)"
+          value={customInput}
+          onChange={(e) => setCustomInput(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustom())}
+          className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--bg3)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--textMuted)] focus:border-[var(--ice)] focus:outline-none"
+        />
+        <Button type="button" variant="outline" size="sm" onClick={addCustom}>
+          Add
+        </Button>
+      </div>
+      {selected.length > 0 && (
+        <p className="text-xs text-[var(--textMuted)]">
+          Order: {selected.join(" → ")}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function OptionCard({
   selected,
@@ -137,11 +220,25 @@ export function SetupWizard({
   onDone: (s: WorkoutSettings) => void;
   onError: (msg: string) => void;
 }) {
+  const isExistingExerciseDays =
+    existing?.tracking_style === "sequence" &&
+    existing?.rotation?.length &&
+    existing.rotation.some(
+      (r) => !/^Day \d+$/.test((r.label ?? "").trim())
+    );
   const [step, setStep] = useState<Step>(1);
   const [state, setState] = useState<WizardState>(() => ({
-    tracking_style: existing?.tracking_style ?? "schedule",
+    tracking_style: isExistingExerciseDays
+      ? "exercise_days"
+      : (existing?.tracking_style ?? "schedule"),
     selected_days: existing?.selected_days ?? [1, 3, 5],
-    sequence_days_count: 3,
+    sequence_days_count:
+      existing?.tracking_style === "sequence" && existing?.rotation?.length
+        ? existing.rotation.length
+        : 3,
+    exercise_days_labels: isExistingExerciseDays && existing?.rotation?.length
+      ? existing.rotation.map((r) => (r.label ?? "").trim()).filter(Boolean)
+      : ["Legs", "Arms", "Chest", "Back", "Core", "Cardio"],
     modes: existing?.modes ?? defaultModes,
     preferences: existing?.preferences ?? defaultPrefs,
   }));
@@ -170,10 +267,21 @@ export function SetupWizard({
           template_id: "",
           label: `Day ${i + 1}`,
         }));
+      } else if (state.tracking_style === "exercise_days") {
+        const labels = state.exercise_days_labels.filter((l) => l.trim().length > 0);
+        rotation =
+          labels.length > 0
+            ? labels.map((label, i) => ({
+                index: i,
+                template_id: "",
+                label: label.trim(),
+              }))
+            : [{ index: 0, template_id: "", label: "Workout" }];
       }
 
       const settings = await upsertWorkoutSettings(userId, {
-        tracking_style: state.tracking_style,
+        tracking_style:
+          state.tracking_style === "exercise_days" ? "sequence" : state.tracking_style,
         selected_days: state.tracking_style === "schedule" ? state.selected_days : null,
         schedule_map: null,
         rotation,
@@ -231,6 +339,10 @@ export function SetupWizard({
                           tracking_style: opt.id,
                           sequence_days_count:
                             opt.id === "sequence" ? Math.max(2, s.sequence_days_count) : s.sequence_days_count,
+                          exercise_days_labels:
+                            opt.id === "exercise_days" && s.exercise_days_labels.length === 0
+                              ? ["Legs", "Arms", "Chest", "Back", "Core", "Cardio"]
+                              : s.exercise_days_labels,
                         }))
                       }
                     />
@@ -291,6 +403,15 @@ export function SetupWizard({
                       })}
                     </div>
                   </div>
+                )}
+                {state.tracking_style === "exercise_days" && (
+                  <ExerciseDaysPicker
+                    selected={state.exercise_days_labels}
+                    onChange={(labels) =>
+                      setState((s) => ({ ...s, exercise_days_labels: labels }))
+                    }
+                    presets={EXERCISE_DAY_PRESETS}
+                  />
                 )}
               </>
             )}
