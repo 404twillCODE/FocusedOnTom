@@ -116,6 +116,13 @@
   font-size: 16px;
 }
 
+/* FocusedOnYou: prevent iOS input-focus zoom */
+.focusedonyou-no-zoom input,
+.focusedonyou-no-zoom select,
+.focusedonyou-no-zoom textarea {
+  font-size: 16px;
+}
+
 /* Workout app: hide visual scrollbars but keep scrolling enabled */
 .workout-hide-scrollbars,
 .workout-hide-scrollbars * {

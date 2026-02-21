@@ -23,8 +23,8 @@ function NavContent() {
     setMobileOpen(false);
   }, [pathname]);
 
-  // Hide nav on the workout app to keep it feeling like a standalone app.
-  if (pathname.startsWith("/workout")) {
+  // Hide nav on workout and FocusedOnYou to keep them feeling like standalone products.
+  if (pathname.startsWith("/workout") || pathname.startsWith("/focusedonyou")) {
     return null;
   }
 
