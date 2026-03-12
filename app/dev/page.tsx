@@ -1,9 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { ExternalLink, Code2, Server, Car } from "lucide-react";
-import { WorkInProgressBanner } from "@/components/WorkInProgressBanner";
+import { ExternalLink, Code2, Server, Car, Construction } from "lucide-react";
 
 const projects = [
   {
@@ -12,9 +11,10 @@ const projects = [
     description:
       "A tool to manage Minecraft servers — start, stop, monitor, and configure your server from one place. Built to make self-hosting simpler.",
     tags: ["Node.js", "Minecraft", "DevOps"],
-    href: "#",
+    href: "https://nodexity.com",
     repo: "#",
     icon: Server,
+    workInProgress: false,
   },
   {
     title: "PullUp",
@@ -25,6 +25,7 @@ const projects = [
     href: "#",
     repo: "#",
     icon: Car,
+    workInProgress: true,
   },
 ];
 
@@ -56,15 +57,9 @@ function AnimatedCard({
 }
 
 export default function DevPage() {
-  const [notificationDismissed, setNotificationDismissed] = useState(false);
-
   return (
     <main className="min-h-screen">
-      <WorkInProgressBanner onDismiss={() => setNotificationDismissed(true)} />
-      <div
-        className={`transition-opacity duration-300 ${notificationDismissed ? "opacity-100" : "pointer-events-none opacity-0"}`}
-      >
-        <section className="mx-auto max-w-5xl px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12">
+      <section className="mx-auto max-w-5xl px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -90,22 +85,30 @@ export default function DevPage() {
                 transition={{ type: "spring", bounce: 0.35 }}
               >
                 <div className="relative z-10 flex flex-1 flex-col p-6 sm:p-7">
-                  <div className="flex items-start gap-4">
-                    <motion.span
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--iceSoft)] text-[var(--ice)] transition-colors group-hover:bg-[var(--ice)]/25"
-                      whileHover={{ scale: 1.06 }}
-                      transition={{ type: "spring", bounce: 0.5 }}
-                    >
-                      <project.icon className="h-5 w-5" />
-                    </motion.span>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl">
-                        {project.title}
-                      </h2>
-                      <p className="mt-0.5 text-sm text-[var(--ice)]">
-                        {project.subtitle}
-                      </p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex min-w-0 flex-1 gap-4">
+                      <motion.span
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--iceSoft)] text-[var(--ice)] transition-colors group-hover:bg-[var(--ice)]/25"
+                        whileHover={{ scale: 1.06 }}
+                        transition={{ type: "spring", bounce: 0.5 }}
+                      >
+                        <project.icon className="h-5 w-5" />
+                      </motion.span>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl">
+                          {project.title}
+                        </h2>
+                        <p className="mt-0.5 text-sm text-[var(--ice)]">
+                          {project.subtitle}
+                        </p>
+                      </div>
                     </div>
+                    {project.workInProgress && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                        <Construction className="h-3 w-3" />
+                        Work in progress
+                      </span>
+                    )}
                   </div>
                   <p className="mt-4 text-[var(--textMuted)] leading-relaxed">
                     {project.description}
@@ -135,7 +138,7 @@ export default function DevPage() {
                         className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/60 px-4 py-2.5 text-sm font-medium text-[var(--text)] transition-colors hover:border-[var(--ice)]/50 hover:text-[var(--ice)]"
                       >
                         <ExternalLink className="h-4 w-4" />
-                        Live
+                        Visit
                       </a>
                     )}
                     {project.repo && project.repo !== "#" && (
@@ -162,7 +165,6 @@ export default function DevPage() {
           ))}
         </div>
       </section>
-      </div>
     </main>
   );
 }

@@ -12,6 +12,7 @@ const links = [
   { href: "/dev", label: "Dev" },
   { href: "/skills", label: "Skills" },
   { href: "/photography", label: "Photography" },
+  { href: "/websites", label: "Websites" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -53,6 +54,7 @@ function NavContent() {
               alt="Focused on Tom logo"
               width={24}
               height={24}
+              sizes="24px"
               className="h-6 w-6 rounded-md object-cover"
               priority
             />
@@ -61,7 +63,7 @@ function NavContent() {
             </span>
           </span>
         </Link>
-        <ul className="hidden min-w-0 flex-1 items-center justify-end gap-1 sm:flex">
+        <ul className="hidden min-w-0 flex-1 items-center justify-end gap-1 sm:flex sm:gap-2">
           {links.map(({ href, label }) => {
             const isActive =
               href === "/"

@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
-import { Nav } from "@/components/Nav";
-import { Background } from "@/components/Background";
+import { LayoutShell } from "@/components/LayoutShell";
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
 });
 
 export const viewport: Viewport = {
@@ -21,6 +22,7 @@ export const metadata: Metadata = {
   ),
   title: "Focused on Tom",
   description: "Portfolio — CS student, photography & dev.",
+  keywords: ["portfolio", "developer", "photography", "websites"],
   icons: {
     icon: "/logo.png",
     shortcut: "/logo.png",
@@ -39,10 +41,12 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <link rel="preconnect" href="https://formspree.io" />
+        <link rel="dns-prefetch" href="https://formspree.io" />
+      </head>
       <body className={`${spaceGrotesk.variable} font-sans antialiased`}>
-        <Background />
-        <Nav />
-        <div className="min-h-screen pt-16 sm:pt-20">{children}</div>
+        <LayoutShell>{children}</LayoutShell>
       </body>
     </html>
   );

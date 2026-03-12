@@ -80,6 +80,19 @@
   animation: glow-pulse 12s ease-in-out infinite;
 }
 
+/* Respect reduced motion for accessibility and performance */
+@media (prefers-reduced-motion: reduce) {
+  .starfield-layer,
+  .starfield-layer--twinkle,
+  .star-twinkle,
+  .bg-glow-pulse {
+    animation: none;
+  }
+  .starfield-layer--twinkle {
+    opacity: 0.85;
+  }
+}
+
 /* Nodexity card (dev page) — keep if still used */
 @keyframes node-twinkle {
   0%, 100% { opacity: 0.6; }

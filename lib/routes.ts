@@ -4,5 +4,6 @@ export const ROUTES = {
   project: (slug: string) => `/dev/${slug}`,
   skills: "/skills",
   photography: "/photography",
+  websites: "/websites",
   contact: "/contact",
 } as const;
