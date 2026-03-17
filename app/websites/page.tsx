@@ -152,6 +152,12 @@ export default function WebsitesPage() {
             >
               See previous work
             </a>
+            <Link
+              href="/websites/payment"
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/60 px-5 py-2.5 text-sm font-medium text-[var(--textMuted)] transition-colors hover:border-[var(--ice)]/30 hover:text-[var(--text)]"
+            >
+              How does payment work?
+            </Link>
           </div>
         </motion.div>
       </section>

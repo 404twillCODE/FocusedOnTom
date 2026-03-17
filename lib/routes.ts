@@ -5,5 +5,6 @@ export const ROUTES = {
   skills: "/skills",
   photography: "/photography",
   websites: "/websites",
+  websitesPayment: "/websites/payment",
   contact: "/contact",
 } as const;
