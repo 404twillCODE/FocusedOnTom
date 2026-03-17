@@ -52,7 +52,7 @@ const domainSteps = [
   {
     step: 1,
     title: "Purchase your domain",
-    body: "Before I finish setting everything up, I just need you to buy your domain. Head to Namecheap.com and search for the domain you want (e.g. yourbusiness.com).",
+    body: "To get started, please purchase your own domain name. This is an annual fee you pay directly to the domain provider (not to me). Go to Namecheap.com, search for your desired domain (like yourbusiness.com)",
   },
   {
     step: 2,
@@ -179,7 +179,7 @@ export default function PaymentPage() {
                 <p className="mt-0.5 text-sm text-[var(--textMuted)]">
                   After your domain is purchased and shared with me, send
                   payment for the website. I need payment before setting up your
-                  site live.
+                  site live. I prefer Cash App but PayPal is also an option.
                 </p>
               </div>
             </div>
