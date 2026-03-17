@@ -10,6 +10,8 @@ import {
   ArrowRight,
   Mail,
   ExternalLink,
+  MessageCircle,
+  Clock,
 } from "lucide-react";
 
 const CASH_APP_USERNAME = "$BEETOG";
@@ -241,6 +243,50 @@ export default function PaymentPage() {
                 </span>
               </a>
             </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
+      {/* Stay in contact */}
+      <section className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:pb-24">
+        <AnimatedSection delay={0.15}>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/30 p-6 sm:p-8">
+            <div className="flex items-center gap-3">
+              <MessageCircle className="h-8 w-8 shrink-0 text-[var(--ice)]" />
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl">
+                  Stay in contact
+                </h2>
+                <p className="mt-0.5 text-sm text-[var(--textMuted)]">
+                  Keep me in the loop so we can get your site live smoothly.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 space-y-5 text-[var(--textMuted)]">
+              <p>
+                Reach out when you’ve got your domain, if you have any questions
+                about giving me access or payment, or anything else. It also
+                helps when you let me know when you’ve given me access and when
+                you’ve sent payment — that way I can confirm everything and move
+                on to the next step.
+              </p>
+              <div className="flex gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/40 p-4">
+                <Clock className="h-5 w-5 shrink-0 text-[var(--ice)]" />
+                <p className="text-sm">
+                  Once I confirm that payment is received and I have access to
+                  your domain, it usually takes around{" "}
+                  <strong className="text-[var(--text)]">1–24 hours</strong> for
+                  the website (and domain) to update and go fully live.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/contact"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl border border-[var(--ice)]/50 bg-[var(--iceSoft)]/30 px-4 py-2.5 text-sm font-medium text-[var(--ice)] transition-colors hover:border-[var(--ice)]/70 hover:bg-[var(--iceSoft)]/50"
+            >
+              Contact me
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </AnimatedSection>
       </section>
