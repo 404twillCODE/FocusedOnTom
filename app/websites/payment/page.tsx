@@ -168,6 +168,75 @@ export default function PaymentPage() {
         </AnimatedSection>
       </section>
 
+      {/* Contact form setup (Formspree) */}
+      <section className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <AnimatedSection delay={0.12}>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/30 p-6 sm:p-8">
+            <div className="flex items-center gap-3">
+              <Mail className="h-8 w-8 shrink-0 text-[var(--ice)]" />
+              <div>
+                <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl">
+                  Contact form (Formspree)
+                </h2>
+                <p className="mt-0.5 text-sm text-[var(--textMuted)]">
+                  If your website has a contact form, you need to hook it up to Formspree so messages send to your inbox.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 space-y-6">
+              <ol className="space-y-4">
+                <li className="flex gap-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--ice)]/40 bg-[var(--iceSoft)]/20 text-sm font-semibold text-[var(--ice)]" aria-hidden>
+                    1
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-[var(--text)]">Create your Formspree form</h3>
+                    <p className="mt-1 text-[var(--textMuted)]">
+                      Create a Formspree account.
+                      Then create a new project in your Formspree dashboard.
+                      After you create the form inside that project, Formspree will show you your unique “Form endpoint”.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--ice)]/40 bg-[var(--iceSoft)]/20 text-sm font-semibold text-[var(--ice)]" aria-hidden>
+                    2
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-[var(--text)]">Paste the Formspree endpoint</h3>
+                    <p className="mt-1 text-[var(--textMuted)]">
+                      After you create the form, Formspree will show your endpoint URL.
+                      Copy that endpoint.
+                    </p>
+                  </div>
+                </li>
+                <li className="flex gap-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--ice)]/40 bg-[var(--iceSoft)]/20 text-sm font-semibold text-[var(--ice)]" aria-hidden>
+                    3
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-[var(--text)]">Send me your endpoint</h3>
+                    <p className="mt-1 text-[var(--textMuted)]">
+                      Send me the Form endpoint URL from your Formspree project.
+                      I’ll use it to connect your website’s contact form so you can receive messages.
+                    </p>
+                  </div>
+                </li>
+              </ol>
+
+              <div className="flex gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/40 p-4">
+                <Clock className="h-5 w-5 shrink-0 text-[var(--ice)]" />
+                <p className="text-sm text-[var(--textMuted)]">
+                  This will send you emails from your contact form. It’s free unless you need more than <strong className="text-[var(--text)]">50 submissions/month</strong>.
+                  If you do not have a contact form on your site yet, you can skip this step for now.
+                </p>
+              </div>
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
+
       {/* Payment */}
       <section className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:pb-24">
         <AnimatedSection delay={0.1}>
