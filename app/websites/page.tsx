@@ -93,17 +93,17 @@ const tiers = [
 
 const previousWork = [
   {
-    title: "Nodexity",
-    description: "Minecraft server manager — start, stop, monitor from one place.",
-    href: "https://nodexity.com",
-    tech: "Node.js · DevOps",
-  },
-  {
     title: "This portfolio",
     description: "Personal site: dev, photography, websites, contact.",
     href: "/",
     tech: "Next.js · React",
     internal: true,
+  },
+  {
+    title: "Nodexity",
+    description: "Minecraft server manager — start, stop, monitor from one place.",
+    href: "https://nodexity.com",
+    tech: "Node.js · DevOps",
   },
   {
     title: "Here Comes The Bride",
@@ -112,11 +112,11 @@ const previousWork = [
     tech: "Web · E-commerce",
   },
   {
-    title: "More coming soon",
-    description: "Client and side project sites as they go live.",
-    href: "#",
-    tech: "—",
-    placeholder: true,
+    title: "Asphault Solutions",
+    description:
+      "Sealcoating, crack filling, asphalt repair, and snow plowing in CNY.",
+    href: "https://asphaltsolutionscny.com",
+    tech: "Vite",
   },
 ];
 
