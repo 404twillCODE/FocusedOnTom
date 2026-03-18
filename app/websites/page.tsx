@@ -286,7 +286,8 @@ export default function WebsitesPage() {
         </AnimatedSection>
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {previousWork.map((project, i) => {
-            const hasLink = !project.placeholder && project.href !== "#";
+            // If href is "#" we treat the card as a non-clickable placeholder.
+            const hasLink = project.href !== "#";
             const cardContent = (
               <motion.div
                 className="flex h-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/30 p-6 transition-colors hover:border-[var(--ice)]/25"
