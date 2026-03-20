@@ -71,7 +71,7 @@ const tiers = [
       "Multiple pages & navigation",
       "Custom design to match your brand",
       "Blog or portfolio section",
-      "SEO basics & analytics setup",
+      "SEO basics",
     ],
     highlight: true,
   },
