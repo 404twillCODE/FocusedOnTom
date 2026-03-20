@@ -31,14 +31,14 @@ function NavContent() {
 
   return (
     <nav
-      className="fixed left-0 right-0 top-0 z-50 flex justify-center px-2 pt-2 sm:px-4 sm:pt-4"
+      className="fixed left-0 right-0 top-0 z-50 flex justify-center px-2 pt-1.5 sm:px-3 sm:pt-3"
       style={{ position: "fixed" }}
     >
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="flex h-11 min-w-0 max-w-4xl flex-1 items-center justify-between gap-2 rounded-full border border-white/[0.08] bg-white/[0.06] px-3 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset] backdrop-blur-xl sm:h-12 sm:gap-4 sm:px-6"
+        className="flex h-11 min-w-0 max-w-4xl flex-1 items-center justify-between gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.06] px-2.5 shadow-[0_0_0_1px_rgba(255,255,255,0.03)_inset] backdrop-blur-xl sm:h-12 sm:gap-2.5 sm:px-4"
         style={{
           boxShadow:
             "0 0 0 1px rgba(255,255,255,0.04) inset, 0 4px 24px rgba(0,0,0,0.2)",
@@ -63,7 +63,7 @@ function NavContent() {
             </span>
           </span>
         </Link>
-        <ul className="hidden min-w-0 flex-1 items-center justify-end gap-1 sm:flex sm:gap-2">
+        <ul className="hidden min-w-0 flex-1 items-center justify-end gap-0.5 sm:flex sm:gap-1">
           {links.map(({ href, label }) => {
             const isActive =
               href === "/"
@@ -73,7 +73,7 @@ function NavContent() {
               <li key={href} className="shrink-0">
                 <Link
                   href={href}
-                  className="relative flex items-center px-2 py-1.5 text-[11px] text-[var(--textMuted)] transition-colors hover:text-[var(--text)] sm:px-4 sm:py-2.5 sm:text-sm"
+                  className="relative flex items-center px-1.5 py-1.5 text-[11px] text-[var(--textMuted)] transition-colors hover:text-[var(--text)] sm:px-3 sm:py-2 sm:text-sm"
                   style={{
                     textShadow: "0 0 20px rgba(255,255,255,0.06)",
                   }}
@@ -167,11 +167,11 @@ export function Nav() {
   if (!mounted || typeof document === "undefined") {
     return (
       <nav
-        className="fixed left-0 right-0 top-0 z-50 flex justify-center px-3 pt-3 sm:px-4 sm:pt-4"
+        className="fixed left-0 right-0 top-0 z-50 flex justify-center px-2 pt-1.5 sm:px-3 sm:pt-3"
         style={{ position: "fixed" }}
         aria-hidden
       >
-        <div className="flex h-11 max-w-4xl flex-1 items-center rounded-full border border-white/[0.08] bg-white/[0.06] px-3 sm:h-12 sm:px-6" />
+        <div className="flex h-11 max-w-4xl flex-1 items-center rounded-full border border-white/[0.08] bg-white/[0.06] px-2.5 sm:h-12 sm:px-4" />
       </nav>
     );
   }
