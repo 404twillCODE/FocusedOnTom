@@ -11,7 +11,8 @@ function isEditableTarget(target: EventTarget | null) {
   if (!(target instanceof Element)) return false;
   if (target instanceof HTMLInputElement) return true;
   if (target instanceof HTMLTextAreaElement) return true;
-  return target.isContentEditable;
+  if (target instanceof HTMLElement) return target.isContentEditable;
+  return false;
 }
 
 export function PhotoProtectionGuards() {
