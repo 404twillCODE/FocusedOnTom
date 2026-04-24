@@ -258,6 +258,10 @@ function LightboxPhoto({
     },
     [zoomScale]
   );
+  const clampZoom = useCallback(
+    (value: number) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, value)),
+    []
+  );
 
   useEffect(() => {
     setFullReady(false);
@@ -359,6 +363,26 @@ function LightboxPhoto({
     setPan(clampPan(-offsetX * (zoomScale - 1), -offsetY * (zoomScale - 1)));
   };
 
+  const onWheelZoom = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (!finePointer || !zoomed || !viewportRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const rect = viewportRef.current.getBoundingClientRect();
+    const offsetX = e.clientX - (rect.left + rect.width / 2);
+    const offsetY = e.clientY - (rect.top + rect.height / 2);
+    const nextScale = clampZoom(zoomScale - e.deltaY * 0.0035);
+    if (nextScale === zoomScale) return;
+
+    const scaleRatio = nextScale / zoomScale;
+    const nextPan = clampPan(
+      pan.x + offsetX * (1 - scaleRatio),
+      pan.y + offsetY * (1 - scaleRatio)
+    );
+    setZoomScale(nextScale);
+    setPan(nextPan);
+  };
+
   return (
     <div
       ref={viewportRef}
@@ -374,6 +398,7 @@ function LightboxPhoto({
       onDoubleClick={onDoubleClick}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
+      onWheel={onWheelZoom}
       onKeyDown={(e) => {
         if (!finePointer) return;
         if (e.key === "Enter" || e.key === " ") {
