@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T01:13:56.327Z",
+  "generatedAt": "2026-04-24T02:49:45.279Z",
   "baseUrl": "https://cdn.focusedontom.com",
   "folders": [
     {
@@ -8,7 +8,7 @@
       "event": "Adam-LZ-WorldTour-Englishtown-NJ",
       "name": "car-meet",
       "title": "Car Meet",
-      "photoCount": 100,
+      "photoCount": 101,
       "cover": "https://cdn.focusedontom.com/photography/cars/Adam-LZ-WorldTour-Englishtown-NJ/car-meet/PIC00002-2.webp",
       "takenAt": "2026-04-18T14:54:01.000Z",
       "eventDate": "April 2026",
@@ -2010,6 +2010,26 @@
             "iso": 100,
             "focalLength": "24mm",
             "aperture": "f/2.8",
+            "shutterSpeed": "1/1000s"
+          }
+        },
+        {
+          "id": "5bf2537be8f0",
+          "filename": "PIC00250.webp",
+          "originalFilename": "PIC00250.jpg",
+          "path": "cars/Adam-LZ-WorldTour-Englishtown-NJ/car-meet/PIC00250.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Adam-LZ-WorldTour-Englishtown-NJ/car-meet/PIC00250.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 922666,
+          "folderPath": "car-meet",
+          "takenAt": "2026-04-19T18:25:58.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "FE 70-200mm F2.8 GM OSS",
+            "iso": 100,
+            "focalLength": "200mm",
+            "aperture": "f/4.5",
             "shutterSpeed": "1/1000s"
           }
         }
@@ -10129,7 +10149,7 @@
       "title": "Adam LZ WorldTour Englishtown NJ",
       "date": "April 2026",
       "takenAt": "2026-04-18T14:54:01.000Z",
-      "photoCount": 399,
+      "photoCount": 400,
       "cover": "https://cdn.focusedontom.com/photography/cars/Adam-LZ-WorldTour-Englishtown-NJ/car-meet/PIC00002-2.webp",
       "folderCount": 3
     },
