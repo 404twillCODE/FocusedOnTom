@@ -243,7 +243,8 @@ function LightboxPhoto({
 }) {
   const finePointer = useFinePointer();
   const entitlements = useUnlimitedAndOwnership(photo.id);
-  const hideWatermark = entitlements.isUnlimited || entitlements.ownsPhoto;
+  const hideWatermark =
+    !entitlements.ready || entitlements.isUnlimited || entitlements.ownsPhoto;
   const [fullReady, setFullReady] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [pan, setPan] = useState({ x: 0, y: 0 });
