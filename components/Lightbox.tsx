@@ -64,7 +64,13 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
     if (!open) return;
 
     const prevOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyOverscroll = document.body.style.overscrollBehavior;
+    const prevHtmlOverscroll = document.documentElement.style.overscrollBehavior;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overscrollBehavior = "none";
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -75,6 +81,9 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
 
     return () => {
       document.body.style.overflow = prevOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overscrollBehavior = prevBodyOverscroll;
+      document.documentElement.style.overscrollBehavior = prevHtmlOverscroll;
       window.removeEventListener("keydown", onKey);
     };
   }, [open, onClose, goNext, goPrev]);
