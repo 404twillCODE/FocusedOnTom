@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { Camera, Code2, Sparkles, ArrowRight } from "lucide-react";
+import { Camera, Code2, Sparkles, ArrowUpRight, ArrowRight } from "lucide-react";
 import { TypingEffect } from "@/components/TypingEffect";
+import { eventPageHref, getRecentPhotos } from "@/lib/photography";
 
 const container = {
   hidden: { opacity: 0 },
@@ -56,44 +58,70 @@ const typingPhrases = [
   "Code, cameras, and curiosity.",
 ];
 
-const pillars = [
-  {
-    icon: Code2,
-    title: "Development",
-    text: "Web apps, tools, and side projects. I like clean code and thoughtful UX.",
-  },
-  {
-    icon: Camera,
-    title: "Photography",
-    text: "Portraits, street, and moments that catch the light. Always learning.",
-  },
-  {
-    icon: Sparkles,
-    title: "Learning",
-    text: "CS student — always picking up something new and applying it.",
-  },
-];
+type Destination = {
+  href: string;
+  index: string;
+  kicker: string;
+  icon: typeof Code2;
+  title: string;
+  description: string;
+  tags: string[];
+  cta: string;
+};
 
-const exploreCards = [
+const destinations: Destination[] = [
   {
     href: "/dev",
+    index: "01",
+    kicker: "Building",
     icon: Code2,
-    title: "Dev & projects",
-    text: "Side projects, tools, and experiments. Code and demos when available.",
+    title: "Development",
+    description:
+      "Side projects, tools, and small experiments on the web — shipped with clean code and thoughtful UX.",
+    tags: ["Next.js", "TypeScript", "Node"],
     cta: "See projects",
-    tags: [] as string[],
   },
   {
     href: "/photography",
+    index: "02",
+    kicker: "Shooting",
     icon: Camera,
     title: "Photography",
-    text: "Portraits, street, and moments that catch the light. A gallery of shots I'm proud of.",
+    description:
+      "Cars, landscapes, and the moments in between. A gallery of shots I'm proud of.",
+    tags: ["Cars", "Landscape", "Street"],
     cta: "View gallery",
-    tags: [] as string[],
+  },
+  {
+    href: "/skills",
+    index: "03",
+    kicker: "Studying",
+    icon: Sparkles,
+    title: "Learning",
+    description:
+      "The stacks, tools, and ideas I'm picking up as a CS student. Always something new in motion.",
+    tags: ["CS", "Systems", "Design"],
+    cta: "See what I'm into",
+  },
+];
+
+const currently = [
+  {
+    label: "Shipping",
+    detail: "Nodexity — a cleaner way to run Minecraft servers.",
+  },
+  {
+    label: "Shooting",
+    detail: "Portraits in low, golden-hour light.",
+  },
+  {
+    label: "Studying",
+    detail: "Data structures, systems, and a bit of design.",
   },
 ];
 
 export default function HomePage() {
+  const recentPhotos = getRecentPhotos(3);
   return (
     <main className="min-h-screen">
       {/* Hero */}
@@ -139,85 +167,217 @@ export default function HomePage() {
         </motion.div>
       </section>
 
-      {/* What I do */}
-      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16 md:py-20">
-        <AnimatedSection delay={0}>
-          <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl sm:text-3xl">
-            What I do
-          </h2>
-          <p className="mt-2 max-w-xl text-[var(--textMuted)] prose-custom">
-            A bit of everything — dev, photography, and always learning.
-          </p>
+      {/* Explore — three destination cards */}
+      <section
+        id="explore"
+        className="mx-auto max-w-6xl px-4 pb-12 pt-4 sm:px-6 sm:pb-20 sm:pt-8 md:pb-24"
+      >
+        <AnimatedSection>
+          <div className="flex items-center gap-3">
+            <span className="h-px w-8 bg-[var(--border)]" aria-hidden />
+            <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--ice)]">
+              What I do · Explore
+            </span>
+          </div>
+          <div className="mt-5">
+            <h2 className="max-w-xl text-2xl font-semibold leading-[1.15] tracking-tight text-[var(--text)] sm:text-3xl md:text-4xl">
+              Code, cameras, and everything in between.
+            </h2>
+          </div>
         </AnimatedSection>
-        <ul className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-3">
-          {pillars.map((pillar, i) => (
-            <AnimatedSection key={pillar.title} delay={0.08 * (i + 1)} className="flex">
+
+        <ul className="mt-10 grid grid-cols-1 gap-5 sm:mt-12 sm:gap-6 md:grid-cols-3">
+          {destinations.map((card, i) => (
+            <AnimatedSection
+              key={card.href}
+              delay={0.08 * (i + 1)}
+              className="flex"
+            >
               <motion.li
-                className="group flex w-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/50 p-6 sm:p-7 transition-colors hover:border-[var(--ice)]/25 hover:bg-[var(--iceSoft)]/20"
-                style={{ height: "280px" }}
                 whileHover={{ y: -6 }}
                 transition={{ type: "spring", bounce: 0.35 }}
+                className="group relative flex w-full"
               >
-                <motion.span
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--iceSoft)] text-[var(--ice)] transition-colors group-hover:bg-[var(--ice)]/25"
-                  whileHover={{ scale: 1.08 }}
-                  transition={{ type: "spring", bounce: 0.4 }}
+                <Link
+                  href={card.href}
+                  className="relative flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/60 p-6 transition-all duration-300 ease-out hover:border-[var(--ice)]/40 hover:bg-[var(--iceSoft)]/10 hover:shadow-[0_20px_60px_-30px_rgba(125,211,252,0.45)] sm:p-7"
                 >
-                  <pillar.icon className="h-5 w-5" />
-                </motion.span>
-                <h3 className="mt-4 text-lg font-semibold text-[var(--text)]">
-                  {pillar.title}
-                </h3>
-                <p className="mt-2 flex-1 text-[var(--textMuted)] prose-custom">
-                  {pillar.text}
-                </p>
+                  {/* Soft ice glow on hover (radial, top-right) */}
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[var(--ice)] opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-[0.08]"
+                  />
+
+                  {/* Top row: icon + index/kicker */}
+                  <div className="flex items-start justify-between gap-3">
+                    <motion.span
+                      className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--iceSoft)] text-[var(--ice)] ring-1 ring-inset ring-white/[0.04] transition-colors duration-300 group-hover:bg-[var(--ice)]/25"
+                      whileHover={{ scale: 1.06 }}
+                      transition={{ type: "spring", bounce: 0.4 }}
+                    >
+                      <card.icon className="h-5 w-5" />
+                    </motion.span>
+                    <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--textMuted)]">
+                      <span className="font-mono text-[10px] text-[var(--ice)]/70">
+                        {card.index}
+                      </span>
+                      <span className="h-px w-4 bg-[var(--border)]" aria-hidden />
+                      <span>{card.kicker}</span>
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="mt-7 text-xl font-semibold tracking-tight text-[var(--text)] transition-colors duration-300 group-hover:text-[var(--ice)] sm:text-2xl">
+                    {card.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="mt-2 text-[var(--textMuted)] prose-custom">
+                    {card.description}
+                  </p>
+
+                  {/* Tags */}
+                  <ul className="mt-6 flex flex-wrap gap-2">
+                    {card.tags.map((tag) => (
+                      <li
+                        key={tag}
+                        className="rounded-full border border-[var(--border)] bg-white/[0.02] px-2.5 py-1 text-xs text-[var(--textMuted)] transition-colors duration-300 group-hover:border-[var(--ice)]/25 group-hover:text-[var(--text)]"
+                      >
+                        {tag}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {/* Spacer pushes CTA to bottom */}
+                  <div className="flex-1" />
+
+                  {/* CTA */}
+                  <div className="mt-8 flex items-center justify-between">
+                    <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--ice)]">
+                      {card.cta}
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    </span>
+                    <ArrowUpRight
+                      aria-hidden
+                      className="h-4 w-4 text-[var(--textMuted)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--ice)]"
+                    />
+                  </div>
+                </Link>
               </motion.li>
             </AnimatedSection>
           ))}
         </ul>
       </section>
 
-      {/* Explore — same card style as What I do */}
-      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 sm:py-16 md:py-20">
-        <AnimatedSection delay={0}>
-          <h2 className="text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl sm:text-3xl">
-            Explore
-          </h2>
-          <p className="mt-2 max-w-xl text-[var(--textMuted)] prose-custom">
-            Dive into what I've been building, or browse my photography.
-          </p>
-        </AnimatedSection>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2">
-          {exploreCards.map((card, i) => (
-            <AnimatedSection key={card.href} delay={0.08 * (i + 1)} className="flex">
-              <Link href={card.href} className="group block w-full cursor-pointer">
-                <motion.div
-                  className="relative flex w-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/50 p-6 transition-colors hover:border-[var(--ice)]/25 hover:bg-[var(--iceSoft)]/20 sm:p-7"
-                  style={{ height: "280px" }}
-                  whileHover={{ y: -6 }}
-                  transition={{ type: "spring", bounce: 0.35 }}
-                >
-                  <ArrowRight className="absolute right-5 top-5 h-4 w-4 text-[var(--ice)] opacity-0 transition-opacity duration-200 group-hover:opacity-70" />
-                  <motion.span
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--iceSoft)] text-[var(--ice)] transition-colors group-hover:bg-[var(--ice)]/25"
-                    whileHover={{ scale: 1.08 }}
-                    transition={{ type: "spring", bounce: 0.4 }}
-                  >
-                    <card.icon className="h-5 w-5" />
-                  </motion.span>
-                  <h3 className="mt-4 text-lg font-semibold text-[var(--text)] transition-colors group-hover:text-[var(--ice)]">
-                    {card.title}
-                  </h3>
-                  <p className="mt-2 flex-1 text-[var(--textMuted)] prose-custom">
-                    {card.text}
-                  </p>
-                </motion.div>
+      {/* Recent shots — only renders once photos exist */}
+      {recentPhotos.length >= 3 && (
+        <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 sm:pb-24">
+          <AnimatedSection>
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3">
+                  <span className="h-px w-8 bg-[var(--border)]" aria-hidden />
+                  <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--ice)]">
+                    Recent shots
+                  </span>
+                </div>
+                <h3 className="mt-4 text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl">
+                  From the camera, lately.
+                </h3>
+              </div>
+              <Link
+                href="/photography"
+                className="group inline-flex shrink-0 items-center gap-1.5 text-sm font-medium text-[var(--ice)]"
+              >
+                View gallery
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
-            </AnimatedSection>
-          ))}
-        </div>
-      </section>
+            </div>
+          </AnimatedSection>
 
+          <ul className="mt-8 grid grid-cols-3 gap-3 sm:gap-4">
+            {recentPhotos.map((photo, i) => (
+              <AnimatedSection
+                key={photo.src}
+                delay={0.06 * (i + 1)}
+                className="flex"
+              >
+                <motion.li
+                  whileHover={{ y: -4 }}
+                  transition={{ type: "spring", bounce: 0.35 }}
+                  className="group relative w-full"
+                >
+                  <Link
+                    href={eventPageHref(photo.categorySlug, photo.eventSlug)}
+                    className="relative block overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg3)] transition-all duration-300 hover:border-[var(--ice)]/40 hover:shadow-[0_18px_50px_-30px_rgba(125,211,252,0.45)]"
+                    aria-label={`${photo.eventTitle} — ${photo.categoryTitle}`}
+                  >
+                    <div className="relative aspect-[4/5] sm:aspect-[4/5]">
+                      <Image
+                        src={photo.src}
+                        alt={photo.alt}
+                        fill
+                        sizes="(max-width: 640px) 33vw, 28vw"
+                        className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+                      />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+                      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 sm:p-4">
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-medium uppercase tracking-[0.16em] text-white/70">
+                            {photo.categoryTitle}
+                          </div>
+                          <div className="truncate text-sm font-medium text-white sm:text-[15px]">
+                            {photo.eventTitle}
+                          </div>
+                        </div>
+                        <ArrowUpRight
+                          aria-hidden
+                          className="h-4 w-4 shrink-0 text-white/80 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-[var(--ice)]"
+                        />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.li>
+              </AnimatedSection>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Currently — a small, personal strip */}
+      <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6 sm:pb-32">
+        <AnimatedSection>
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/40 p-6 sm:p-8">
+            <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between md:gap-10">
+              <div className="flex items-center gap-3 md:w-48 md:shrink-0">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--ice)] opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--ice)]" />
+                </span>
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--ice)]">
+                  Currently
+                </span>
+              </div>
+
+              <ul className="grid flex-1 gap-4 sm:grid-cols-3 sm:gap-6">
+                {currently.map((entry) => (
+                  <li
+                    key={entry.label}
+                    className="flex flex-col gap-1 border-l border-[var(--border)] pl-4 sm:border-l sm:pl-5"
+                  >
+                    <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[var(--textMuted)]">
+                      {entry.label}
+                    </span>
+                    <span className="text-sm text-[var(--text)] sm:text-[15px]">
+                      {entry.detail}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </AnimatedSection>
+      </section>
     </main>
   );
 }

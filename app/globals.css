@@ -136,6 +136,34 @@
   font-size: 16px;
 }
 
+/* Photography: CSS-columns masonry. Respects photo aspect ratios without any JS. */
+.masonry {
+  column-count: 2;
+  column-gap: 0.75rem;
+}
+@media (min-width: 640px) {
+  .masonry {
+    column-count: 3;
+    column-gap: 1rem;
+  }
+}
+@media (min-width: 1024px) {
+  .masonry {
+    column-count: 4;
+    column-gap: 1rem;
+  }
+}
+.masonry > * {
+  break-inside: avoid;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+@media (min-width: 640px) {
+  .masonry > * {
+    margin-bottom: 1rem;
+  }
+}
+
 /* Workout app: hide visual scrollbars but keep scrolling enabled */
 .workout-hide-scrollbars,
 .workout-hide-scrollbars * {

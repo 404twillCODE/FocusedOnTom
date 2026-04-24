@@ -40,6 +40,15 @@ WORKOUT_TAB_REBUILD.md
 .sql
 /supabase/
 
+# photography originals — stored locally only, uploaded to Cloudflare R2 by
+# `npm run photos:sync`. The generated manifest (lib/photography-manifest.json)
+# IS committed; the raw images are not.
+/photography/**
+!/photography/.gitkeep
+
+# local upload cache used by scripts/sync-photography-to-r2.mjs
+/scripts/.cache/
+
 # vercel
 .vercel
 

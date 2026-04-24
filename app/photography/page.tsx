@@ -1,52 +1,190 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { WorkInProgressBanner } from "@/components/WorkInProgressBanner";
+import Link from "next/link";
+import Image from "next/image";
+import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import { ArrowRight, Camera, ImageIcon, Instagram } from "lucide-react";
+import {
+  categoryPageHref,
+  countPhotos,
+  getCoverPhoto,
+  photoCategories,
+} from "@/lib/photography";
+
+const PHOTOGRAPHY_INSTAGRAM_URL = "https://www.instagram.com/thomasw_300/";
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 22 },
+  visible: { opacity: 1, y: 0 },
+};
+
+function AnimatedBlock({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "-60px" });
+  return (
+    <motion.div
+      ref={ref}
+      initial="hidden"
+      animate={inView ? "visible" : "hidden"}
+      variants={fadeInUp}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 export default function PhotographyPage() {
-  const [notificationDismissed, setNotificationDismissed] = useState(false);
+  const totalPhotos = photoCategories.reduce(
+    (acc, c) => acc + countPhotos(c),
+    0
+  );
+  const totalEvents = photoCategories.reduce(
+    (acc, c) => acc + c.events.length,
+    0
+  );
 
   return (
     <main className="min-h-screen">
-      <WorkInProgressBanner onDismiss={() => setNotificationDismissed(true)} />
-      <div
-        className={`transition-opacity duration-300 ${notificationDismissed ? "opacity-100" : "pointer-events-none opacity-0"}`}
-      >
-        <section className="mx-auto max-w-5xl px-4 pt-20 pb-10 sm:px-6 sm:pt-24 sm:pb-12">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl sm:text-4xl">
+      {/* Header */}
+      <section className="mx-auto max-w-6xl px-4 pt-24 pb-10 sm:px-6 sm:pt-28 sm:pb-12">
+        <AnimatedBlock>
+          <div className="flex items-center gap-3">
+            <span className="h-px w-8 bg-[var(--border)]" aria-hidden />
+            <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--ice)]">
               Photography
+            </span>
+          </div>
+          <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <h1 className="max-w-xl text-3xl font-semibold tracking-tight text-[var(--text)] sm:text-4xl md:text-5xl md:text-[2.75rem]">
+              Cars, landscapes, and the moments in between.
             </h1>
-            <p className="mt-3 max-w-xl text-[var(--textMuted)]">
-              A selection of shots — portraits, street, and whatever catches the
-              light. More coming soon.
+            <div className="flex items-center gap-5 text-xs font-medium uppercase tracking-[0.16em] text-[var(--textMuted)]">
+              <span>
+                <span className="font-mono text-[var(--text)]">
+                  {String(photoCategories.length).padStart(2, "0")}
+                </span>{" "}
+                categories
+              </span>
+              <span className="h-3 w-px bg-[var(--border)]" aria-hidden />
+              <span>
+                <span className="font-mono text-[var(--text)]">
+                  {String(totalEvents).padStart(2, "0")}
+                </span>{" "}
+                events
+              </span>
+              <span className="h-3 w-px bg-[var(--border)]" aria-hidden />
+              <span>
+                <span className="font-mono text-[var(--text)]">
+                  {String(totalPhotos).padStart(2, "0")}
+                </span>{" "}
+                photos
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+            <p className="max-w-xl text-[var(--textMuted)] prose-custom">
+              Browse by category, then by event. Click any photo to open it full
+              screen.
             </p>
-          </motion.div>
-        </section>
+            <a
+              href={PHOTOGRAPHY_INSTAGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex w-fit shrink-0 items-center gap-2 self-start border-b border-transparent pb-0.5 text-sm text-[var(--ice)] transition-colors hover:border-[var(--ice)]/50 sm:mt-0"
+            >
+              <Instagram
+                className="h-4 w-4 opacity-90 transition-transform group-hover:scale-105"
+                strokeWidth={1.75}
+                aria-hidden
+              />
+              <span className="font-medium tracking-tight">@thomasw_300</span>
+            </a>
+          </div>
+        </AnimatedBlock>
+      </section>
 
-        <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6 sm:pb-24">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.15, duration: 0.4 }}
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
-          >
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <div
-                key={i}
-                className="aspect-[4/3] rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/50 flex items-center justify-center text-[var(--textMuted)] text-sm"
+      {/* Categories */}
+      <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6 sm:pb-32">
+        <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+          {photoCategories.map((category, i) => {
+            const photoCount = countPhotos(category);
+            const firstEvent = category.events[0];
+            const cover = firstEvent ? getCoverPhoto(firstEvent) : undefined;
+
+            return (
+              <AnimatedBlock
+                key={category.slug}
+                delay={0.05 * (i + 1)}
+                className="flex"
               >
-                Photo {i}
-              </div>
-            ))}
-          </motion.div>
-        </section>
-      </div>
+                <motion.li
+                  whileHover={{ y: -6 }}
+                  transition={{ type: "spring", bounce: 0.35 }}
+                  className="group relative flex w-full"
+                >
+                  <Link
+                    href={categoryPageHref(category.slug)}
+                    className="relative flex w-full flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/60 transition-all duration-300 ease-out hover:border-[var(--ice)]/40 hover:shadow-[0_20px_60px_-30px_rgba(125,211,252,0.45)]"
+                  >
+                    {/* Cover / placeholder */}
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[var(--bg3)]">
+                      {cover ? (
+                        <Image
+                          src={cover.src}
+                          alt={cover.alt}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--bg3)] to-[var(--bg2)]">
+                          <div className="flex flex-col items-center gap-2 text-[var(--textMuted)]">
+                            <Camera className="h-8 w-8 opacity-60" />
+                            <span className="text-xs font-medium uppercase tracking-[0.16em]">
+                              Coming soon
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      {/* Bottom gradient for legibility */}
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[var(--bg2)] via-transparent to-transparent opacity-80" />
+                      {/* Count chip */}
+                      <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-2.5 py-1 text-[11px] font-medium text-white/85 backdrop-blur">
+                        <ImageIcon className="h-3 w-3" />
+                        {photoCount} {photoCount === 1 ? "photo" : "photos"}
+                      </div>
+                    </div>
+
+                    {/* Body */}
+                    <div className="flex flex-1 flex-col p-5 sm:p-6">
+                      <div className="flex items-start justify-between gap-3">
+                        <h2 className="text-lg font-semibold tracking-tight text-[var(--text)] transition-colors duration-300 group-hover:text-[var(--ice)] sm:text-xl">
+                          {category.title}
+                        </h2>
+                        <ArrowRight className="h-4 w-4 text-[var(--textMuted)] transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-[var(--ice)]" />
+                      </div>
+                      <p className="mt-1 text-sm text-[var(--textMuted)]">
+                        {category.tagline}
+                      </p>
+                    </div>
+                  </Link>
+                </motion.li>
+              </AnimatedBlock>
+            );
+          })}
+        </ul>
+      </section>
     </main>
   );
 }
