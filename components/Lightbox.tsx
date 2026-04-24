@@ -186,9 +186,13 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
 function LightboxPhoto({ photo }: { photo: Photo }) {
   const [fullReady, setFullReady] = useState(false);
 
+  useEffect(() => {
+    setFullReady(false);
+  }, [photo.src]);
+
   return (
     <div
-      className="relative inline-flex max-h-[82vh] max-w-[92vw] items-center justify-center"
+      className="grid max-w-[92vw] place-items-center [&>*]:col-start-1 [&>*]:row-start-1"
       role="img"
       aria-label={photo.alt}
     >
@@ -202,21 +206,19 @@ function LightboxPhoto({ photo }: { photo: Photo }) {
         className="max-h-[82vh] w-auto rounded-lg object-contain"
         priority
       />
-      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-        <Image
-          src={photo.src}
-          alt=""
-          width={photo.width}
-          height={photo.height}
-          sizes={LIGHTBOX_SIZES}
-          quality={LIGHTBOX_QUALITY_FULL}
-          className={`max-h-[82vh] w-auto rounded-lg object-contain transition-opacity duration-300 ease-out ${
-            fullReady ? "opacity-100" : "opacity-0"
-          }`}
-          onLoadingComplete={() => setFullReady(true)}
-          priority
-        />
-      </div>
+      <Image
+        src={photo.src}
+        alt=""
+        width={photo.width}
+        height={photo.height}
+        sizes={LIGHTBOX_SIZES}
+        quality={LIGHTBOX_QUALITY_FULL}
+        className={`max-h-[82vh] w-auto rounded-lg object-contain transition-opacity duration-300 ease-out ${
+          fullReady ? "opacity-100" : "opacity-0"
+        }`}
+        onLoad={() => setFullReady(true)}
+        priority
+      />
     </div>
   );
 }
