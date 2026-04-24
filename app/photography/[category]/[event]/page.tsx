@@ -8,6 +8,7 @@ import { motion, useInView } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { categoryPageHref, getEvent } from "@/lib/photography";
 import { prefetchLightboxImage } from "@/lib/photography-lightbox-image";
+import { PhotographyInstagramScrollNudge } from "@/components/PhotographyInstagramScrollNudge";
 import { Lightbox } from "@/components/Lightbox";
 
 const fadeInUp = {
@@ -335,6 +336,12 @@ export default function EventPage({
         onClose={() => setActiveIndex(null)}
         onIndexChange={setActiveIndex}
       />
+
+      {event.photos.length > 0 && (
+        <PhotographyInstagramScrollNudge
+          storageKey={`${category.slug}/${event.slug}`}
+        />
+      )}
     </main>
   );
 }

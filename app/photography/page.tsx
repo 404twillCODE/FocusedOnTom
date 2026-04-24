@@ -11,8 +11,7 @@ import {
   getCoverPhoto,
   photoCategories,
 } from "@/lib/photography";
-
-const PHOTOGRAPHY_INSTAGRAM_URL = "https://www.instagram.com/thomasw_300/";
+import { PHOTOGRAPHY_INSTAGRAM_URL } from "@/lib/social-links";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 22 },
