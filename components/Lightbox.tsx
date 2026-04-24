@@ -146,6 +146,7 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
+          data-photo-protect-root="true"
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm"
           onClick={() => {
             if (suppressBackdropCloseRef.current) {

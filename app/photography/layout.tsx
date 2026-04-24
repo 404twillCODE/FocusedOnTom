@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PhotographyUsageNotice } from "@/components/PhotographyUsageNotice";
+import { PhotoProtectionGuards } from "@/components/photography/PhotoProtectionGuards";
 
 export const metadata: Metadata = {
   title: "Photography | Focused on Tom",
@@ -20,6 +21,7 @@ export default function PhotographyLayout({
 }: { children: React.ReactNode }) {
   return (
     <>
+      <PhotoProtectionGuards />
       {children}
       <PhotographyUsageNotice />
     </>
