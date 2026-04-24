@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -19,8 +19,12 @@ type LightboxProps = {
   onIndexChange: (next: number) => void;
 };
 
+/** Minimum horizontal travel (px) to count as a swipe between photos. */
+const SWIPE_MIN_DISTANCE = 56;
+
 export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProps) {
   const open = index !== null;
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
 
   const goNext = useCallback(() => {
     if (index === null) return;
@@ -57,6 +61,44 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
   }, [open, onClose, goNext, goPrev]);
 
   const current = index !== null ? photos[index] : null;
+
+  const onTouchStartSwipe = useCallback(
+    (e: React.TouchEvent) => {
+      if (photos.length <= 1) return;
+      const t = e.touches[0];
+      if (!t) return;
+      swipeStartRef.current = { x: t.clientX, y: t.clientY };
+    },
+    [photos.length]
+  );
+
+  const onTouchEndSwipe = useCallback(
+    (e: React.TouchEvent) => {
+      if (photos.length <= 1) return;
+      const start = swipeStartRef.current;
+      swipeStartRef.current = null;
+      if (!start) return;
+
+      const t = e.changedTouches[0];
+      if (!t) return;
+
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      const absX = Math.abs(dx);
+      const absY = Math.abs(dy);
+
+      if (absX < SWIPE_MIN_DISTANCE) return;
+      if (absX < absY * 1.05) return;
+
+      if (dx <= -SWIPE_MIN_DISTANCE) goNext();
+      else if (dx >= SWIPE_MIN_DISTANCE) goPrev();
+    },
+    [photos.length, goNext, goPrev]
+  );
+
+  const onTouchCancelSwipe = useCallback(() => {
+    swipeStartRef.current = null;
+  }, []);
 
   return (
     <AnimatePresence>
@@ -124,6 +166,9 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="relative mx-4 flex max-h-[88vh] max-w-[92vw] flex-col items-center gap-3 sm:gap-4"
             onClick={(e) => e.stopPropagation()}
+            onTouchStart={onTouchStartSwipe}
+            onTouchEnd={onTouchEndSwipe}
+            onTouchCancel={onTouchCancelSwipe}
           >
             <LightboxPhoto photo={current} />
             <LightboxMeta
