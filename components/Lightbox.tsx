@@ -1,9 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Minus, Plus, X } from "lucide-react";
 import {
   LIGHTBOX_QUALITY_FULL,
   LIGHTBOX_QUALITY_LOW,
@@ -22,9 +27,23 @@ type LightboxProps = {
 /** Minimum horizontal travel (px) to count as a swipe between photos. */
 const SWIPE_MIN_DISTANCE = 56;
 
+function useFinePointer() {
+  const [fine, setFine] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(pointer: fine)");
+    const sync = () => setFine(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+  return fine;
+}
+
 export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProps) {
   const open = index !== null;
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
+  const suppressBackdropCloseRef = useRef(false);
 
   const goNext = useCallback(() => {
     if (index === null) return;
@@ -109,7 +128,13 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90 backdrop-blur-sm"
-          onClick={onClose}
+          onClick={() => {
+            if (suppressBackdropCloseRef.current) {
+              suppressBackdropCloseRef.current = false;
+              return;
+            }
+            onClose();
+          }}
           role="dialog"
           aria-modal="true"
           aria-label="Photo lightbox"
@@ -170,7 +195,12 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
             onTouchEnd={onTouchEndSwipe}
             onTouchCancel={onTouchCancelSwipe}
           >
-            <LightboxPhoto photo={current} />
+            <LightboxPhoto
+              photo={current}
+              onDragGestureOutside={() => {
+                suppressBackdropCloseRef.current = true;
+              }}
+            />
             <LightboxMeta
               photo={current}
               index={index}
@@ -183,42 +213,248 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
   );
 }
 
-function LightboxPhoto({ photo }: { photo: Photo }) {
+function LightboxPhoto({
+  photo,
+  onDragGestureOutside,
+}: {
+  photo: Photo;
+  onDragGestureOutside: () => void;
+}) {
+  const finePointer = useFinePointer();
   const [fullReady, setFullReady] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoomScale, setZoomScale] = useState(2.25);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const suppressClickRef = useRef(false);
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    baseX: number;
+    baseY: number;
+  } | null>(null);
+  const MIN_ZOOM = 1.2;
+  const MAX_ZOOM = 4;
+
+  const clampPan = useCallback(
+    (x: number, y: number) => {
+      const vw = viewportRef.current?.clientWidth ?? 0;
+      const vh = viewportRef.current?.clientHeight ?? 0;
+      const maxX = Math.max(0, (vw * (zoomScale - 1)) / 2);
+      const maxY = Math.max(0, (vh * (zoomScale - 1)) / 2);
+      return {
+        x: Math.max(-maxX, Math.min(maxX, x)),
+        y: Math.max(-maxY, Math.min(maxY, y)),
+      };
+    },
+    [zoomScale]
+  );
 
   useEffect(() => {
     setFullReady(false);
+    setZoomed(false);
+    setPan({ x: 0, y: 0 });
+    dragRef.current = null;
   }, [photo.src]);
+
+  useEffect(() => {
+    if (!zoomed) {
+      setPan({ x: 0, y: 0 });
+      dragRef.current = null;
+    }
+  }, [zoomed]);
+
+  useEffect(() => {
+    if (!zoomed) return;
+    setPan((p) => clampPan(p.x, p.y));
+  }, [zoomScale, zoomed, clampPan]);
+
+  useEffect(() => {
+    if (!finePointer) return;
+    const onMove = (e: MouseEvent) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      e.preventDefault();
+      const dx = e.clientX - drag.startX;
+      const dy = e.clientY - drag.startY;
+      setPan(clampPan(drag.baseX + dx, drag.baseY + dy));
+    };
+    const onUp = () => {
+      dragRef.current = null;
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [finePointer, clampPan]);
+
+  const onToggleZoom = (e?: React.MouseEvent<HTMLDivElement>) => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
+    if (!finePointer) return;
+    setZoomed((prev) => {
+      const next = !prev;
+      if (!next) {
+        setPan({ x: 0, y: 0 });
+        return next;
+      }
+
+      if (!e || !viewportRef.current) return next;
+      const rect = viewportRef.current.getBoundingClientRect();
+      const offsetX = e.clientX - (rect.left + rect.width / 2);
+      const offsetY = e.clientY - (rect.top + rect.height / 2);
+      const target = clampPan(
+        -offsetX * (zoomScale - 1),
+        -offsetY * (zoomScale - 1)
+      );
+      setPan(target);
+      return next;
+    });
+  };
+
+  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!finePointer || !zoomed) return;
+    e.preventDefault();
+    onDragGestureOutside();
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      baseX: pan.x,
+      baseY: pan.y,
+    };
+  };
+
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const drag = dragRef.current;
+    if (!drag) return;
+    const dx = e.clientX - drag.startX;
+    const dy = e.clientY - drag.startY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+      suppressClickRef.current = true;
+      onDragGestureOutside();
+    }
+  };
+
+  const onDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!finePointer) return;
+    e.preventDefault();
+    setZoomed(true);
+    const rect = viewportRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const offsetX = e.clientX - (rect.left + rect.width / 2);
+    const offsetY = e.clientY - (rect.top + rect.height / 2);
+    setPan(clampPan(-offsetX * (zoomScale - 1), -offsetY * (zoomScale - 1)));
+  };
 
   return (
     <div
-      className="grid max-w-[92vw] place-items-center [&>*]:col-start-1 [&>*]:row-start-1"
-      role="img"
-      aria-label={photo.alt}
+      ref={viewportRef}
+      className={`relative overflow-hidden rounded-lg ${
+        finePointer
+          ? zoomed
+            ? "cursor-grab active:cursor-grabbing"
+            : "cursor-zoom-in"
+          : ""
+      }`}
+      style={{ maxWidth: "92vw", maxHeight: "82vh" }}
+      onClick={(e) => onToggleZoom(e)}
+      onDoubleClick={onDoubleClick}
+      onMouseDown={onMouseDown}
+      onMouseMove={onMouseMove}
+      onKeyDown={(e) => {
+        if (!finePointer) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggleZoom();
+        }
+      }}
+      role={finePointer ? "button" : "img"}
+      tabIndex={finePointer ? 0 : undefined}
+      aria-label={finePointer ? "Activate to zoom image" : photo.alt}
+      aria-pressed={finePointer ? zoomed : undefined}
     >
-      <Image
-        src={photo.src}
-        alt=""
-        width={photo.width}
-        height={photo.height}
-        sizes={LIGHTBOX_SIZES}
-        quality={LIGHTBOX_QUALITY_LOW}
-        className="max-h-[82vh] w-auto rounded-lg object-contain"
-        priority
-      />
-      <Image
-        src={photo.src}
-        alt=""
-        width={photo.width}
-        height={photo.height}
-        sizes={LIGHTBOX_SIZES}
-        quality={LIGHTBOX_QUALITY_FULL}
-        className={`max-h-[82vh] w-auto rounded-lg object-contain transition-opacity duration-300 ease-out ${
-          fullReady ? "opacity-100" : "opacity-0"
-        }`}
-        onLoad={() => setFullReady(true)}
-        priority
-      />
+      <motion.div
+        className="grid place-items-center [&>*]:col-start-1 [&>*]:row-start-1"
+        animate={{
+          scale: zoomed ? zoomScale : 1,
+          x: pan.x,
+          y: pan.y,
+        }}
+        transition={{
+          type: dragRef.current ? false : "spring",
+          stiffness: 230,
+          damping: 30,
+        }}
+        style={{ transformOrigin: "center center" }}
+      >
+        <Image
+          src={photo.src}
+          alt=""
+          width={photo.width}
+          height={photo.height}
+          sizes={LIGHTBOX_SIZES}
+          quality={LIGHTBOX_QUALITY_LOW}
+          className="max-h-[82vh] w-auto rounded-lg object-contain"
+          priority
+        />
+        <Image
+          src={photo.src}
+          alt=""
+          width={photo.width}
+          height={photo.height}
+          sizes={LIGHTBOX_SIZES}
+          quality={LIGHTBOX_QUALITY_FULL}
+          className={`max-h-[82vh] w-auto rounded-lg object-contain transition-opacity duration-300 ease-out ${
+            fullReady ? "opacity-100" : "opacity-0"
+          }`}
+          onLoad={() => setFullReady(true)}
+          priority
+        />
+      </motion.div>
+      {finePointer && zoomed && (
+        <div
+          className="absolute bottom-3 left-1/2 z-20 w-[min(300px,70vw)] -translate-x-1/2 rounded-full border border-white/10 bg-black/55 px-3 py-2 backdrop-blur"
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-2 text-white/85">
+            <button
+              type="button"
+              aria-label="Zoom out"
+              onClick={() =>
+                setZoomScale((z) => Math.max(MIN_ZOOM, +(z - 0.1).toFixed(2)))
+              }
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-colors hover:bg-white/12"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+            <input
+              type="range"
+              min={MIN_ZOOM}
+              max={MAX_ZOOM}
+              step={0.05}
+              value={zoomScale}
+              onChange={(e) => setZoomScale(Number(e.target.value))}
+              className="w-full accent-[var(--ice)]"
+              aria-label="Zoom level"
+            />
+            <button
+              type="button"
+              aria-label="Zoom in"
+              onClick={() =>
+                setZoomScale((z) => Math.min(MAX_ZOOM, +(z + 0.1).toFixed(2)))
+              }
+              className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/5 transition-colors hover:bg-white/12"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
