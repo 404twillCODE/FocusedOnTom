@@ -4,7 +4,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { ArrowRight, Camera, ImageIcon, Instagram } from "lucide-react";
+import {
+  ArrowRight,
+  Bookmark,
+  Calendar,
+  Camera,
+  ImageIcon,
+  Instagram,
+  LogIn,
+  Rss,
+  Sparkles,
+} from "lucide-react";
 import {
   categoryPageHref,
   countPhotos,
@@ -12,6 +22,7 @@ import {
   photoCategories,
 } from "@/lib/photography";
 import { PHOTOGRAPHY_INSTAGRAM_URL } from "@/lib/social-links";
+import { NewsletterForm } from "@/components/photography/NewsletterForm";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 22 },
@@ -111,6 +122,43 @@ export default function PhotographyPage() {
             </a>
           </div>
         </AnimatedBlock>
+
+        <AnimatedBlock delay={0.05} className="mt-8">
+          <div className="flex flex-wrap gap-2 text-xs">
+            {[
+              { href: "/photography/favorites", label: "Favorites", icon: Bookmark },
+              { href: "/photography/account", label: "Account", icon: LogIn },
+              { href: "/photography/stats", label: "Shot on", icon: Camera },
+              { href: "/photography/book", label: "Book a session", icon: Calendar },
+              { href: "/photography/unlimited", label: "Unlimited", icon: Sparkles },
+              { href: "/feed/galleries.xml", label: "RSS", icon: Rss, external: true },
+            ].map((item) => {
+              const Icon = item.icon;
+              if (item.external) {
+                return (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg3)]/60 px-3 py-1.5 text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {item.label}
+                  </a>
+                );
+              }
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg3)]/60 px-3 py-1.5 text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </AnimatedBlock>
       </section>
 
       {/* Categories */}
@@ -183,6 +231,24 @@ export default function PhotographyPage() {
             );
           })}
         </ul>
+      </section>
+
+      {/* Newsletter */}
+      <section className="mx-auto max-w-2xl px-4 pb-24 sm:px-6">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/50 p-6 text-center sm:p-8">
+          <span className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--ice)]">
+            Stay in the loop
+          </span>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-[var(--text)] sm:text-2xl">
+            Get notified when new galleries drop
+          </h2>
+          <p className="mt-1 text-sm text-[var(--textMuted)]">
+            One email when I publish. No spam, unsubscribe anytime.
+          </p>
+          <div className="mx-auto mt-5 max-w-md">
+            <NewsletterForm compact />
+          </div>
+        </div>
       </section>
     </main>
   );

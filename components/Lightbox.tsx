@@ -16,6 +16,10 @@ import {
   prefetchLightboxNeighbors,
 } from "@/lib/photography-lightbox-image";
 import type { Photo } from "@/lib/photography";
+import { PhotoWatermark } from "@/components/photography/PhotoWatermark";
+import { PhotoActions } from "@/components/photography/PhotoActions";
+import { useUnlimitedAndOwnership } from "@/lib/photography-likes";
+import { trackEvent } from "@/lib/photography-analytics";
 
 type LightboxProps = {
   photos: Photo[];
@@ -58,6 +62,12 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
   useEffect(() => {
     if (index === null) return;
     prefetchLightboxNeighbors(photos, index);
+    const current = photos[index];
+    if (current)
+      trackEvent("lightbox_open", {
+        photo_id: current.id ?? current.src,
+        event_slug: current.eventSlug ?? "",
+      });
   }, [index, photos]);
 
   useEffect(() => {
@@ -215,6 +225,7 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
               index={index}
               total={photos.length}
             />
+            <PhotoActions photo={current} />
           </motion.div>
         </motion.div>
       )}
@@ -230,6 +241,8 @@ function LightboxPhoto({
   onDragGestureOutside: () => void;
 }) {
   const finePointer = useFinePointer();
+  const entitlements = useUnlimitedAndOwnership(photo.id);
+  const hideWatermark = entitlements.isUnlimited || entitlements.ownsPhoto;
   const [fullReady, setFullReady] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -449,6 +462,7 @@ function LightboxPhoto({
           priority
         />
       </motion.div>
+      <PhotoWatermark hidden={hideWatermark} />
       {finePointer && zoomed && (
         <div
           className="absolute bottom-3 left-1/2 z-20 w-[min(300px,70vw)] -translate-x-1/2 rounded-full border border-white/10 bg-black/55 px-3 py-2 backdrop-blur"

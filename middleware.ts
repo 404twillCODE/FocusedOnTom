@@ -1,11 +1,33 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import {
+  PRIVATE_GALLERY_COOKIE_NAME,
+  verifyPrivateGalleryCookie,
+} from "@/lib/photography-tokens";
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const pathname = request.nextUrl.pathname;
+
+  // Protect private gallery routes: require a signed cookie whose slug matches.
+  if (pathname.startsWith("/photography/private/")) {
+    const rest = pathname.slice("/photography/private/".length);
+    const [rawSlug, ...tail] = rest.split("/");
+    const slug = decodeURIComponent(rawSlug ?? "");
+    const isLoginRoute = tail[0] === "login";
+    if (slug && !isLoginRoute) {
+      const cookie = request.cookies.get(PRIVATE_GALLERY_COOKIE_NAME)?.value;
+      const claims = cookie ? await verifyPrivateGalleryCookie(cookie) : null;
+      if (!claims || claims.slug !== slug) {
+        const url = request.nextUrl.clone();
+        url.pathname = `/photography/private/${encodeURIComponent(slug)}/login`;
+        url.searchParams.set("next", pathname);
+        return NextResponse.redirect(url);
+      }
+    }
+  }
 
   // Protect FocusedOnYou app routes: require auth except for /focusedonyou/auth
   if (pathname.startsWith("/focusedonyou") && !pathname.startsWith("/focusedonyou/auth")) {

@@ -87,6 +87,7 @@ const PROGRESS_INTERVAL = Math.max(
 );
 const UPLOAD_ORIGINALS =
   process.env.ORIGINALS_UPLOAD === "true" || ARGS.has("--originals");
+const INCLUDE_GPS = process.env.PHOTOGRAPHY_INCLUDE_GPS === "true";
 
 const SOURCE_DIR_OVERRIDE = process.env.PHOTOGRAPHY_SOURCE_DIR;
 const SOURCE_CANDIDATES = [
@@ -272,14 +273,14 @@ async function walk(rootDir, relativeDir = "") {
   return files.sort();
 }
 
-async function extractExifFromOriginal(absPath) {
+async function extractExifFromOriginal(absPath, { includeGps } = { includeGps: false }) {
   try {
     const raw =
       (await exifr.parse(absPath, {
         tiff: true,
         ifd0: true,
         exif: true,
-        gps: false,
+        gps: !!includeGps,
         iptc: false,
         xmp: false,
         pick: [
@@ -295,6 +296,8 @@ async function extractExifFromOriginal(absPath) {
           "FocalLengthIn35mmFormat",
           "DateTimeOriginal",
           "CreateDate",
+          "latitude",
+          "longitude",
         ],
       })) ?? {};
 
@@ -491,6 +494,9 @@ async function main() {
 
   // folderPath (e.g. "cars/Event/day-1") → { category, event, photos[], meta }
   const folderMap = new Map();
+  // Same shape, but only contains folders under `photography/private/…`. These
+  // are intentionally kept out of the public folders/events arrays.
+  const privateFolderMap = new Map();
 
   let totalPhotos = 0;
   let uploadedPhotos = 0;
@@ -511,6 +517,7 @@ async function main() {
     const filename = parts[parts.length - 1];
     const folderPath = [category, event, ...subSegments].join("/");
     const folderRelToEvent = subSegments.join("/");
+    const isPrivate = category === "private";
 
     // Make sure meta.json for the event and leaf is preloaded (sorted traversal)
     await ensureMeta(category + "/" + event);
@@ -546,7 +553,9 @@ async function main() {
       if (VERBOSE) console.log(`  [skip] ${relPath} (unchanged)`);
     } else {
       // (Re)build
-      const { exif, takenAt } = await extractExifFromOriginal(absPath);
+      const { exif, takenAt } = await extractExifFromOriginal(absPath, {
+        includeGps: INCLUDE_GPS && !isPrivate,
+      });
       const optimized = await optimizeToWebp(absPath);
 
       if (!DRY_RUN) {
@@ -559,7 +568,10 @@ async function main() {
           console.log(`  [keep] ${webpKey} already in R2`);
         }
 
-        if (UPLOAD_ORIGINALS) {
+        // Always upload originals for private galleries (clients may need
+        // the full-resolution files for proofing + ZIP downloads), regardless
+        // of the global ORIGINALS_UPLOAD flag.
+        if (UPLOAD_ORIGINALS || isPrivate) {
           const origExists = await r2ObjectExists(client, BUCKET, originalKey);
           if (!origExists || FORCE) {
             const origBuf = await readFile(absPath);
@@ -588,6 +600,22 @@ async function main() {
         takenAt,
         exif,
       };
+      if (exif && (exif.latitude || exif.longitude)) {
+        // If exifr returns latitude/longitude at the top level, surface them
+        // under `gps` so the UI can pin them on the map. Never emitted for
+        // private photos (INCLUDE_GPS && !isPrivate above).
+        const lat = Number(exif.latitude);
+        const lng = Number(exif.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          entry.gps = { lat, lng };
+        }
+        delete exif.latitude;
+        delete exif.longitude;
+      }
+      if (isPrivate) {
+        entry.private = true;
+        delete entry.gps;
+      }
     }
 
     nextCache[cacheKey] = {
@@ -599,7 +627,8 @@ async function main() {
 
     totalPhotos += 1;
 
-    let folder = folderMap.get(folderPath);
+    const activeMap = isPrivate ? privateFolderMap : folderMap;
+    let folder = activeMap.get(folderPath);
     if (!folder) {
       folder = {
         path: folderPath,
@@ -608,8 +637,9 @@ async function main() {
         name: subSegments[subSegments.length - 1] ?? event,
         subPath: folderRelToEvent,
         photos: [],
+        isPrivate,
       };
-      folderMap.set(folderPath, folder);
+      activeMap.set(folderPath, folder);
     }
     folder.photos.push(entry);
 
@@ -712,11 +742,47 @@ async function main() {
     return a.slug.localeCompare(b.slug);
   });
 
+  // Private folders — kept out of the public folders/events arrays so nothing
+  // renders on /photography/*. Exposed under `privateFolders` so the server
+  // can look them up by slug for password-gated rendering.
+  const privateFolders = [];
+  for (const folder of [...privateFolderMap.values()].sort((a, b) =>
+    a.path.localeCompare(b.path)
+  )) {
+    folder.photos.sort((a, b) =>
+      a.originalFilename.localeCompare(b.originalFilename, undefined, {
+        numeric: true,
+      })
+    );
+    const leafMeta = metaByDir.get(folder.path) ?? {};
+    const eventMeta =
+      metaByDir.get(`${folder.category}/${folder.event}`) ?? {};
+    const title =
+      leafMeta.title ??
+      (folder.subPath === ""
+        ? (eventMeta.title ?? titleCaseFromSlug(folder.event))
+        : titleCaseFromSlug(
+            folder.subPath.split("/").slice(-1)[0] ?? folder.event
+          ));
+    privateFolders.push({
+      path: folder.path,
+      slug: folder.event,
+      category: folder.category,
+      event: folder.event,
+      name: folder.subPath,
+      title,
+      photoCount: folder.photos.length,
+      cover: folder.photos[0]?.url,
+      photos: folder.photos,
+    });
+  }
+
   const manifest = {
     generatedAt: new Date().toISOString(),
     baseUrl: PUBLIC_URL,
     folders,
     events,
+    privateFolders,
   };
 
   if (!DRY_RUN) {
@@ -726,7 +792,7 @@ async function main() {
 
   const plural = (n, s) => `${n} ${s}${n === 1 ? "" : "s"}`;
   console.log(
-    `[photos:sync] ${plural(totalPhotos, "photo")} · ${plural(events.length, "event")} · ${plural(folders.length, "folder")}`
+    `[photos:sync] ${plural(totalPhotos, "photo")} · ${plural(events.length, "event")} · ${plural(folders.length, "folder")}${privateFolders.length ? ` · ${plural(privateFolders.length, "private folder")}` : ""}`
   );
   console.log(
     `[photos:sync] uploaded ${uploadedPhotos}, reused ${skippedUnchanged} from cache${DRY_RUN ? " (dry run — no writes)" : ""}`

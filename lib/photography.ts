@@ -34,6 +34,16 @@ export type Photo = {
   /** Subfolder path relative to the event (e.g. "drifting/day-1"). Empty for top level. */
   folderPath?: string;
   exif?: ExifInfo;
+  /** Stable 12-char photo id (from the sync script). Used by likes / orders. */
+  id?: string;
+  /** Canonical photo path within the bucket, e.g. "cars/event/photo.webp". */
+  path?: string;
+  /** Category slug the photo belongs to (populated when traversing categories). */
+  categorySlug?: string;
+  /** Event slug the photo belongs to. */
+  eventSlug?: string;
+  /** Optional GPS if the sync script was run with PHOTOGRAPHY_INCLUDE_GPS=true. */
+  gps?: { lat: number; lng: number };
 };
 
 export type PhotoEvent = {
@@ -80,6 +90,7 @@ type ManifestPhoto = {
   folderPath?: string;
   takenAt?: string;
   exif?: ManifestExif;
+  gps?: { lat: number; lng: number };
 };
 
 type ManifestFolder = {
@@ -192,7 +203,11 @@ function mapExif(e?: ManifestExif, takenAt?: string): ExifInfo | undefined {
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
-function toPhoto(mp: ManifestPhoto): Photo {
+function toPhoto(
+  mp: ManifestPhoto,
+  categorySlug: string,
+  eventSlug: string
+): Photo {
   const alt =
     mp.originalFilename
       .replace(/\.[^.]+$/, "")
@@ -207,6 +222,11 @@ function toPhoto(mp: ManifestPhoto): Photo {
     height: mp.height,
     folderPath: mp.folderPath ?? "",
     exif: mapExif(mp.exif, mp.takenAt),
+    id: mp.id,
+    path: mp.path,
+    categorySlug,
+    eventSlug,
+    gps: mp.gps,
   };
 }
 
@@ -244,7 +264,7 @@ for (const bucket of eventBuckets.values()) {
   const photos: Photo[] = [];
   for (const folder of bucket.folders) {
     for (const mp of folder.photos) {
-      photos.push(toPhoto(mp));
+      photos.push(toPhoto(mp, bucket.category, bucket.event));
     }
   }
 
@@ -407,6 +427,28 @@ export function getRecentPhotos(count = 3): RecentPhoto[] {
     return tb - ta;
   });
   return all.slice(0, count);
+}
+
+export type PhotoWithContext = Photo & {
+  categoryTitle: string;
+  eventTitle: string;
+};
+
+export function getPhotoById(id: string): PhotoWithContext | undefined {
+  for (const cat of photoCategories) {
+    for (const ev of cat.events) {
+      for (const photo of ev.photos) {
+        if (photo.id === id) {
+          return {
+            ...photo,
+            categoryTitle: cat.title,
+            eventTitle: ev.title,
+          };
+        }
+      }
+    }
+  }
+  return undefined;
 }
 
 /** Manifest metadata (for debugging / diagnostics). */
