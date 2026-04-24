@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, User } from "lucide-react";
-import { supabase } from "@/lib/supabase/client";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
 
 export default function PhotographyAccountPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +13,12 @@ export default function PhotographyAccountPage() {
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setError(
+        "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart dev server."
+      );
+      return;
+    }
     let alive = true;
     void supabase.auth.getSession().then(({ data }) => {
       if (!alive) return;
@@ -30,6 +36,12 @@ export default function PhotographyAccountPage() {
   async function sendMagicLink(e: React.FormEvent) {
     e.preventDefault();
     if (!email || loading) return;
+    if (!isSupabaseConfigured) {
+      setError(
+        "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart dev server."
+      );
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
@@ -52,6 +64,12 @@ export default function PhotographyAccountPage() {
   }
 
   async function signOut() {
+    if (!isSupabaseConfigured) {
+      setError(
+        "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart dev server."
+      );
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
