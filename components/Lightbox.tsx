@@ -1,9 +1,15 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import {
+  LIGHTBOX_QUALITY_FULL,
+  LIGHTBOX_QUALITY_LOW,
+  LIGHTBOX_SIZES,
+  prefetchLightboxNeighbors,
+} from "@/lib/photography-lightbox-image";
 import type { Photo } from "@/lib/photography";
 
 type LightboxProps = {
@@ -25,6 +31,11 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
     if (index === null) return;
     onIndexChange((index - 1 + photos.length) % photos.length);
   }, [index, photos.length, onIndexChange]);
+
+  useEffect(() => {
+    if (index === null) return;
+    prefetchLightboxNeighbors(photos, index);
+  }, [index, photos]);
 
   useEffect(() => {
     if (!open) return;
@@ -114,17 +125,7 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
             className="relative mx-4 flex max-h-[88vh] max-w-[92vw] flex-col items-center gap-3 sm:gap-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="relative flex items-center justify-center">
-              <Image
-                src={current.src}
-                alt={current.alt}
-                width={current.width}
-                height={current.height}
-                sizes="92vw"
-                className="max-h-[82vh] w-auto rounded-lg object-contain"
-                priority
-              />
-            </div>
+            <LightboxPhoto photo={current} />
             <LightboxMeta
               photo={current}
               index={index}
@@ -134,6 +135,44 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function LightboxPhoto({ photo }: { photo: Photo }) {
+  const [fullReady, setFullReady] = useState(false);
+
+  return (
+    <div
+      className="relative inline-flex max-h-[82vh] max-w-[92vw] items-center justify-center"
+      role="img"
+      aria-label={photo.alt}
+    >
+      <Image
+        src={photo.src}
+        alt=""
+        width={photo.width}
+        height={photo.height}
+        sizes={LIGHTBOX_SIZES}
+        quality={LIGHTBOX_QUALITY_LOW}
+        className="max-h-[82vh] w-auto rounded-lg object-contain"
+        priority
+      />
+      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+        <Image
+          src={photo.src}
+          alt=""
+          width={photo.width}
+          height={photo.height}
+          sizes={LIGHTBOX_SIZES}
+          quality={LIGHTBOX_QUALITY_FULL}
+          className={`max-h-[82vh] w-auto rounded-lg object-contain transition-opacity duration-300 ease-out ${
+            fullReady ? "opacity-100" : "opacity-0"
+          }`}
+          onLoadingComplete={() => setFullReady(true)}
+          priority
+        />
+      </div>
+    </div>
   );
 }
 

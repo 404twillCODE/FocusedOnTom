@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { motion, useInView } from "framer-motion";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { categoryPageHref, getEvent } from "@/lib/photography";
+import { prefetchLightboxImage } from "@/lib/photography-lightbox-image";
 import { Lightbox } from "@/components/Lightbox";
 
 const fadeInUp = {
@@ -181,6 +182,8 @@ export default function EventPage({
                       <motion.button
                         type="button"
                         onClick={() => setActiveIndex(index)}
+                        onPointerEnter={() => prefetchLightboxImage(photo)}
+                        onTouchStart={() => prefetchLightboxImage(photo)}
                         whileHover={{ y: -3 }}
                         transition={{ type: "spring", bounce: 0.35 }}
                         className="group relative block w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg3)] transition-all duration-300 hover:border-[var(--ice)]/40 focus:border-[var(--ice)]/60 focus:outline-none"
@@ -283,6 +286,8 @@ export default function EventPage({
                             <motion.button
                               type="button"
                               onClick={() => setActiveIndex(index)}
+                              onPointerEnter={() => prefetchLightboxImage(photo)}
+                              onTouchStart={() => prefetchLightboxImage(photo)}
                               whileHover={{ y: -3 }}
                               transition={{ type: "spring", bounce: 0.35 }}
                               className="group relative block w-full overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg3)] transition-all duration-300 hover:border-[var(--ice)]/40 focus:border-[var(--ice)]/60 focus:outline-none"
