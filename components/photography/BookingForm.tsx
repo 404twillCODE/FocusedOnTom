@@ -387,58 +387,68 @@ export function BookingForm({ sessionTypes }: { sessionTypes: SessionType[] }) {
               next step.
             </p>
           </div>
-          <dl className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/30 px-4 py-4 text-sm">
-            <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
-              <dt className="text-[var(--textMuted)]">Session</dt>
-              <dd className="font-medium text-[var(--text)]">{selected.label}</dd>
-            </div>
-            {sessionId === "automotive" && deliverableIds.length > 0 && (
-              <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:items-start">
-                <dt className="text-[var(--textMuted)]">Deliverables</dt>
-                <dd className="max-w-md text-right text-[var(--text)]">
-                  {deliverableIds
-                    .map(
-                      (id) => CAR_DELIVERABLES.find((c) => c.id === id)?.label ?? id
-                    )
-                    .join(" · ")}
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--bg3)]/30 p-4 text-sm">
+            <dl className="space-y-3">
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
+                <dt className="text-[var(--textMuted)]">Session</dt>
+                <dd className="font-medium text-[var(--text)] sm:text-right">
+                  {selected.label}
                 </dd>
               </div>
-            )}
-            {sessionId === "automotive" &&
-              deliverableIds.length > 0 &&
-              automotiveGuideTotal != null && (
-                <div className="flex flex-col gap-0.5 border-t border-[var(--border)] pt-3 sm:flex-row sm:justify-between">
-                  <dt className="text-[var(--textMuted)]">Session guide (typical)</dt>
-                  <dd className="font-semibold tabular-nums text-[var(--ice)]">
-                    from {formatCents(automotiveGuideTotal)}
+              {sessionId === "automotive" && deliverableIds.length > 0 && (
+                <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:items-start">
+                  <dt className="shrink-0 text-[var(--textMuted)]">Deliverables</dt>
+                  <dd className="text-[var(--text)] sm:max-w-md sm:text-right">
+                    {deliverableIds
+                      .map(
+                        (id) =>
+                          CAR_DELIVERABLES.find((c) => c.id === id)?.label ?? id
+                      )
+                      .join(" · ")}
                   </dd>
                 </div>
               )}
-            <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
-              <dt className="text-[var(--textMuted)]">Deposit (holds your spot)</dt>
-              <dd className="font-medium text-[var(--ice)]">
-                {formatCents(selected.depositCents)}
-              </dd>
-            </div>
-          </dl>
+              {sessionId === "automotive" &&
+                deliverableIds.length > 0 &&
+                automotiveGuideTotal != null && (
+                  <div className="flex flex-col gap-0.5 border-t border-[var(--border)] pt-3 sm:flex-row sm:justify-between">
+                    <dt className="text-[var(--textMuted)]">
+                      Session guide (typical)
+                    </dt>
+                    <dd className="font-semibold tabular-nums text-[var(--ice)] sm:text-right">
+                      from {formatCents(automotiveGuideTotal)}
+                    </dd>
+                  </div>
+                )}
+              <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
+                <dt className="text-[var(--textMuted)]">Deposit (holds your spot)</dt>
+                <dd className="font-medium text-[var(--ice)] sm:text-right">
+                  {formatCents(selected.depositCents)}
+                </dd>
+              </div>
+            </dl>
 
-          <label className="block">
-            <span className="text-xs font-medium uppercase tracking-wider text-[var(--textMuted)]">
-              Preferred day &amp; time
-            </span>
-            <input
-              required
-              type="datetime-local"
-              min={minDate}
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--bg3)]/60 px-3 py-2 text-sm text-[var(--text)] outline-none focus:border-[var(--ice)]/50"
-            />
-            <span className="mt-1 block text-[11px] leading-relaxed text-[var(--textMuted)]">
-              First choice of slot — I’ll confirm or suggest another before your
-              deposit is treated as locked in.
-            </span>
-          </label>
+            <div className="mt-4 border-t border-[var(--border)] pt-4">
+              <label className="block">
+                <span className="text-xs font-medium uppercase tracking-wider text-[var(--textMuted)]">
+                  Preferred day &amp; time
+                </span>
+                <input
+                  required
+                  type="datetime-local"
+                  min={minDate}
+                  value={startsAt}
+                  onChange={(e) => setStartsAt(e.target.value)}
+                  aria-label="Preferred shoot date and time"
+                  className="mt-2 box-border min-h-12 w-full rounded-lg border border-[var(--border)] bg-[var(--bg2)] px-3 py-3 font-sans text-base leading-normal text-[var(--text)] outline-none [color-scheme:dark] focus:border-[var(--ice)]/50 sm:min-h-0 sm:py-2 sm:text-sm"
+                />
+                <span className="mt-2 block text-[11px] leading-relaxed text-[var(--textMuted)]">
+                  First choice of slot — I’ll confirm or suggest another before
+                  your deposit is treated as locked in.
+                </span>
+              </label>
+            </div>
+          </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
             <button
