@@ -57,11 +57,12 @@ const nextConfig: NextConfig = {
   compress: true,
   images: {
     remotePatterns: getRemoteImagePatterns(),
-    // R2 already stores WebP; avoid AVIF re-encode (fewer sharp/runtime failures).
-    formats: ["image/webp"],
-    // Serve remotes directly — avoids Next's upstream fetch (~7s cap) on large CDN WebP.
-    loader: "custom",
-    loaderFile: "./lib/focusedontom-image-loader.ts",
+    /**
+     * Skip Vercel Image Optimization (transformations + cache writes count
+     * against the hobby plan). R2/CDN files are already WebP; local assets
+     * are small — browsers load src URLs directly.
+     */
+    unoptimized: true,
   },
   async headers() {
     return [

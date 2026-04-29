@@ -18,6 +18,8 @@ function lightboxGetImageProps(photo: Photo, quality: number) {
     height: photo.height,
     sizes: LIGHTBOX_SIZES,
     quality,
+    /** Must match next.config `images.unoptimized` so prefetch never hits `/_next/image`. */
+    unoptimized: true,
   }).props;
 }
 

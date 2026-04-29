@@ -1,11 +1,26 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { BookingForm } from "@/components/photography/BookingForm";
 import { SESSION_TYPES } from "@/lib/photography-config";
+import { getSiteUrl } from "@/lib/site-url";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Book a session",
   description:
-    "Book car photography — statics, rollers, or short-form content — or send a special request.",
+    "Book car photography with Tom Williams (Focused on Tom): static hero shots, rolling and video rollers, or TikTok-style short-form. Base pricing, flexible dates, deposit to hold your spot.",
+  keywords: [
+    "book car photographer",
+    "automotive photography booking",
+    "rolling shots photographer",
+    "car photoshoot deposit",
+  ],
+  alternates: { canonical: "/photography/book" },
+  openGraph: {
+    title: "Book a session | Focused on Tom",
+    description:
+      "Book car photography — statics, rollers, or short-form content — or send a special request.",
+    url: new URL("/photography/book", getSiteUrl()).toString(),
+  },
 };
 
 export default function BookingPage() {
