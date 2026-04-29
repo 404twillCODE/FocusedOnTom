@@ -23,6 +23,7 @@ import {
 } from "@/lib/photography";
 import { PHOTOGRAPHY_INSTAGRAM_URL } from "@/lib/social-links";
 import { NewsletterForm } from "@/components/photography/NewsletterForm";
+import { Button } from "@/components/ui/button";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 22 },
@@ -128,6 +129,7 @@ export default function PhotographyPage() {
             {[
               { href: "/photography/favorites", label: "Favorites", icon: Bookmark },
               { href: "/photography/account", label: "Account", icon: LogIn },
+              { href: "/photography/packs", label: "Photo Packs", icon: Sparkles },
               { href: "/photography/stats", label: "Shot on", icon: Camera },
               { href: "/photography/book", label: "Book a session", icon: Calendar },
               { href: "/photography/unlimited", label: "Unlimited", icon: Sparkles },
@@ -231,6 +233,27 @@ export default function PhotographyPage() {
             );
           })}
         </ul>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pb-12 sm:px-6">
+        <AnimatedBlock>
+          <div className="relative overflow-hidden rounded-3xl border border-[var(--border)] bg-gradient-to-r from-[var(--bg3)]/80 via-[var(--bg2)]/75 to-[var(--bg3)]/70 p-6 sm:p-8">
+            <div className="pointer-events-none absolute -top-16 right-0 h-44 w-44 rounded-full bg-cyan-400/20 blur-3xl" />
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[var(--ice)]">
+                  Photo Packs
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl">
+                  Open mystery packs and collect exclusive premium poster drops.
+                </h2>
+              </div>
+              <Button asChild className="w-fit">
+                <Link href="/photography/packs">Open Packs</Link>
+              </Button>
+            </div>
+          </div>
+        </AnimatedBlock>
       </section>
 
       {/* Newsletter */}

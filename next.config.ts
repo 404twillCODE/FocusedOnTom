@@ -1,5 +1,8 @@
 import type { NextConfig } from "next";
 
+/** Production CDN; always allow so dev/build work even if env is unset. */
+const DEFAULT_PHOTO_CDN_HOSTNAMES = ["cdn.focusedontom.com"] as const;
+
 /**
  * Allow <Image src="..."> to load from the Cloudflare R2 CDN the photography
  * script uploads to. The hostname is derived from NEXT_PUBLIC_CDN_URL if set,
@@ -15,6 +18,16 @@ function getRemoteImagePatterns() {
     { protocol: "https", hostname: "*.r2.dev" },
   ];
 
+  const seen = new Set(patterns.map((p) => p.hostname.toLowerCase()));
+
+  for (const hostname of DEFAULT_PHOTO_CDN_HOSTNAMES) {
+    const key = hostname.toLowerCase();
+    if (!seen.has(key)) {
+      patterns.unshift({ protocol: "https", hostname });
+      seen.add(key);
+    }
+  }
+
   const raw =
     process.env.NEXT_PUBLIC_CDN_URL ??
     process.env.CLOUDFLARE_R2_PUBLIC_URL;
@@ -22,10 +35,14 @@ function getRemoteImagePatterns() {
   if (raw) {
     try {
       const url = new URL(raw);
-      patterns.unshift({
-        protocol: url.protocol.replace(":", "") as "https" | "http",
-        hostname: url.hostname,
-      });
+      const hostKey = url.hostname.toLowerCase();
+      if (!seen.has(hostKey)) {
+        patterns.unshift({
+          protocol: url.protocol.replace(":", "") as "https" | "http",
+          hostname: url.hostname,
+        });
+        seen.add(hostKey);
+      }
     } catch {
       // ignore — bad URL
     }
@@ -40,6 +57,11 @@ const nextConfig: NextConfig = {
   compress: true,
   images: {
     remotePatterns: getRemoteImagePatterns(),
+    // R2 already stores WebP; avoid AVIF re-encode (fewer sharp/runtime failures).
+    formats: ["image/webp"],
+    // Serve remotes directly — avoids Next's upstream fetch (~7s cap) on large CDN WebP.
+    loader: "custom",
+    loaderFile: "./lib/focusedontom-image-loader.ts",
   },
   async headers() {
     return [

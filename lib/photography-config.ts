@@ -75,29 +75,149 @@ export const PRINT_PRODUCT: PrintProduct = {
   ],
 };
 
+/** Baseline ~2hr car session (stills-first); add-ons below stack for rollers / short-form. */
+export const AUTOMOTIVE_BASE_SESSION_CENTS = 25000;
+
 export const SESSION_TYPES: SessionType[] = [
   {
-    id: "portrait",
-    label: "Portrait session",
-    description: "60 minutes, up to 3 outfit changes, 20 edited images delivered.",
-    depositCents: 5000,
-    durationMin: 60,
-  },
-  {
-    id: "event",
-    label: "Event coverage",
-    description: "Up to 3 hours of candid event coverage, 80 edited images.",
-    depositCents: 15000,
-    durationMin: 180,
-  },
-  {
     id: "automotive",
-    label: "Automotive / rolling shots",
-    description: "Car feature or rolling shots, up to 2 hours on location.",
+    label: "Car photography",
+    description:
+      "Static hero shots, rolling shots, and/or short-form content — up to about 2 hours on location. Deposit holds your spot while we align on scope; if I’m not a fit, the deposit is refunded in full.",
+    depositCents: 10000,
+    durationMin: 120,
+  },
+  {
+    id: "special_request",
+    label: "Special request (non-car)",
+    description:
+      "Portraits, events, or anything outside the usual car workflow. Tell me what you have in mind — I’ll confirm feasibility and pricing before the shoot. If I’m not a fit, your deposit is refunded in full.",
     depositCents: 10000,
     durationMin: 120,
   },
 ];
+
+/** Shown in the booking UI and appended to booking notes for your records. */
+export const BOOKING_POLICY = {
+  depositRefundIfDeclined:
+    "Full deposit refund if I don’t take the job.",
+  preferredDateFlexible:
+    "Preferred date and time stay flexible until we agree on a slot.",
+  basePricingFlex:
+    "Guide prices can go up for concept, song or music licensing, travel, or extra scope.",
+} as const;
+
+/**
+ * Car session deliverables. `addonCents` stacks on {@link AUTOMOTIVE_BASE_SESSION_CENTS}
+ * (still-only baseline). Guide only — final quote after scope / location / music.
+ */
+export const CAR_DELIVERABLES = [
+  {
+    id: "static_photos",
+    label: "Static photos",
+    description:
+      "Hero angles, details, location stills — classic car feature shots.",
+    addonCents: 0,
+  },
+  {
+    id: "rollers",
+    label: "Rolling shots",
+    description:
+      "Photo rollers and video rollers from a safe chase setup or agreed roll route. Concept, pacing, and song choice (and any licensed music) can push the final quote above the base.",
+    addonCents: 35000,
+  },
+  {
+    id: "tiktok_shortform",
+    label: "TikTok / short-form",
+    description:
+      "Vertical clips for Reels, TikTok, and similar — concept and song choice affect editing and licensing, so the quote can run above the base.",
+    addonCents: 25000,
+  },
+] as const;
+
+export type CarDeliverableId = (typeof CAR_DELIVERABLES)[number]["id"];
+
+const CAR_DELIVERABLE_IDS = new Set<string>(
+  CAR_DELIVERABLES.map((d) => d.id)
+);
+
+export function isCarDeliverableId(id: string): boolean {
+  return CAR_DELIVERABLE_IDS.has(id);
+}
+
+export function labelsForDeliverableIds(ids: string[]): string[] {
+  return ids
+    .filter((id) => CAR_DELIVERABLE_IDS.has(id))
+    .map(
+      (id) => CAR_DELIVERABLES.find((d) => d.id === id)?.label ?? id
+    );
+}
+
+export function normalizeCarDeliverableIds(ids: unknown[]): string[] {
+  return [
+    ...new Set(
+      ids.filter(
+        (id): id is string => typeof id === "string" && CAR_DELIVERABLE_IDS.has(id)
+      ),
+    ),
+  ];
+}
+
+/** Guide session subtotal from selected deliverables (base + add-ons). */
+export function estimateAutomotiveSessionCents(deliverableIds: string[]): number {
+  const normalized = normalizeCarDeliverableIds(deliverableIds);
+  const addOns = normalized.reduce((sum, id) => {
+    const row = CAR_DELIVERABLES.find((d) => d.id === id);
+    return sum + (row?.addonCents ?? 0);
+  }, 0);
+  return AUTOMOTIVE_BASE_SESSION_CENTS + addOns;
+}
+
+export function composeBookingNotes(options: {
+  sessionTypeId: string;
+  deliverableIds: string[];
+  clientNotes: string;
+  /** Car sessions: guide subtotal sent to the photographer. */
+  estimatedSessionCents?: number | null;
+}): string {
+  const parts: string[] = [];
+  if (options.sessionTypeId === "automotive" && options.deliverableIds.length > 0) {
+    const labels = labelsForDeliverableIds(options.deliverableIds);
+    if (labels.length) {
+      parts.push(`Deliverables requested: ${labels.join(", ")}`);
+    }
+  }
+  if (
+    options.sessionTypeId === "automotive" &&
+    options.estimatedSessionCents != null &&
+    options.estimatedSessionCents > 0
+  ) {
+    parts.push(
+      `Guide session subtotal (base; travel / rush / music licensing may add): ${formatCents(options.estimatedSessionCents)}`
+    );
+  }
+  const trimmed = options.clientNotes.trim();
+  if (trimmed) parts.push(trimmed);
+  if (options.sessionTypeId === "automotive") {
+    parts.push(
+      [
+        "Policies (booking flow):",
+        BOOKING_POLICY.depositRefundIfDeclined,
+        BOOKING_POLICY.preferredDateFlexible,
+        BOOKING_POLICY.basePricingFlex,
+      ].join(" ")
+    );
+  } else if (options.sessionTypeId === "special_request") {
+    parts.push(
+      [
+        "Policies (booking flow):",
+        BOOKING_POLICY.depositRefundIfDeclined,
+        BOOKING_POLICY.preferredDateFlexible,
+      ].join(" ")
+    );
+  }
+  return parts.join("\n\n");
+}
 
 export function getSessionType(id: string): SessionType | undefined {
   return SESSION_TYPES.find((s) => s.id === id);

@@ -106,6 +106,7 @@ const LONG_EDGE_MAX = 3000;
 
 const R2_KEY_PREFIX = "photography"; // object key prefix for optimized WebP
 const R2_ORIGINALS_PREFIX = "photography-originals"; // optional prefix
+const PACK_UPLOADS_ROOT = "photo-pack-uploads";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -459,7 +460,10 @@ async function main() {
   const nextCache = {};
 
   const files = await walk(SOURCE_DIR);
-  const validFileCount = files.filter((rel) => rel.split("/").length >= 3).length;
+  const validFileCount = files.filter((rel) => {
+    const parts = rel.split("/");
+    return parts.length >= 3 || (parts[0] === PACK_UPLOADS_ROOT && parts.length >= 2);
+  }).length;
 
   if (files.length === 0) {
     if (SOFT_ENV) {
@@ -501,27 +505,33 @@ async function main() {
   let totalPhotos = 0;
   let uploadedPhotos = 0;
   let skippedUnchanged = 0;
+  const packAssets = [];
 
   for (const relPath of files) {
     const absPath = path.join(SOURCE_DIR, relPath);
     const parts = relPath.split("/");
-    if (parts.length < 3) {
+    const isPackUpload = parts[0] === PACK_UPLOADS_ROOT;
+    if (!isPackUpload && parts.length < 3) {
       console.warn(
         `  [skip] ${relPath} — needs at least category/event/photo structure.`
       );
       continue;
     }
-    const category = parts[0];
-    const event = parts[1];
-    const subSegments = parts.slice(2, -1); // may be []
+    const category = isPackUpload ? PACK_UPLOADS_ROOT : parts[0];
+    const event = isPackUpload ? "pack-assets" : parts[1];
+    const subSegments = isPackUpload ? parts.slice(1, -1) : parts.slice(2, -1); // may be []
     const filename = parts[parts.length - 1];
-    const folderPath = [category, event, ...subSegments].join("/");
+    const folderPath = isPackUpload
+      ? [PACK_UPLOADS_ROOT, ...subSegments].join("/")
+      : [category, event, ...subSegments].join("/");
     const folderRelToEvent = subSegments.join("/");
     const isPrivate = category === "private";
 
     // Make sure meta.json for the event and leaf is preloaded (sorted traversal)
-    await ensureMeta(category + "/" + event);
-    await ensureMeta(folderPath);
+    if (!isPackUpload) {
+      await ensureMeta(category + "/" + event);
+      await ensureMeta(folderPath);
+    }
 
     const st = await stat(absPath);
     const cacheKey = relPath;
@@ -627,21 +637,34 @@ async function main() {
 
     totalPhotos += 1;
 
-    const activeMap = isPrivate ? privateFolderMap : folderMap;
-    let folder = activeMap.get(folderPath);
-    if (!folder) {
-      folder = {
-        path: folderPath,
-        category,
-        event,
-        name: subSegments[subSegments.length - 1] ?? event,
-        subPath: folderRelToEvent,
-        photos: [],
-        isPrivate,
-      };
-      activeMap.set(folderPath, folder);
+    if (isPackUpload) {
+      packAssets.push({
+        id: entry.id,
+        path: entry.path,
+        url: entry.url,
+        width: entry.width,
+        height: entry.height,
+        originalFilename: entry.originalFilename,
+        takenAt: entry.takenAt,
+        exif: entry.exif,
+      });
+    } else {
+      const activeMap = isPrivate ? privateFolderMap : folderMap;
+      let folder = activeMap.get(folderPath);
+      if (!folder) {
+        folder = {
+          path: folderPath,
+          category,
+          event,
+          name: subSegments[subSegments.length - 1] ?? event,
+          subPath: folderRelToEvent,
+          photos: [],
+          isPrivate,
+        };
+        activeMap.set(folderPath, folder);
+      }
+      folder.photos.push(entry);
     }
-    folder.photos.push(entry);
 
     if (
       SHOW_PROGRESS &&
@@ -783,6 +806,11 @@ async function main() {
     folders,
     events,
     privateFolders,
+    packAssets: packAssets.sort((a, b) =>
+      a.originalFilename.localeCompare(b.originalFilename, undefined, {
+        numeric: true,
+      })
+    ),
   };
 
   if (!DRY_RUN) {
@@ -792,7 +820,7 @@ async function main() {
 
   const plural = (n, s) => `${n} ${s}${n === 1 ? "" : "s"}`;
   console.log(
-    `[photos:sync] ${plural(totalPhotos, "photo")} · ${plural(events.length, "event")} · ${plural(folders.length, "folder")}${privateFolders.length ? ` · ${plural(privateFolders.length, "private folder")}` : ""}`
+    `[photos:sync] ${plural(totalPhotos, "photo")} · ${plural(events.length, "event")} · ${plural(folders.length, "folder")}${privateFolders.length ? ` · ${plural(privateFolders.length, "private folder")}` : ""}${packAssets.length ? ` · ${plural(packAssets.length, "pack asset")}` : ""}`
   );
   console.log(
     `[photos:sync] uploaded ${uploadedPhotos}, reused ${skippedUnchanged} from cache${DRY_RUN ? " (dry run — no writes)" : ""}`

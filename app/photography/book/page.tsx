@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import { BookingForm } from "@/components/photography/BookingForm";
 import { SESSION_TYPES } from "@/lib/photography-config";
 
 export const metadata = {
   title: "Book a session",
-  description: "Reserve a photography session — portrait, event, or automotive.",
+  description:
+    "Book car photography — statics, rollers, or short-form content — or send a special request.",
 };
 
 export default function BookingPage() {
@@ -17,14 +19,22 @@ export default function BookingPage() {
           </span>
         </div>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[var(--text)] sm:text-5xl">
-          Let&apos;s shoot something good
+          Car shoots first — everything else by request
         </h1>
         <p className="mt-3 max-w-xl text-[var(--textMuted)]">
-          Pick a session type and pitch me a day &amp; time. I&apos;ll confirm
-          availability before the deposit clears.
+          Choose a path and work through the steps — deposit, timing, and how
+          pricing works are all in the note right under this.
         </p>
 
-        <BookingForm sessionTypes={SESSION_TYPES} />
+        <Suspense
+          fallback={
+            <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/60 px-5 py-10 text-center text-sm text-[var(--textMuted)] sm:px-8">
+              Loading booking…
+            </div>
+          }
+        >
+          <BookingForm sessionTypes={SESSION_TYPES} />
+        </Suspense>
       </section>
     </main>
   );

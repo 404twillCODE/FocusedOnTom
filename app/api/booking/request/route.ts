@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getStripe } from "@/lib/stripe";
 import { getSupabaseAdmin, getUserEmailFromRequest } from "@/lib/supabase/admin";
 import { sendEmail, ownerNotificationEmail } from "@/lib/email";
-import { getSessionType, PHOTO_BRAND } from "@/lib/photography-config";
+import {
+  composeBookingNotes,
+  estimateAutomotiveSessionCents,
+  getSessionType,
+  labelsForDeliverableIds,
+  normalizeCarDeliverableIds,
+  PHOTO_BRAND,
+} from "@/lib/photography-config";
 
 type Body = {
   session_type?: string;
@@ -10,6 +17,8 @@ type Body = {
   email?: string;
   starts_at?: string;
   notes?: string;
+  /** Car session only: which outputs the client wants (statics, rollers, short-form). */
+  deliverables?: string[];
 };
 
 function isValidEmail(v: string): boolean {
@@ -28,12 +37,37 @@ export async function POST(request: NextRequest) {
   const name = body.name?.trim();
   const email = body.email?.trim().toLowerCase();
   const startsAtRaw = body.starts_at?.trim();
-  const notes = body.notes?.trim() ?? "";
+  const clientNotes = body.notes?.trim() ?? "";
+  const deliverablesRaw = Array.isArray(body.deliverables)
+    ? body.deliverables
+    : [];
 
   const sessionType = sessionTypeId ? getSessionType(sessionTypeId) : undefined;
   if (!sessionType) {
     return NextResponse.json({ error: "invalid_session_type" }, { status: 400 });
   }
+
+  const normalizedDeliverables =
+    sessionType.id === "automotive"
+      ? normalizeCarDeliverableIds(deliverablesRaw)
+      : [];
+
+  if (sessionType.id === "automotive" && normalizedDeliverables.length === 0) {
+    return NextResponse.json({ error: "missing_deliverables" }, { status: 400 });
+  }
+
+  const estimatedSessionCents =
+    sessionType.id === "automotive"
+      ? estimateAutomotiveSessionCents(normalizedDeliverables)
+      : null;
+
+  const notes = composeBookingNotes({
+    sessionTypeId: sessionType.id,
+    deliverableIds: normalizedDeliverables,
+    clientNotes,
+    estimatedSessionCents,
+  });
+
   if (!name || !email || !isValidEmail(email)) {
     return NextResponse.json({ error: "missing_contact" }, { status: 400 });
   }
@@ -73,12 +107,21 @@ export async function POST(request: NextRequest) {
       subject: `New booking request · ${sessionType.label}`,
       html: `<p><strong>${name}</strong> (${email}) requested ${sessionType.label} for ${startsAt.toLocaleString()}.</p>
         ${notes ? `<p>${notes}</p>` : ""}
-        <p>Deposit: $${(sessionType.depositCents / 100).toFixed(2)}</p>`,
+        <p>Deposit: $${(sessionType.depositCents / 100).toFixed(2)}</p>
+        ${
+          estimatedSessionCents != null
+            ? `<p>Guide session subtotal: $${(estimatedSessionCents / 100).toFixed(2)}</p>`
+            : ""
+        }`,
     });
   }
 
   if (stripe) {
     try {
+      const stripeDescription =
+        sessionType.id === "automotive" && normalizedDeliverables.length > 0
+          ? `Deposit for ${startsAt.toLocaleString()}. Deliverables: ${labelsForDeliverableIds(normalizedDeliverables).join(", ")}.${estimatedSessionCents != null ? ` Guide session subtotal $${(estimatedSessionCents / 100).toFixed(0)}.` : ""} Balance due on shoot day.`
+          : `Deposit for ${startsAt.toLocaleString()}. Balance due on shoot day.`;
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         line_items: [
@@ -88,7 +131,7 @@ export async function POST(request: NextRequest) {
               unit_amount: sessionType.depositCents,
               product_data: {
                 name: `${sessionType.label} · deposit`,
-                description: `Deposit for ${startsAt.toLocaleString()}. Balance due on shoot day.`,
+                description: stripeDescription,
               },
             },
             quantity: 1,

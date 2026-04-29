@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-24T16:01:33.029Z",
+  "generatedAt": "2026-04-29T21:58:06.379Z",
   "baseUrl": "https://cdn.focusedontom.com",
   "folders": [
     {
@@ -9968,6 +9968,499 @@
       ]
     },
     {
+      "path": "cars/Gas-Station-Shoot/Subaru-WRX",
+      "category": "cars",
+      "event": "Gas-Station-Shoot",
+      "name": "Subaru-WRX",
+      "title": "Subaru WRX",
+      "photoCount": 24,
+      "cover": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00003-2.webp",
+      "takenAt": "2026-04-29T03:26:30.000Z",
+      "eventDate": "April 2026",
+      "photos": [
+        {
+          "id": "ffa5de563d18",
+          "filename": "PIC00003-2.webp",
+          "originalFilename": "PIC00003-2.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00003-2.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00003-2.webp",
+          "width": 3000,
+          "height": 2000,
+          "size": 407942,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:26:30.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "35mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "1f187904c941",
+          "filename": "PIC00003.webp",
+          "originalFilename": "PIC00003.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00003.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00003.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 268106,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:26:30.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "35mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "1f861992cc9d",
+          "filename": "PIC00005.webp",
+          "originalFilename": "PIC00005.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00005.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00005.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 264074,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:27:15.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "25mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "cdb1c7653ddb",
+          "filename": "PIC00007-Edit.webp",
+          "originalFilename": "PIC00007-Edit.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00007-Edit.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00007-Edit.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 235942,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:27:34.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "25mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "4498e4483891",
+          "filename": "PIC00008.webp",
+          "originalFilename": "PIC00008.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00008.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00008.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 210164,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:27:41.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "33mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "9247ef150efd",
+          "filename": "PIC00009.webp",
+          "originalFilename": "PIC00009.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00009.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00009.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 181366,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:28:02.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "40mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "8d0f43fe10c7",
+          "filename": "PIC00010.webp",
+          "originalFilename": "PIC00010.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00010.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00010.webp",
+          "width": 3000,
+          "height": 2000,
+          "size": 245908,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:28:10.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "39mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "19cf3531de7b",
+          "filename": "PIC00011.webp",
+          "originalFilename": "PIC00011.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00011.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00011.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 152154,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:28:22.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "32mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "af165439b4b3",
+          "filename": "PIC00013.webp",
+          "originalFilename": "PIC00013.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00013.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00013.webp",
+          "width": 3000,
+          "height": 2000,
+          "size": 210718,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:28:42.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "58mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "2bcbad9c5ad8",
+          "filename": "PIC00014.webp",
+          "originalFilename": "PIC00014.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00014.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00014.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 187954,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:28:53.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "17mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "9e439e5e3eb4",
+          "filename": "PIC00016.webp",
+          "originalFilename": "PIC00016.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00016.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00016.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 176908,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:29:49.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1000,
+            "focalLength": "17mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "4d766c821be2",
+          "filename": "PIC00020.webp",
+          "originalFilename": "PIC00020.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00020.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00020.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 196850,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:30:19.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1000,
+            "focalLength": "29mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "713740bd354d",
+          "filename": "PIC00021-Edit.webp",
+          "originalFilename": "PIC00021-Edit.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00021-Edit.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00021-Edit.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 274322,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:30:35.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1000,
+            "focalLength": "29mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "18b43222855c",
+          "filename": "PIC00024.webp",
+          "originalFilename": "PIC00024.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00024.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00024.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 315958,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:31:12.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "26mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "383076000e6a",
+          "filename": "PIC00025.webp",
+          "originalFilename": "PIC00025.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00025.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00025.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 512644,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:31:33.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 2000,
+            "focalLength": "17mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "b455245b50a4",
+          "filename": "PIC00030.webp",
+          "originalFilename": "PIC00030.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00030.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00030.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 347216,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:33:40.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "17mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "9c9489906a13",
+          "filename": "PIC00031.webp",
+          "originalFilename": "PIC00031.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00031.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00031.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 313550,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:34:32.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "17mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "3dc4e8df7d1b",
+          "filename": "PIC00033.webp",
+          "originalFilename": "PIC00033.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00033.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00033.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 258746,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:34:50.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "38mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "172c3bc915e9",
+          "filename": "PIC00034.webp",
+          "originalFilename": "PIC00034.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00034.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00034.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 362624,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:36:12.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "32mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "35b970ca2d10",
+          "filename": "PIC00037.webp",
+          "originalFilename": "PIC00037.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00037.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00037.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 377540,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:41:14.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "36mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "a5eda00b7e96",
+          "filename": "PIC00044.webp",
+          "originalFilename": "PIC00044.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00044.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00044.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 360454,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:42:49.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "17mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "f2405e8aef79",
+          "filename": "PIC00045.webp",
+          "originalFilename": "PIC00045.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00045.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00045.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 379648,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:43:02.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "17mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "2fd3be85d7b0",
+          "filename": "PIC00046.webp",
+          "originalFilename": "PIC00046.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00046.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00046.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 373106,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:43:19.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "36mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        },
+        {
+          "id": "1c2eb58373a9",
+          "filename": "PIC00048.webp",
+          "originalFilename": "PIC00048.jpg",
+          "path": "cars/Gas-Station-Shoot/Subaru-WRX/PIC00048.webp",
+          "url": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00048.webp",
+          "width": 2000,
+          "height": 3000,
+          "size": 395642,
+          "folderPath": "Subaru-WRX",
+          "takenAt": "2026-04-29T03:43:27.000Z",
+          "exif": {
+            "camera": "SONY ILCE-6400",
+            "lens": "E 17-70mm F2.8 B070",
+            "iso": 1600,
+            "focalLength": "39mm",
+            "aperture": "f/2.8",
+            "shutterSpeed": "1/80s"
+          }
+        }
+      ]
+    },
+    {
       "path": "cars/Truck-Shoot-Dodge-2500",
       "category": "cars",
       "event": "Truck-Shoot-Dodge-2500",
@@ -10143,6 +10636,17 @@
   ],
   "events": [
     {
+      "path": "cars/Gas-Station-Shoot",
+      "category": "cars",
+      "slug": "Gas-Station-Shoot",
+      "title": "Gas Station Shoot",
+      "date": "April 2026",
+      "takenAt": "2026-04-29T03:26:30.000Z",
+      "photoCount": 24,
+      "cover": "https://cdn.focusedontom.com/photography/cars/Gas-Station-Shoot/Subaru-WRX/PIC00003-2.webp",
+      "folderCount": 1
+    },
+    {
       "path": "cars/Adam-LZ-WorldTour-Englishtown-NJ",
       "category": "cars",
       "slug": "Adam-LZ-WorldTour-Englishtown-NJ",
@@ -10187,5 +10691,6 @@
       "folderCount": 1
     }
   ],
-  "privateFolders": []
+  "privateFolders": [],
+  "packAssets": []
 }
