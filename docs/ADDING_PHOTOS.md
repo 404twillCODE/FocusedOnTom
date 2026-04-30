@@ -6,10 +6,11 @@ The photography section is **folder-based** and **R2-backed**:
 2. You run **`npm run photos:sync`**.
 3. The sync script:
    - extracts EXIF from each original
-   - compresses every image to high-quality WebP (long-edge 3000px, quality ~82)
-   - uploads only the optimized WebPs to Cloudflare R2 (same relative paths)
-   - writes `lib/photography-manifest.json` — the site reads from here
-4. The originals stay on your machine (git-ignored). GitHub only stores code and the manifest.
+   - uploads the full original once to private R2
+   - compresses every image to high-quality WebP (long-edge 2000px, quality ~82)
+   - uploads the optimized WebP once to public R2
+   - writes `lib/photography-manifest.json` and upserts `photos` when Supabase is configured
+4. GitHub only stores code and the manifest; originals stay in private R2 and your local source folder.
 
 ---
 
@@ -110,18 +111,22 @@ without them, names are derived from the folder slug.
 
 ## Cloudflare R2 setup (one time)
 
-1. Create a bucket in the R2 dashboard (e.g. `focusedontom-photos`).
-2. Create an R2 API token with `Object Read/Write` for that bucket. Save the
+1. Create two buckets in the R2 dashboard: `focusedontom-public` and
+   `focusedontom-private`.
+2. Keep `focusedontom-private` private. Only the public bucket needs a public
+   custom domain or `*.r2.dev` URL.
+3. Create an R2 API token with `Object Read/Write` for both buckets. Save the
    **access key ID** and **secret access key**.
-3. Expose the bucket over a public URL. The clean option is a custom domain
+4. Expose the public bucket over a public URL. The clean option is a custom domain
    (`cdn.focusedontom.com`); the quick option is the `*.r2.dev` subdomain.
-4. Fill in `.env.local`:
+5. Fill in `.env.local`:
 
    ```bash
    CLOUDFLARE_R2_ACCOUNT_ID=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    CLOUDFLARE_R2_ACCESS_KEY_ID=xxxx
    CLOUDFLARE_R2_SECRET_ACCESS_KEY=xxxx
-   CLOUDFLARE_R2_BUCKET=focusedontom-photos
+   CLOUDFLARE_R2_PUBLIC_BUCKET=focusedontom-public
+   CLOUDFLARE_R2_PRIVATE_BUCKET=focusedontom-private
    CLOUDFLARE_R2_PUBLIC_URL=https://cdn.focusedontom.com
    NEXT_PUBLIC_CDN_URL=https://cdn.focusedontom.com
    ```
@@ -139,8 +144,8 @@ without them, names are derived from the folder slug.
 in the same terminal. When you see **`[dev] photos sync finished`**, do a **hard refresh** if new
 shots don’t show yet.
 
-The sync is the same as `npm run photos:dev`: incremental WebP upload + manifest
-rewrite, cache skips for unchanged files, no originals unless you opt in.
+The sync is the same as `npm run photos:dev`: incremental original upload,
+public WebP upload, manifest rewrite, and cache skips for unchanged files.
 Missing R2 env vars → soft-fail, existing manifest stays in use.
 
 Manual runs:
@@ -164,8 +169,6 @@ npm run dev:fast
 # Wait for the full photo sync to finish, then start Next.js (sequential)
 npm run dev:sync-first
 
-# Also upload the full-size original JPGs to photography-originals/… in R2
-ORIGINALS_UPLOAD=true npm run photos:sync
 ```
 
 The script is incremental: it stores a small cache at
@@ -190,9 +193,9 @@ photo sync — production builds just read the committed
 | Location                                     | Contents                                       | In git? |
 | -------------------------------------------- | ---------------------------------------------- | ------- |
 | `./photography/**`                           | original JPGs you drag in                      | no      |
-| R2 `photography/<category>/<event>/**.webp`  | optimized WebPs the site loads                 | n/a     |
-| R2 `photography-originals/**`                | optional full-size originals (opt-in)          | n/a     |
-| `lib/photography-manifest.json`              | generated index (folders, EXIF, dimensions)    | yes     |
+| R2 public `public/<category>/<event>/**.webp` | optimized WebPs the site loads                 | n/a     |
+| R2 private `originals/<category>/<event>/**`  | full-quality originals for paid downloads      | n/a     |
+| `lib/photography-manifest.json`              | generated index (photo IDs, keys, EXIF, dimensions) | yes     |
 | `scripts/.cache/photos-upload-cache.json`    | local upload cache (mtime/size signatures)     | no      |
 
 ---

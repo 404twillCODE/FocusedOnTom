@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Bookmark, Frame, Heart, ShoppingBag } from "lucide-react";
+import { Bookmark, Download, Frame, Heart, Loader2, ShoppingBag } from "lucide-react";
 import {
   useFavoritePhotos,
   useLikedPhotos,
+  useUnlimitedAndOwnership,
 } from "@/lib/photography-likes";
+import { getFOYSupabase } from "@/lib/supabase/foyClient";
 import { trackEvent } from "@/lib/photography-analytics";
 import type { Photo } from "@/lib/photography";
 import { BuyPhotoDialog } from "./BuyPhotoDialog";
@@ -17,12 +19,39 @@ import { BuyPhotoDialog } from "./BuyPhotoDialog";
  */
 export function PhotoActions({ photo }: { photo: Photo }) {
   const [buyOpen, setBuyOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const { isLiked, toggleLike } = useLikedPhotos();
   const { isFavorite, toggleFavorite } = useFavoritePhotos();
 
   const photoId = photo.id ?? photo.src;
   const liked = isLiked(photoId);
   const fav = isFavorite(photoId);
+  const entitlements = useUnlimitedAndOwnership(photo.id);
+  const canDownloadOriginal = Boolean(photo.id && (entitlements.isUnlimited || entitlements.ownsPhoto));
+
+  async function downloadOriginal() {
+    if (!photo.id || downloading) return;
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      const supabase = getFOYSupabase();
+      const { data: auth } = await supabase.auth.getSession();
+      const token = auth.session?.access_token;
+      if (!token) throw new Error("Sign in again to download.");
+      const res = await fetch(`/api/photo/original/${photo.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Download unavailable");
+      trackEvent("photo_original_download", { photo_id: photo.id });
+      window.location.href = data.url;
+    } catch (err) {
+      setDownloadError(err instanceof Error ? err.message : "Download unavailable");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <div className="flex w-full items-center justify-between gap-3">
@@ -92,19 +121,44 @@ export function PhotoActions({ photo }: { photo: Photo }) {
             <span>Print</span>
           </Link>
         )}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setBuyOpen(true);
-            trackEvent("buy_click", { photo_id: photoId });
-          }}
-          className="inline-flex h-9 items-center gap-2 rounded-full border border-[var(--ice)]/50 bg-[var(--ice)]/10 px-4 text-xs font-medium text-[var(--ice)] transition-colors hover:bg-[var(--ice)]/20"
-        >
-          <ShoppingBag className="h-3.5 w-3.5" />
-          <span>Buy · from $5</span>
-        </button>
+        {canDownloadOriginal ? (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              void downloadOriginal();
+            }}
+            disabled={downloading}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-[var(--ice)]/50 bg-[var(--ice)]/10 px-4 text-xs font-medium text-[var(--ice)] transition-colors hover:bg-[var(--ice)]/20 disabled:opacity-60"
+          >
+            {downloading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            <span>Download original</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setBuyOpen(true);
+              trackEvent("buy_click", { photo_id: photoId });
+            }}
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-[var(--ice)]/50 bg-[var(--ice)]/10 px-4 text-xs font-medium text-[var(--ice)] transition-colors hover:bg-[var(--ice)]/20"
+          >
+            <ShoppingBag className="h-3.5 w-3.5" />
+            <span>Buy · from $5</span>
+          </button>
+        )}
       </div>
+
+      {downloadError ? (
+        <p className="absolute bottom-[-1.75rem] right-0 text-xs text-rose-300">
+          {downloadError}
+        </p>
+      ) : null}
 
       <BuyPhotoDialog
         photo={photo}

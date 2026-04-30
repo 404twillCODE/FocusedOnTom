@@ -13,6 +13,8 @@ type ManifestPrivatePhoto = {
   id: string;
   filename: string;
   originalFilename: string;
+  original_key?: string;
+  public_key?: string;
   path: string;
   url: string;
   width: number;
@@ -61,7 +63,10 @@ function toPhoto(mp: ManifestPrivatePhoto, slug: string): Photo {
     height: mp.height,
     folderPath: mp.folderPath ?? "",
     id: mp.id,
+    photo_id: mp.id,
     path: mp.path,
+    original_key: mp.original_key,
+    public_key: mp.public_key,
     categorySlug: "private",
     eventSlug: slug,
   };

@@ -2,14 +2,22 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, User } from "lucide-react";
-import { isSupabaseConfigured, supabase } from "@/lib/supabase/client";
+import { ArrowLeft, Loader2, LogIn, User, UserPlus } from "lucide-react";
+import { getFOYSupabase } from "@/lib/supabase/foyClient";
+
+type AuthMode = "signin" | "signup";
+
+const isSupabaseConfigured = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export default function PhotographyAccountPage() {
+  const [mode, setMode] = useState<AuthMode>("signin");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,11 +28,12 @@ export default function PhotographyAccountPage() {
       return;
     }
     let alive = true;
-    void supabase.auth.getSession().then(({ data }) => {
+    const supabase = getFOYSupabase();
+    void supabase.auth.getSession().then((result: { data: { session: { user: { email?: string } } | null } }) => {
       if (!alive) return;
-      setSessionEmail(data.session?.user?.email ?? null);
+      setSessionEmail(result.data.session?.user?.email ?? null);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((_event: string, session: { user?: { email?: string } } | null) => {
       setSessionEmail(session?.user?.email ?? null);
     });
     return () => {
@@ -33,9 +42,9 @@ export default function PhotographyAccountPage() {
     };
   }, []);
 
-  async function sendMagicLink(e: React.FormEvent) {
+  async function handleAuth(e: React.FormEvent) {
     e.preventDefault();
-    if (!email || loading) return;
+    if (!email || !password || loading) return;
     if (!isSupabaseConfigured) {
       setError(
         "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local, then restart dev server."
@@ -43,19 +52,31 @@ export default function PhotographyAccountPage() {
       return;
     }
     setError(null);
+    setMessage(null);
     setLoading(true);
     try {
-      const { error: signInError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo:
-            typeof window !== "undefined"
-              ? `${window.location.origin}/photography/account`
-              : undefined,
-        },
-      });
-      if (signInError) throw signInError;
-      setSent(true);
+      const supabase = getFOYSupabase();
+      const trimmedEmail = email.trim();
+      if (mode === "signup") {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email: trimmedEmail,
+          password,
+        });
+        if (signUpError) throw signUpError;
+        if (data.session?.user?.email) {
+          setSessionEmail(data.session.user.email);
+        } else {
+          setMessage("Account created. Check your email to confirm it, then sign in.");
+          setMode("signin");
+        }
+      } else {
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email: trimmedEmail,
+          password,
+        });
+        if (signInError) throw signInError;
+        setSessionEmail(data.user?.email ?? trimmedEmail);
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -73,6 +94,7 @@ export default function PhotographyAccountPage() {
     setLoading(true);
     setError(null);
     try {
+      const supabase = getFOYSupabase();
       const { error: signOutError } = await supabase.auth.signOut();
       if (signOutError) throw signOutError;
       setSessionEmail(null);
@@ -106,7 +128,7 @@ export default function PhotographyAccountPage() {
             Sign in or create your account
           </h1>
           <p className="mt-2 text-sm text-[var(--textMuted)]">
-            Use your email and we&apos;ll send a magic link. No password needed.
+            Use an email and password to manage purchases and download originals.
           </p>
 
           {sessionEmail ? (
@@ -116,7 +138,7 @@ export default function PhotographyAccountPage() {
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
-                  href="/photography/purchases"
+                  href="/my-purchases"
                   className="rounded-full border border-[var(--border)] bg-[var(--bg3)]/70 px-3 py-1.5 text-xs text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
                 >
                   View purchases
@@ -138,7 +160,41 @@ export default function PhotographyAccountPage() {
               </div>
             </div>
           ) : (
-            <form onSubmit={sendMagicLink} className="mt-5 space-y-3">
+            <form onSubmit={handleAuth} className="mt-5 space-y-3">
+              <div className="grid grid-cols-2 gap-2 rounded-full border border-[var(--border)] bg-[var(--bg3)]/60 p-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("signin");
+                    setError(null);
+                    setMessage(null);
+                  }}
+                  className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm transition-colors ${
+                    mode === "signin"
+                      ? "bg-[var(--ice)]/15 text-[var(--ice)]"
+                      : "text-[var(--textMuted)] hover:text-[var(--text)]"
+                  }`}
+                >
+                  <LogIn className="h-4 w-4" />
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMode("signup");
+                    setError(null);
+                    setMessage(null);
+                  }}
+                  className={`inline-flex items-center justify-center gap-2 rounded-full px-3 py-2 text-sm transition-colors ${
+                    mode === "signup"
+                      ? "bg-[var(--ice)]/15 text-[var(--ice)]"
+                      : "text-[var(--textMuted)] hover:text-[var(--text)]"
+                  }`}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Create account
+                </button>
+              </div>
               <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.14em] text-[var(--textMuted)]">
                 Email
                 <input
@@ -150,6 +206,19 @@ export default function PhotographyAccountPage() {
                   placeholder="you@example.com"
                 />
               </label>
+              <label className="flex flex-col gap-1 text-xs font-medium uppercase tracking-[0.14em] text-[var(--textMuted)]">
+                Password
+                <input
+                  required
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="rounded-lg border border-[var(--border)] bg-[var(--bg3)] px-3 py-2.5 text-sm text-[var(--text)] outline-none transition-colors focus:border-[var(--ice)]/60"
+                  placeholder="Your password"
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  minLength={6}
+                />
+              </label>
               <button
                 type="submit"
                 disabled={loading}
@@ -158,19 +227,18 @@ export default function PhotographyAccountPage() {
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Sending...
+                    {mode === "signin" ? "Signing in..." : "Creating account..."}
                   </>
                 ) : (
-                  "Send magic link"
+                  mode === "signin" ? "Sign in" : "Create account"
                 )}
               </button>
             </form>
           )}
 
-          {sent && !sessionEmail && (
+          {message && !sessionEmail && (
             <p className="mt-3 text-sm text-[var(--ice)]">
-              Magic link sent. Check your inbox and click the link to finish
-              sign in.
+              {message}
             </p>
           )}
 

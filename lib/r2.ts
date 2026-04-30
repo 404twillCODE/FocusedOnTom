@@ -31,8 +31,15 @@ export function getR2(): S3Client | null {
   return cached;
 }
 
-export function getR2Bucket(): string | null {
-  const v = process.env.CLOUDFLARE_R2_BUCKET?.trim();
+export function getR2Bucket(kind: "public" | "private" | "legacy" = "legacy"): string | null {
+  const v =
+    kind === "private"
+      ? process.env.CLOUDFLARE_R2_PRIVATE_BUCKET?.trim()
+      : kind === "public"
+        ? (process.env.CLOUDFLARE_R2_PUBLIC_BUCKET?.trim() ||
+          process.env.CLOUDFLARE_R2_BUCKET?.trim())
+        : (process.env.CLOUDFLARE_R2_BUCKET?.trim() ||
+          process.env.CLOUDFLARE_R2_PUBLIC_BUCKET?.trim());
   return v && v.length > 0 ? v : null;
 }
 
@@ -44,21 +51,39 @@ export async function presignR2Get(
   key: string,
   expiresInSeconds = 60 * 15
 ): Promise<string | null> {
+  return presignR2GetFromBucket(key, "legacy", expiresInSeconds);
+}
+
+export async function presignR2GetFromBucket(
+  key: string,
+  bucketKind: "public" | "private" | "legacy" = "legacy",
+  expiresInSeconds = 60 * 5,
+  filename?: string
+): Promise<string | null> {
   const client = getR2();
-  const bucket = getR2Bucket();
+  const bucket = getR2Bucket(bucketKind);
   if (!client || !bucket) return null;
   try {
     await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
   } catch {
     return null;
   }
-  const command = new GetObjectCommand({ Bucket: bucket, Key: key });
+  const command = new GetObjectCommand({
+    Bucket: bucket,
+    Key: key,
+    ...(filename
+      ? { ResponseContentDisposition: `attachment; filename="${filename.replace(/"/g, "'")}"` }
+      : {}),
+  });
   return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
 }
 
-export async function r2ObjectExists(key: string): Promise<boolean> {
+export async function r2ObjectExists(
+  key: string,
+  bucketKind: "public" | "private" | "legacy" = "legacy"
+): Promise<boolean> {
   const client = getR2();
-  const bucket = getR2Bucket();
+  const bucket = getR2Bucket(bucketKind);
   if (!client || !bucket) return false;
   try {
     await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));

@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin, getUserIdFromRequest } from "@/lib/supabase/admin";
+import {
+  getSupabaseAdmin,
+  getUserEmailFromRequest,
+  getUserIdFromRequest,
+  isEmailAdmin,
+} from "@/lib/supabase/admin";
+import { hasActiveUnlimited, ownsPhoto } from "@/lib/photo-access";
 
 /**
  * Returns whether the authed user has an active Unlimited subscription,
@@ -15,6 +21,11 @@ export async function GET(request: NextRequest) {
   }
   const photoId = request.nextUrl.searchParams.get("photo_id");
   try {
+    const auth = await getUserEmailFromRequest(request);
+    const isAdmin = auth ? await isEmailAdmin(auth.email) : false;
+    if (isAdmin) {
+      return NextResponse.json({ unlimited: true, owns: true, admin: true });
+    }
     const admin = getSupabaseAdmin();
 
     const [subRes, orderRes] = await Promise.all([
@@ -45,7 +56,14 @@ export async function GET(request: NextRequest) {
       ? ((orderRes as { data: unknown[] }).data?.length ?? 0) > 0
       : false;
 
-    return NextResponse.json({ unlimited, owns });
+    const canonicalUnlimited = await hasActiveUnlimited(userId);
+    const canonicalOwns =
+      photoId && auth ? await ownsPhoto(auth, photoId) : false;
+
+    return NextResponse.json({
+      unlimited: unlimited || canonicalUnlimited,
+      owns: owns || canonicalOwns,
+    });
   } catch (err) {
     console.error("[api/photo/entitlements] failed", err);
     return NextResponse.json({ unlimited: false, owns: false });

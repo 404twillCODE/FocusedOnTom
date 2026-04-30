@@ -29,8 +29,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Protect FocusedOnYou app routes: require auth except for /focusedonyou/auth
-  if (pathname.startsWith("/focusedonyou") && !pathname.startsWith("/focusedonyou/auth")) {
+  // Protect Supabase-backed app routes.
+  const requiresSupabaseSession =
+    (pathname.startsWith("/focusedonyou") && !pathname.startsWith("/focusedonyou/auth")) ||
+    pathname.startsWith("/vault");
+
+  if (requiresSupabaseSession) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
@@ -54,7 +58,10 @@ export async function middleware(request: NextRequest) {
 
       if (!session) {
         const url = request.nextUrl.clone();
-        url.pathname = "/focusedonyou/auth";
+        url.pathname = pathname.startsWith("/vault")
+          ? "/photography/account"
+          : "/focusedonyou/auth";
+        url.searchParams.set("next", pathname);
         return NextResponse.redirect(url);
       }
     }

@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verifyDownloadToken } from "@/lib/photography-tokens";
-import { presignR2Get, r2ObjectExists } from "@/lib/r2";
+import { presignR2Get, presignR2GetFromBucket, r2ObjectExists } from "@/lib/r2";
 import { DOWNLOAD_TOKEN_MAX_USES } from "@/lib/photography-config";
+import { getCanonicalPhoto } from "@/lib/photo-access";
 
 export const runtime = "nodejs";
 
 /**
  * Validates the signed download token, increments usage, and redirects to a
- * short-lived presigned R2 URL for the photo original (or the 3000px WebP
- * if no original was uploaded).
+ * short-lived presigned R2 URL for the canonical private original.
  */
 export async function GET(
   request: NextRequest,
@@ -26,13 +26,48 @@ export async function GET(
   }
 
   const admin = getSupabaseAdmin();
-  const { data: order, error } = await admin
-    .from("photo_orders")
-    .select("id, photo_id, photo_path, download_count, expires_at, status, license")
-    .eq("id", claims.orderId)
-    .maybeSingle();
-  if (error || !order) {
-    return NextResponse.json({ error: "order_not_found" }, { status: 404 });
+  let order: {
+    id: string;
+    photo_id?: string;
+    photo_path?: string;
+    download_count: number | null;
+    expires_at: string | null;
+    status: string;
+    license?: string;
+    canonical?: boolean;
+  } | null = null;
+
+  try {
+    const { data: canonicalPurchase } = await admin
+      .from("purchases")
+      .select("id, download_count, expires_at, status, license")
+      .eq("id", claims.orderId)
+      .maybeSingle();
+    if (canonicalPurchase) {
+      const { data: item } = await admin
+        .from("purchase_items")
+        .select("photo_id")
+        .eq("purchase_id", canonicalPurchase.id)
+        .eq("photo_id", claims.photoId)
+        .maybeSingle();
+      if (item) {
+        order = { ...canonicalPurchase, photo_id: item.photo_id, canonical: true };
+      }
+    }
+  } catch {
+    // Fall back to legacy photo_orders below.
+  }
+
+  if (!order) {
+    const { data: legacyOrder, error } = await admin
+      .from("photo_orders")
+      .select("id, photo_id, photo_path, download_count, expires_at, status, license")
+      .eq("id", claims.orderId)
+      .maybeSingle();
+    if (error || !legacyOrder) {
+      return NextResponse.json({ error: "order_not_found" }, { status: 404 });
+    }
+    order = legacyOrder;
   }
   if (order.photo_id !== claims.photoId) {
     return NextResponse.json({ error: "token_mismatch" }, { status: 403 });
@@ -50,21 +85,20 @@ export async function GET(
     return NextResponse.json({ error: "download_limit_reached" }, { status: 410 });
   }
 
-  const photoPath = order.photo_path;
-  if (!photoPath) {
-    return NextResponse.json({ error: "missing_path" }, { status: 500 });
-  }
+  const photo = order.photo_id ? await getCanonicalPhoto(order.photo_id) : null;
+  let signed: string | null = photo
+    ? await presignR2GetFromBucket(photo.original_key, "private", 60 * 3, photo.filename)
+    : null;
 
-  // Prefer the original when available; fall back to the compressed WebP.
-  const originalKey = `photography-originals/${photoPath.replace(/\.webp$/i, ".jpg")}`;
-  const webpKey = `photography/${photoPath}`;
-
-  let signed: string | null = null;
-  if (await r2ObjectExists(originalKey)) {
-    signed = await presignR2Get(originalKey, 60 * 15);
-  }
-  if (!signed) {
-    signed = await presignR2Get(webpKey, 60 * 15);
+  if (!signed && order.photo_path) {
+    const originalKey = `photography-originals/${order.photo_path.replace(/\.webp$/i, ".jpg")}`;
+    const webpKey = `photography/${order.photo_path}`;
+    if (await r2ObjectExists(originalKey)) {
+      signed = await presignR2Get(originalKey, 60 * 5);
+    }
+    if (!signed) {
+      signed = await presignR2Get(webpKey, 60 * 5);
+    }
   }
   if (!signed) {
     return NextResponse.json(
@@ -74,7 +108,7 @@ export async function GET(
   }
 
   await admin
-    .from("photo_orders")
+    .from(order.canonical ? "purchases" : "photo_orders")
     .update({ download_count: (order.download_count ?? 0) + 1 })
     .eq("id", order.id);
 

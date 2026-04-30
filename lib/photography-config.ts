@@ -24,7 +24,7 @@ export const LICENSE_TIERS: LicenseTier[] = [
     priceCents: 500,
     tagline: "High-res download for personal use",
     details: [
-      "3000px JPG/WebP original",
+      "Full-quality original download",
       "Personal wallpaper, social, prints for yourself",
       "No resale, no commercial use",
     ],

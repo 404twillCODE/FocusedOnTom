@@ -36,8 +36,15 @@ export type Photo = {
   exif?: ExifInfo;
   /** Stable 12-char photo id (from the sync script). Used by likes / orders. */
   id?: string;
+  photo_id?: string;
   /** Canonical photo path within the bucket, e.g. "cars/event/photo.webp". */
   path?: string;
+  original_key?: string;
+  public_key?: string;
+  public_size?: number;
+  original_size?: number;
+  price?: number;
+  is_for_sale?: boolean;
   /** Category slug the photo belongs to (populated when traversing categories). */
   categorySlug?: string;
   /** Event slug the photo belongs to. */
@@ -80,13 +87,21 @@ type ManifestExif = {
 
 type ManifestPhoto = {
   id: string;
+  photo_id?: string;
+  gallery_slug?: string;
   filename: string;
   originalFilename: string;
+  original_key?: string;
+  public_key?: string;
   path: string;
   url: string;
   width: number;
   height: number;
   size: number;
+  original_size?: number;
+  public_size?: number;
+  price?: number;
+  is_for_sale?: boolean;
   folderPath?: string;
   takenAt?: string;
   exif?: ManifestExif;
@@ -223,7 +238,14 @@ function toPhoto(
     folderPath: mp.folderPath ?? "",
     exif: mapExif(mp.exif, mp.takenAt),
     id: mp.id,
+    photo_id: mp.photo_id ?? mp.id,
     path: mp.path,
+    original_key: mp.original_key,
+    public_key: mp.public_key,
+    original_size: mp.original_size,
+    public_size: mp.public_size ?? mp.size,
+    price: mp.price,
+    is_for_sale: mp.is_for_sale,
     categorySlug,
     eventSlug,
     gps: mp.gps,

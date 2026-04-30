@@ -10,6 +10,7 @@ import type { LicenseId } from "@/lib/photography-types";
 
 type Body = {
   photo_id?: string;
+  photo_ids?: string[];
   photo_path?: string;
   license?: LicenseId;
 };
@@ -87,15 +88,20 @@ export async function POST(request: NextRequest) {
     }
 
     // One-time photo purchase
-    const photoId = body.photo_id?.trim();
+    const photoIds = Array.isArray(body.photo_ids)
+      ? body.photo_ids.map((id) => id.trim()).filter(Boolean)
+      : body.photo_id?.trim()
+        ? [body.photo_id.trim()]
+        : [];
+    const photoId = photoIds[0];
     const photoPath = body.photo_path?.trim();
-    if (!photoId) {
+    if (!photoId || photoIds.length === 0) {
       return NextResponse.json({ error: "photo_id_required" }, { status: 400 });
     }
     const auth = await getUserEmailFromRequest(request);
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: photoIds.length }],
       customer_email: auth?.email,
       success_url: `${origin}/photography/thank-you?session_id={CHECKOUT_SESSION_ID}&kind=photo`,
       cancel_url: `${origin}/photography`,
@@ -103,6 +109,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           kind: "photo_purchase",
           photo_id: photoId,
+          photo_ids: photoIds.join(","),
           photo_path: photoPath ?? "",
           license: tier.id,
           supabase_user_id: auth?.userId ?? "",
@@ -111,6 +118,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         kind: "photo_purchase",
         photo_id: photoId,
+        photo_ids: photoIds.join(","),
         photo_path: photoPath ?? "",
         license: tier.id,
         supabase_user_id: auth?.userId ?? "",

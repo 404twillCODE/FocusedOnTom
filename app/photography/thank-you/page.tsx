@@ -69,7 +69,7 @@ export default async function ThankYouPage({
               Back to galleries
             </Link>
             <Link
-              href="/photography/purchases"
+              href="/my-purchases"
               className="rounded-full border border-[var(--border)] bg-[var(--bg3)]/60 px-4 py-2 text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
             >
               View purchases

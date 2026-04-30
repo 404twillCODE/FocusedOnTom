@@ -80,13 +80,16 @@ export async function GET(request: NextRequest) {
     entries = (bundle?.photos ?? [])
       .filter((p) => p.path && favPaths.has(p.path))
       .map((p) => ({
-        // Prefer original (no watermark baked in anyway), jpg extension.
-        key: `photography-originals/${(p.path ?? "").replace(/\.webp$/i, ".jpg")}`,
+        key:
+          p.original_key ??
+          `photography-originals/${(p.path ?? "").replace(/\.webp$/i, ".jpg")}`,
         name: (p.path ?? "").split("/").pop() ?? "photo.jpg",
       }));
   } else if (mode === "all") {
     entries = (bundle?.photos ?? []).map((p) => ({
-      key: `photography-originals/${(p.path ?? "").replace(/\.webp$/i, ".jpg")}`,
+      key:
+        p.original_key ??
+        `photography-originals/${(p.path ?? "").replace(/\.webp$/i, ".jpg")}`,
       name: (p.path ?? "").split("/").pop() ?? "photo.jpg",
     }));
   } else if (mode === "final") {

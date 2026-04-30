@@ -9,12 +9,10 @@
  *      fallback) recursively.
  *   2. For every .jpg / .jpeg / .png / .webp it finds:
  *        a. Extracts EXIF from the original file (exifr).
- *        b. Compresses the image to high-quality WebP in memory (sharp,
- *           long-edge 3000px, quality ~82, EXIF orientation baked in).
- *        c. Uploads the WebP to Cloudflare R2 under the same relative path
- *           (e.g. photography/cars/Event/sub/photo.webp).
- *        d. Optionally (ORIGINALS_UPLOAD=true) also uploads the full-size
- *           original JPG under photography-originals/<same path>.
+ *        b. Uploads the original file once to the private R2 bucket.
+ *        c. Compresses the image to high-quality WebP in memory (sharp,
+ *           long-edge 2000px, quality ~82, EXIF orientation baked in).
+ *        d. Uploads the compressed WebP once to the public R2 bucket.
  *   3. Generates lib/photography-manifest.json with folders, photo counts,
  *      EXIF metadata, dimensions, R2 URLs, and event-level meta.
  *
@@ -24,12 +22,13 @@
  *   CLOUDFLARE_R2_ACCOUNT_ID
  *   CLOUDFLARE_R2_ACCESS_KEY_ID
  *   CLOUDFLARE_R2_SECRET_ACCESS_KEY
- *   CLOUDFLARE_R2_BUCKET
+ *   CLOUDFLARE_R2_PUBLIC_BUCKET
+ *   CLOUDFLARE_R2_PRIVATE_BUCKET
  *   CLOUDFLARE_R2_PUBLIC_URL            (e.g. https://cdn.focusedontom.com)
  *
  * Optional env:
- *   ORIGINALS_UPLOAD=true               upload full-size originals too
  *   PHOTOGRAPHY_SOURCE_DIR=photography  override source folder
+ *   SUPABASE_SERVICE_ROLE_KEY           upsert canonical photo rows
  *
  * Flags:
  *   --dry-run     scan + compress but don't upload or write the manifest
@@ -58,6 +57,7 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
+import { createClient } from "@supabase/supabase-js";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -85,8 +85,6 @@ const PROGRESS_INTERVAL = Math.max(
   1,
   Number.parseInt(process.env.PHOTOS_SYNC_PROGRESS_EVERY ?? "10", 10) || 10
 );
-const UPLOAD_ORIGINALS =
-  process.env.ORIGINALS_UPLOAD === "true" || ARGS.has("--originals");
 const INCLUDE_GPS = process.env.PHOTOGRAPHY_INCLUDE_GPS === "true";
 
 const SOURCE_DIR_OVERRIDE = process.env.PHOTOGRAPHY_SOURCE_DIR;
@@ -102,11 +100,15 @@ const CACHE_FILE = path.join(CACHE_DIR, "photos-upload-cache.json");
 
 const IMAGE_EXT = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 const WEBP_QUALITY = 82;
-const LONG_EDGE_MAX = 3000;
+const LONG_EDGE_MAX = 2000;
 
-const R2_KEY_PREFIX = "photography"; // object key prefix for optimized WebP
-const R2_ORIGINALS_PREFIX = "photography-originals"; // optional prefix
+const R2_PUBLIC_PREFIX = "public";
+const R2_ORIGINALS_PREFIX = "originals";
 const PACK_UPLOADS_ROOT = "photo-pack-uploads";
+const DEFAULT_PHOTO_PRICE_CENTS = Number.parseInt(
+  process.env.PHOTO_DEFAULT_PRICE_CENTS ?? "500",
+  10
+);
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -174,6 +176,31 @@ function titleCaseFromSlug(slug) {
 
 function stableId(relPath) {
   return crypto.createHash("sha1").update(relPath).digest("hex").slice(0, 12);
+}
+
+function safeKeySegment(value) {
+  return String(value)
+    .trim()
+    .replace(/[^\w.\-() ]+/g, "-")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 160);
+}
+
+function mimeFromExt(ext) {
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  return "image/jpeg";
+}
+
+function getSupabaseSyncClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 function formatShutter(exposure) {
@@ -424,7 +451,8 @@ async function main() {
     "CLOUDFLARE_R2_ACCOUNT_ID",
     "CLOUDFLARE_R2_ACCESS_KEY_ID",
     "CLOUDFLARE_R2_SECRET_ACCESS_KEY",
-    "CLOUDFLARE_R2_BUCKET",
+    "CLOUDFLARE_R2_PUBLIC_BUCKET",
+    "CLOUDFLARE_R2_PRIVATE_BUCKET",
     "CLOUDFLARE_R2_PUBLIC_URL",
   ];
   const missing = REQUIRED_ENVS.filter((k) => !process.env[k]);
@@ -443,16 +471,18 @@ async function main() {
     );
   }
 
-  const BUCKET = requireEnv("CLOUDFLARE_R2_BUCKET");
+  const PUBLIC_BUCKET = requireEnv("CLOUDFLARE_R2_PUBLIC_BUCKET");
+  const PRIVATE_BUCKET = requireEnv("CLOUDFLARE_R2_PRIVATE_BUCKET");
   const PUBLIC_URL = requireEnv("CLOUDFLARE_R2_PUBLIC_URL").replace(/\/$/, "");
 
   await warnIfCdnHostUnresolved(PUBLIC_URL);
 
   console.log(`[photos:sync] source:  ${path.relative(ROOT, SOURCE_DIR)}`);
-  console.log(`[photos:sync] bucket:  ${BUCKET}`);
+  console.log(`[photos:sync] public:  ${PUBLIC_BUCKET}`);
+  console.log(`[photos:sync] private: ${PRIVATE_BUCKET}`);
   console.log(`[photos:sync] cdn:     ${PUBLIC_URL}`);
   console.log(
-    `[photos:sync] mode:    ${DRY_RUN ? "DRY RUN" : "live"}${FORCE ? " · force" : ""}${UPLOAD_ORIGINALS ? " · originals" : ""}`
+    `[photos:sync] mode:    ${DRY_RUN ? "DRY RUN" : "live"}${FORCE ? " · force" : ""}`
   );
 
   const client = DRY_RUN ? null : makeR2Client();
@@ -504,8 +534,10 @@ async function main() {
 
   let totalPhotos = 0;
   let uploadedPhotos = 0;
+  let uploadedOriginals = 0;
   let skippedUnchanged = 0;
   const packAssets = [];
+  const photoRecords = [];
 
   for (const relPath of files) {
     const absPath = path.join(SOURCE_DIR, relPath);
@@ -540,13 +572,16 @@ async function main() {
 
     const ext = path.extname(filename).toLowerCase();
     const baseName = filename.slice(0, filename.length - ext.length);
-    const webpRelPath = [
-      ...parts.slice(0, -1),
-      `${baseName}.webp`,
-    ].join("/");
-    const webpKey = `${R2_KEY_PREFIX}/${webpRelPath}`;
+    const gallerySlug = isPackUpload ? "pack-assets" : event;
+    const galleryKeyPrefix = [category, gallerySlug].filter(Boolean).map(safeKeySegment).join("/");
+    const photoId = stableId(relPath);
+    const safeOriginalName = safeKeySegment(filename);
+    const publicFilename = `${photoId}-${safeKeySegment(baseName)}.webp`;
+    const originalFilename = `${photoId}-${safeOriginalName}`;
+    const webpRelPath = `${galleryKeyPrefix}/${publicFilename}`;
+    const webpKey = `${R2_PUBLIC_PREFIX}/${webpRelPath}`;
     const webpUrl = encodeKeyAsUrl(PUBLIC_URL, webpKey);
-    const originalKey = `${R2_ORIGINALS_PREFIX}/${relPath}`;
+    const originalKey = `${R2_ORIGINALS_PREFIX}/${galleryKeyPrefix}/${originalFilename}`;
 
     let entry = null;
 
@@ -555,7 +590,8 @@ async function main() {
       cached &&
       cached.mtimeMs === sig.mtimeMs &&
       cached.size === sig.size &&
-      cached.webpKey === webpKey;
+      cached.webpKey === webpKey &&
+      cached.originalKey === originalKey;
 
     if (canReuse) {
       entry = cached.entry;
@@ -569,43 +605,47 @@ async function main() {
       const optimized = await optimizeToWebp(absPath);
 
       if (!DRY_RUN) {
-        const alreadyThere = await r2ObjectExists(client, BUCKET, webpKey);
+        const alreadyThere = await r2ObjectExists(client, PUBLIC_BUCKET, webpKey);
         if (!alreadyThere || FORCE) {
-          await r2Put(client, BUCKET, webpKey, optimized.buffer, "image/webp");
+          await r2Put(client, PUBLIC_BUCKET, webpKey, optimized.buffer, "image/webp");
           uploadedPhotos += 1;
           if (VERBOSE) console.log(`  [up  ] ${webpKey}`);
         } else if (VERBOSE) {
           console.log(`  [keep] ${webpKey} already in R2`);
         }
 
-        // Always upload originals for private galleries (clients may need
-        // the full-resolution files for proofing + ZIP downloads), regardless
-        // of the global ORIGINALS_UPLOAD flag.
-        if (UPLOAD_ORIGINALS || isPrivate) {
-          const origExists = await r2ObjectExists(client, BUCKET, originalKey);
-          if (!origExists || FORCE) {
-            const origBuf = await readFile(absPath);
-            const mime =
-              ext === ".png"
-                ? "image/png"
-                : ext === ".webp"
-                  ? "image/webp"
-                  : "image/jpeg";
-            await r2Put(client, BUCKET, originalKey, origBuf, mime);
-            if (VERBOSE) console.log(`  [orig] ${originalKey}`);
-          }
+        const origExists = await r2ObjectExists(client, PRIVATE_BUCKET, originalKey);
+        if (!origExists || FORCE) {
+          const origBuf = await readFile(absPath);
+          await r2Put(client, PRIVATE_BUCKET, originalKey, origBuf, mimeFromExt(ext));
+          uploadedOriginals += 1;
+          if (VERBOSE) console.log(`  [orig] ${originalKey}`);
+        } else if (VERBOSE) {
+          console.log(`  [keep] ${originalKey} already in private R2`);
         }
       }
 
       entry = {
-        id: stableId(webpRelPath),
-        filename: `${baseName}.webp`,
+        id: photoId,
+        photo_id: photoId,
+        gallery_slug: gallerySlug,
+        category_slug: category,
+        event_slug: event,
+        filename,
+        public_filename: publicFilename,
         originalFilename: filename,
+        original_key: originalKey,
+        public_key: webpKey,
         path: webpRelPath,
         url: webpUrl,
         width: optimized.width,
         height: optimized.height,
+        original_size: st.size,
+        public_size: optimized.size,
         size: optimized.size,
+        created_at: new Date(st.birthtimeMs || st.mtimeMs).toISOString(),
+        price: DEFAULT_PHOTO_PRICE_CENTS,
+        is_for_sale: !isPrivate && !isPackUpload,
         folderPath: folderRelToEvent,
         takenAt,
         exif,
@@ -632,8 +672,30 @@ async function main() {
       mtimeMs: sig.mtimeMs,
       size: sig.size,
       webpKey,
+      originalKey,
       entry,
     };
+
+    photoRecords.push({
+      id: entry.photo_id,
+      gallery_slug: entry.gallery_slug,
+      category_slug: entry.category_slug,
+      event_slug: entry.event_slug,
+      filename: entry.filename,
+      original_key: entry.original_key,
+      public_key: entry.public_key,
+      public_url: entry.url,
+      width: entry.width,
+      height: entry.height,
+      original_size: entry.original_size,
+      public_size: entry.public_size,
+      price_cents: entry.price,
+      is_for_sale: entry.is_for_sale,
+      taken_at: entry.takenAt ?? null,
+      exif: entry.exif ?? {},
+      created_at: entry.created_at,
+      updated_at: new Date().toISOString(),
+    });
 
     totalPhotos += 1;
 
@@ -803,6 +865,8 @@ async function main() {
   const manifest = {
     generatedAt: new Date().toISOString(),
     baseUrl: PUBLIC_URL,
+    publicBucket: PUBLIC_BUCKET,
+    privateBucket: PRIVATE_BUCKET,
     folders,
     events,
     privateFolders,
@@ -814,6 +878,21 @@ async function main() {
   };
 
   if (!DRY_RUN) {
+    const supabase = getSupabaseSyncClient();
+    if (supabase && photoRecords.length > 0) {
+      const { error } = await supabase
+        .from("photos")
+        .upsert(photoRecords, { onConflict: "id" });
+      if (error) {
+        console.warn(`[photos:sync] WARNING: photos table upsert failed: ${error.message}`);
+      } else if (VERBOSE) {
+        console.log(`  [db  ] upserted ${photoRecords.length} photo records`);
+      }
+    } else if (!supabase) {
+      console.warn(
+        "[photos:sync] Supabase env not configured; wrote manifest but skipped photos table upsert."
+      );
+    }
     await writeJson(MANIFEST_OUT, manifest);
     await writeJson(CACHE_FILE, nextCache);
   }
@@ -823,7 +902,7 @@ async function main() {
     `[photos:sync] ${plural(totalPhotos, "photo")} · ${plural(events.length, "event")} · ${plural(folders.length, "folder")}${privateFolders.length ? ` · ${plural(privateFolders.length, "private folder")}` : ""}${packAssets.length ? ` · ${plural(packAssets.length, "pack asset")}` : ""}`
   );
   console.log(
-    `[photos:sync] uploaded ${uploadedPhotos}, reused ${skippedUnchanged} from cache${DRY_RUN ? " (dry run — no writes)" : ""}`
+    `[photos:sync] uploaded ${uploadedPhotos} public, ${uploadedOriginals} originals, reused ${skippedUnchanged} from cache${DRY_RUN ? " (dry run — no writes)" : ""}`
   );
   if (!DRY_RUN) {
     console.log(

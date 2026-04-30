@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LogIn, UserPlus, Loader2 } from "lucide-react";
 import { getFOYSupabase } from "@/lib/supabase/foyClient";
@@ -19,6 +19,7 @@ type Mode = "signin" | "signup";
 
 export default function FocusedOnYouAuthPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,7 +55,8 @@ export default function FocusedOnYouAuthPage() {
             password,
           });
         if (signInError) throw signInError;
-        router.replace("/focusedonyou");
+        const next = searchParams.get("next");
+        router.replace(next?.startsWith("/") ? next : "/focusedonyou");
         router.refresh();
       }
     } catch (err: unknown) {

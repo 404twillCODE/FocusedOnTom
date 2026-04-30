@@ -72,6 +72,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   if (kind === "photo_purchase") {
     const photoId = md.photo_id ?? "";
+    const photoIds = (md.photo_ids ?? photoId)
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
     const photoPath = md.photo_path ?? "";
     const license = (md.license ?? "personal") as LicenseId;
     const tier = getLicense(license);
@@ -121,6 +125,47 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       .from("photo_orders")
       .update({ download_token: token, status: "delivered" })
       .eq("id", insertedOrder.id);
+
+    try {
+      const { data: purchase, error: purchaseErr } = await admin
+        .from("purchases")
+        .insert({
+          stripe_session_id: session.id,
+          stripe_payment_intent_id:
+            typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : null,
+          buyer_email: buyerEmail,
+          user_id: userId || null,
+          amount_cents: amount,
+          license,
+          status: "delivered",
+          download_token: token,
+          expires_at: expiresAt,
+          metadata: { legacy_order_id: insertedOrder.id, photo_path: photoPath },
+        })
+        .select("id")
+        .single();
+
+      if (purchaseErr || !purchase) {
+        console.error("[stripe/webhook] insert purchases failed", purchaseErr);
+      } else {
+        const itemAmount = Math.round(amount / Math.max(photoIds.length, 1));
+        const { error: itemErr } = await admin.from("purchase_items").insert(
+          photoIds.map((id) => ({
+            purchase_id: purchase.id,
+            photo_id: id,
+            unit_amount_cents: itemAmount,
+            license,
+          }))
+        );
+        if (itemErr) {
+          console.error("[stripe/webhook] insert purchase_items failed", itemErr);
+        }
+      }
+    } catch (err) {
+      console.error("[stripe/webhook] canonical purchase write failed", err);
+    }
 
     if (buyerEmail) {
       const downloadUrl = `${PHOTO_BRAND.siteUrl}/api/photo/download/${token}`;
@@ -175,6 +220,23 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         },
         { onConflict: "user_id" }
       );
+      try {
+        await admin.from("subscriptions").upsert(
+          {
+            user_id: userId,
+            email: customerEmail,
+            stripe_customer_id:
+              typeof session.customer === "string" ? session.customer : null,
+            stripe_subscription_id:
+              typeof session.subscription === "string" ? session.subscription : null,
+            status: "active",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+      } catch (err) {
+        console.error("[stripe/webhook] canonical subscription write failed", err);
+      }
     }
   }
 }
@@ -363,4 +425,20 @@ async function upsertSubscription(sub: Stripe.Subscription) {
     },
     { onConflict: "user_id" }
   );
+  try {
+    await admin.from("subscriptions").upsert(
+      {
+        user_id: userId,
+        email,
+        stripe_customer_id: customerId ?? null,
+        stripe_subscription_id: sub.id,
+        status: sub.status,
+        current_period_end,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+  } catch (err) {
+    console.error("[stripe/webhook] canonical subscription upsert failed", err);
+  }
 }

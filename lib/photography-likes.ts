@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { getFOYSupabase } from "@/lib/supabase/foyClient";
 
 const LIKES_KEY = "focusedontom:liked_photos";
 const FAVORITES_KEY = "focusedontom:favorite_photos";
@@ -91,6 +91,7 @@ export function useLikedPhotos(): {
     writeSet(LIKES_KEY, next);
 
     try {
+      const supabase = getFOYSupabase();
       const { data: auth } = await supabase.auth.getSession();
       const token = auth.session?.access_token;
       await fetch("/api/photo/like", {
@@ -134,6 +135,7 @@ export function useFavoritePhotos(): {
       writeSet(FAVORITES_KEY, next);
 
       try {
+        const supabase = getFOYSupabase();
         const { data: auth } = await supabase.auth.getSession();
         const token = auth.session?.access_token;
         if (!token) return; // favorites require auth to persist server-side
@@ -209,6 +211,7 @@ export function useUnlimitedAndOwnership(photoId?: string): {
     let cancelled = false;
     async function run() {
       try {
+        const supabase = getFOYSupabase();
         const { data: auth } = await supabase.auth.getSession();
         const token = auth.session?.access_token;
         if (!token) {
