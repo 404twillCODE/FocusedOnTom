@@ -121,7 +121,12 @@ export function PhotoActions({ photo }: { photo: Photo }) {
             <span>Print</span>
           </Link>
         )}
-        {canDownloadOriginal ? (
+        {!entitlements.ready && photo.id ? (
+          <span className="inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4 text-xs font-medium text-white/70">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Checking access
+          </span>
+        ) : canDownloadOriginal ? (
           <button
             type="button"
             onClick={(e) => {
