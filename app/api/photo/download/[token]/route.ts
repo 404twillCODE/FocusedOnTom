@@ -1,11 +1,46 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verifyDownloadToken } from "@/lib/photography-tokens";
-import { presignR2Get, presignR2GetFromBucket, r2ObjectExists } from "@/lib/r2";
+import { presignR2GetFromBucket } from "@/lib/r2";
 import { DOWNLOAD_TOKEN_MAX_USES } from "@/lib/photography-config";
 import { getCanonicalPhoto } from "@/lib/photo-access";
 
 export const runtime = "nodejs";
+
+function downloadFilename(originalName?: string): string | undefined {
+  if (!originalName?.trim()) return undefined;
+  return originalName.replace(/"/g, "'");
+}
+
+async function signedOriginalOrPublicFromPhoto(
+  photo: NonNullable<Awaited<ReturnType<typeof getCanonicalPhoto>>>
+): Promise<{ url: string; usedPublicWebpFallback: boolean } | null> {
+  const dn = downloadFilename(photo.filename);
+  const orig = await presignR2GetFromBucket(
+    photo.original_key,
+    "private",
+    60 * 3,
+    dn
+  );
+  if (orig) return { url: orig, usedPublicWebpFallback: false };
+
+  const pub =
+    photo.public_key &&
+    (await presignR2GetFromBucket(photo.public_key, "public", 60 * 3, dn));
+  if (pub) return { url: pub, usedPublicWebpFallback: true };
+
+  if (photo.public_key?.startsWith("photography/")) {
+    const leg = await presignR2GetFromBucket(
+      photo.public_key,
+      "legacy",
+      60 * 3,
+      dn
+    );
+    if (leg) return { url: leg, usedPublicWebpFallback: true };
+  }
+
+  return null;
+}
 
 /**
  * Validates the signed download token, increments usage, and redirects to a
@@ -86,18 +121,74 @@ export async function GET(
   }
 
   const photo = order.photo_id ? await getCanonicalPhoto(order.photo_id) : null;
-  let signed: string | null = photo
-    ? await presignR2GetFromBucket(photo.original_key, "private", 60 * 3, photo.filename)
-    : null;
+
+  let signed: string | null = null;
+
+  const fromCanon = photo ? await signedOriginalOrPublicFromPhoto(photo) : null;
+  if (fromCanon) {
+    signed = fromCanon.url;
+    if (fromCanon.usedPublicWebpFallback) {
+      console.warn(
+        "[photo/download] private original unavailable; served public derivative for photo",
+        order.photo_id ?? order.id
+      );
+    }
+  }
 
   if (!signed && order.photo_path) {
-    const originalKey = `photography-originals/${order.photo_path.replace(/\.webp$/i, ".jpg")}`;
-    const webpKey = `photography/${order.photo_path}`;
-    if (await r2ObjectExists(originalKey)) {
-      signed = await presignR2Get(originalKey, 60 * 5);
+    const rel = order.photo_path.replace(/^\/+/, "");
+    const base = rel.replace(/\.[^/.]+$/, "");
+    const imgExts = [".webp", ".jpg", ".jpeg", ".png"];
+
+    const publicKeys = imgExts.flatMap((ext) =>
+      rel.toLowerCase().endsWith(ext)
+        ? [`public/${rel}`, `photography/${rel}`]
+        : [`public/${base}${ext}`, `photography/${base}${ext}`]
+    );
+
+    /** Original uploads are rarely `.webp`; try common raw extensions against private bucket only. */
+    const originalExts = rel.toLowerCase().endsWith(".webp")
+      ? [".jpg", ".jpeg", ".png", ".tif", ".tiff"]
+      : imgExts;
+    const privateKeys = originalExts.flatMap((ext) => {
+      if (rel.toLowerCase().endsWith(ext)) {
+        return [
+          `originals/${rel}`,
+          `photography-originals/${rel}`,
+        ];
+      }
+      return [
+        `originals/${base}${ext}`,
+        `photography-originals/${base}${ext}`,
+      ];
+    });
+
+    for (const key of privateKeys) {
+      const url = await presignR2GetFromBucket(
+        key,
+        "private",
+        60 * 5,
+        downloadFilename(key.split("/").pop())
+      );
+      if (url) {
+        signed = url;
+        break;
+      }
     }
     if (!signed) {
-      signed = await presignR2Get(webpKey, 60 * 5);
+      for (const key of publicKeys) {
+        const bucketKind = key.startsWith("public/") ? "public" : "legacy";
+        const url = await presignR2GetFromBucket(
+          key,
+          bucketKind,
+          60 * 5,
+          downloadFilename(key.split("/").pop())
+        );
+        if (url) {
+          signed = url;
+          break;
+        }
+      }
     }
   }
   if (!signed) {
