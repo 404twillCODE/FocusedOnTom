@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { photoCategories, eventPageHref } from "@/lib/photography";
+import { eventPageHref } from "@/lib/photography";
+import { loadPhotographyData } from "@/lib/photography-source";
 import { PHOTO_BRAND } from "@/lib/photography-config";
 
 export const revalidate = 3600;
@@ -29,8 +30,9 @@ export async function GET() {
     date: Date;
   };
   const all: RssItem[] = [];
+  const { categories } = await loadPhotographyData();
 
-  for (const cat of photoCategories) {
+  for (const cat of categories) {
     for (const ev of cat.events) {
       const date = ev.takenAt ? new Date(ev.takenAt) : new Date();
       const url = `${site}${eventPageHref(cat.slug, ev.slug)}`;

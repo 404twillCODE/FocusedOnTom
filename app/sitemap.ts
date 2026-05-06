@@ -1,9 +1,6 @@
 import type { MetadataRoute } from "next";
-import {
-  categoryPageHref,
-  eventPageHref,
-  photoCategories,
-} from "@/lib/photography";
+import { categoryPageHref, eventPageHref } from "@/lib/photography";
+import { loadPhotographyData } from "@/lib/photography-source";
 import { absoluteUrl } from "@/lib/site-url";
 
 const STATIC: Array<{
@@ -35,8 +32,9 @@ const STATIC: Array<{
   { path: "/feed/galleries.xml", changeFrequency: "daily", priority: 0.5 },
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
+  const { categories } = await loadPhotographyData();
 
   const out: MetadataRoute.Sitemap = STATIC.map(({ path, changeFrequency, priority }) => ({
     url: absoluteUrl(path),
@@ -45,7 +43,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority,
   }));
 
-  for (const cat of photoCategories) {
+  for (const cat of categories) {
     out.push({
       url: absoluteUrl(categoryPageHref(cat.slug)),
       lastModified,

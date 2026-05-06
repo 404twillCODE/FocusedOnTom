@@ -5,6 +5,11 @@ import Link from "next/link";
 import { ArrowLeft, Download, Loader2, Sparkles } from "lucide-react";
 import { getFOYSupabase } from "@/lib/supabase/foyClient";
 import { formatCents } from "@/lib/photography-config";
+import {
+  buildPhotographyBuyRedirectUrl,
+  buildTeVisualsAccountUrl,
+  isClientTeVisualsPhotographySource,
+} from "@/lib/tevisuals-public-shop-url";
 
 type PurchasePhoto = {
   id: string;
@@ -18,6 +23,70 @@ type PurchasePhoto = {
 };
 
 export default function MyPurchasesPage() {
+  if (isClientTeVisualsPhotographySource()) return <TeVisualsMyPurchasesCallout />;
+  return <FocusedOnTomMyPurchases />;
+}
+
+/** TE-backed catalog — purchases/downloads are hosted on TE Visuals. */
+function TeVisualsMyPurchasesCallout() {
+  const accountUrl = buildTeVisualsAccountUrl();
+  const viaRedirect = accountUrl
+    ? buildPhotographyBuyRedirectUrl(accountUrl)
+    : null;
+
+  return (
+    <main className="min-h-screen">
+      <section className="mx-auto max-w-6xl px-4 pt-24 pb-24 sm:px-6 sm:pt-28">
+        <nav className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em]">
+          <Link
+            href="/photography"
+            className="inline-flex items-center gap-1.5 text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Photography
+          </Link>
+          <span className="text-[var(--textMuted)]">/</span>
+          <span className="text-[var(--ice)]">My purchases</span>
+        </nav>
+
+        <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/70 p-8 sm:p-10">
+          <h1 className="text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl">
+            Purchases live on TE Visuals
+          </h1>
+          <p className="mt-3 max-w-xl text-[var(--textMuted)]">
+            View invoices, downloads, and license details on TE Visuals — this
+            site only mirrors the portfolio.
+          </p>
+          <p className="mt-2 text-xs text-white/45">
+            Set{" "}
+            <code className="rounded bg-black/35 px-1 py-px text-[var(--ice)]">
+              NEXT_PUBLIC_TEVISUALS_PUBLIC_URL
+            </code>{" "}
+            if the button below is unavailable.
+          </p>
+          {viaRedirect ? (
+            <Link
+              href={viaRedirect}
+              className="mt-6 inline-flex rounded-full border border-[var(--ice)]/50 bg-[var(--ice)]/12 px-5 py-2.5 text-sm font-medium text-[var(--ice)] transition-colors hover:bg-[var(--ice)]/20"
+            >
+              View purchases on TE Visuals
+            </Link>
+          ) : (
+            <p className="mt-6 text-sm text-amber-100/95">
+              Add{" "}
+              <code className="rounded bg-black/35 px-1">
+                NEXT_PUBLIC_TEVISUALS_PUBLIC_URL
+              </code>{" "}
+              (same origin as TE Visuals) to enable outbound links from this site.
+            </p>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function FocusedOnTomMyPurchases() {
   const [photos, setPhotos] = useState<PurchasePhoto[]>([]);
   const [unlimited, setUnlimited] = useState(false);
   const [loading, setLoading] = useState(true);

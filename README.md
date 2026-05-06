@@ -35,6 +35,25 @@ for the full list.
 
 ## Photography workflow
 
+> **Note:** photography is migrating to **TE Visuals** as the source of
+> truth — galleries, originals, purchases, licensing, and downloads all live
+> there. See [`docs/TEVISUALS_MIGRATION.md`](./docs/TEVISUALS_MIGRATION.md)
+> for the audit + migration checklist.
+>
+> When `PHOTOGRAPHY_SOURCE=tevisuals` is set:
+> - Pages fetch the catalog from TE Visuals (`revalidate=3600`,
+>   tag `tevisuals:catalog`), filtered to `photographer === "tom"` +
+>   `visibility === "public"` so Eric's photos never appear on FOT.
+> - Force-refresh: `POST /api/admin/photography/sync` (admin only).
+> - Buy buttons forward to TE Visuals checkout; downloads forward to TE
+>   Visuals signed-original URLs.
+> - The legacy upload script below refuses to run (use
+>   `--force-upload` for one-off archival).
+> - The local manifest is kept only as a fallback for outages.
+>
+> The rest of this section describes the **legacy** local-upload flow used
+> when `PHOTOGRAPHY_SOURCE=local` (the default during the migration window).
+
 Original photos are stored **locally** under `./photography/` (git-ignored)
 and the site loads optimized versions from **Cloudflare R2**. GitHub only ever
 sees the code and the generated manifest.

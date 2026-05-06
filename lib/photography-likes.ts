@@ -1,5 +1,7 @@
 "use client";
 
+import type { Photo } from "@/lib/photography";
+
 // ---------------------------------------------------------------------------
 // Client-side hook for likes + favorites.
 //
@@ -12,6 +14,7 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { getFOYSupabase } from "@/lib/supabase/foyClient";
+import { isClientTeVisualsPhotographySource } from "@/lib/tevisuals-public-shop-url";
 
 const LIKES_KEY = "focusedontom:liked_photos";
 const FAVORITES_KEY = "focusedontom:favorite_photos";
@@ -191,61 +194,294 @@ function parseCached(str: string): Set<string> {
   }
 }
 
-/**
- * Hook that tells the Lightbox whether the current user is an Unlimited
- * subscriber or owns a specific photo (so the watermark can hide).
- * Returns `{ ready, isUnlimited, ownsPhoto }`.
- */
-export function useUnlimitedAndOwnership(photoId?: string): {
+/** Entitlement snapshot for lightbox commerce (non-blocking defaults). */
+export type PhotoEntitlements = {
+  /** Request finished normally, timed out, or failed (steady-state for watermark). */
   ready: boolean;
-  isUnlimited: boolean;
+  signedIn: boolean;
+  unlimitedActive: boolean;
+  personalDownload: boolean;
+  commercialDownload: boolean;
   ownsPhoto: boolean;
-} {
-  const [state, setState] = useState({
-    ready: false,
-    isUnlimited: false,
+  isUnlimited: boolean;
+  hasOriginal: boolean;
+};
+
+const ENTITLEMENT_TIMEOUT_MS = 12_000;
+
+function fallbackEntitlements(hasOriginal: boolean): PhotoEntitlements {
+  return {
+    ready: true,
+    signedIn: false,
+    unlimitedActive: false,
+    personalDownload: false,
+    commercialDownload: false,
     ownsPhoto: false,
-  });
+    isUnlimited: false,
+    hasOriginal,
+  };
+}
+
+/** True unless the manifest explicitly opts out (future-proof). */
+export function photoHasOriginalHeader(photo: Photo | undefined): boolean {
+  if (!photo) return true;
+  const o = (photo as { noOriginal?: boolean }).noOriginal;
+  return o !== true;
+}
+
+/**
+ * Whether the current user has Unlimited and/or owns this photo. Used for
+ * watermark + download — never blocks Buy CTAs: on slow/failed fetch we fall
+ * back to safe defaults and keep Buy visible.
+ *
+ * Does **not** abort the fetch on React effect cleanup (avoids Strict Mode /
+ * sibling unmount aborting a shared request). Timeout uses `Promise.race` only
+ * — no `AbortController` (avoids browser “signal is aborted without reason”).
+ */
+export function useUnlimitedAndOwnership(
+  photoId: string | undefined,
+  options?: { enabled?: boolean; photo?: Photo }
+): PhotoEntitlements {
+  const { enabled = true, photo } = options ?? {};
+  const hasOriginal = photoHasOriginalHeader(photo);
+
+  const [state, setState] = useState<PhotoEntitlements>(() => ({
+    ready: false,
+    signedIn: false,
+    unlimitedActive: false,
+    personalDownload: false,
+    commercialDownload: false,
+    ownsPhoto: false,
+    isUnlimited: false,
+    hasOriginal,
+  }));
+
+  /** Bump after returning from Stripe / another tab — legacy FOT commerce only. */
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    if (!enabled || isClientTeVisualsPhotographySource()) return;
+    let last = document.visibilityState;
+    const onVisibility = () => {
+      const cur = document.visibilityState;
+      if (last === "hidden" && cur === "visible") {
+        setRefreshKey((k) => k + 1);
+      }
+      last = cur;
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => document.removeEventListener("visibilitychange", onVisibility);
+  }, [enabled]);
+
+  /** Stripe return URL may include ?photo=<id> — refetch entitlement for that photo. */
+  useEffect(() => {
+    if (
+      !enabled ||
+      !photoId ||
+      typeof window === "undefined" ||
+      isClientTeVisualsPhotographySource()
+    )
+      return;
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("photo") === photoId) {
+        console.info(`[entitlements] URL ?photo= matches open photo — refetch`);
+        setRefreshKey((k) => k + 1);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [enabled, photoId]);
+
+  /** Second fetch ~1s after open — legacy FOT commerce only. */
+  useEffect(() => {
+    if (
+      !enabled ||
+      !photoId ||
+      typeof window === "undefined" ||
+      isClientTeVisualsPhotographySource()
+    )
+      return;
+    const id = window.setTimeout(() => {
+      setRefreshKey((k) => k + 1);
+    }, 1000);
+    return () => clearTimeout(id);
+  }, [enabled, photoId]);
 
   useEffect(() => {
     let cancelled = false;
+
+    if (!enabled) {
+      setState({
+        ready: false,
+        signedIn: false,
+        unlimitedActive: false,
+        personalDownload: false,
+        commercialDownload: false,
+        ownsPhoto: false,
+        isUnlimited: false,
+        hasOriginal,
+      });
+      return;
+    }
+
+    if (isClientTeVisualsPhotographySource()) {
+      if (!cancelled) {
+        setState(fallbackEntitlements(hasOriginal));
+      }
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setState((prev) => ({
+      ...prev,
+      ready: false,
+      hasOriginal,
+    }));
+
+    const startedAt = Date.now();
+    const tag = `[entitlements] photoId=${photoId ?? "none"}`;
+
     async function run() {
       try {
         const supabase = getFOYSupabase();
-        const { data: auth } = await supabase.auth.getSession();
-        const token = auth.session?.access_token;
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData.session?.access_token;
+        const sessionEmail = sessionData.session?.user?.email?.trim();
+
         if (!token) {
-          if (!cancelled)
-            setState({ ready: true, isUnlimited: false, ownsPhoto: false });
+          if (!cancelled) {
+            console.info(`${tag} fetch end`, {
+              ms: Date.now() - startedAt,
+              reason: "no_session",
+            });
+            setState({
+              ready: true,
+              signedIn: false,
+              unlimitedActive: false,
+              personalDownload: false,
+              commercialDownload: false,
+              ownsPhoto: false,
+              isUnlimited: false,
+              hasOriginal,
+            });
+          }
           return;
         }
-        const url = photoId
+
+        const fetchHeaders: HeadersInit = {
+          Authorization: `Bearer ${token}`,
+        };
+        const entitlementUrl = photoId
           ? `/api/photo/entitlements?photo_id=${encodeURIComponent(photoId)}`
           : `/api/photo/entitlements`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+
+        console.info(`${tag} fetch start`, {
+          emailVia: sessionEmail ? "session" : "none",
         });
-        if (!res.ok) throw new Error(String(res.status));
+
+        type Race =
+          | { outcome: "response"; res: Response }
+          | { outcome: "timeout" }
+          | { outcome: "fetch_err"; err: unknown };
+
+        const raced = await Promise.race<Race>([
+          fetch(entitlementUrl, {
+            headers: fetchHeaders,
+          })
+            .then((res) => ({ outcome: "response" as const, res }))
+            .catch((err: unknown) => ({
+              outcome: "fetch_err" as const,
+              err,
+            })),
+          new Promise<Race>((resolve) =>
+            setTimeout(() => {
+              console.warn(`${tag} timeout after ${ENTITLEMENT_TIMEOUT_MS}ms`);
+              resolve({ outcome: "timeout" });
+            }, ENTITLEMENT_TIMEOUT_MS)
+          ),
+        ]);
+
+        if (raced.outcome === "timeout") {
+          if (!cancelled) {
+            setState({
+              ...fallbackEntitlements(hasOriginal),
+              signedIn: Boolean(token),
+            });
+          }
+          return;
+        }
+
+        if (raced.outcome === "fetch_err") {
+          const err = raced.err;
+          console.warn(`${tag} fetch error`, {
+            ms: Date.now() - startedAt,
+            message: err instanceof Error ? err.message : String(err),
+          });
+          if (!cancelled) {
+            setState({
+              ...fallbackEntitlements(hasOriginal),
+              signedIn: Boolean(token),
+            });
+          }
+          return;
+        }
+
+        const res = raced.res;
+
+        if (!res.ok) {
+          console.warn(`${tag} fetch non-OK`, {
+            ms: Date.now() - startedAt,
+            status: res.status,
+          });
+          if (!cancelled) {
+            setState({
+              ...fallbackEntitlements(hasOriginal),
+              signedIn: Boolean(token),
+            });
+          }
+          return;
+        }
+
         const data = (await res.json()) as {
           unlimited?: boolean;
           owns?: boolean;
         };
-        if (cancelled) return;
-        setState({
-          ready: true,
-          isUnlimited: Boolean(data.unlimited),
-          ownsPhoto: Boolean(data.owns),
-        });
-      } catch {
-        if (!cancelled)
-          setState({ ready: true, isUnlimited: false, ownsPhoto: false });
+        const owns = Boolean(data.owns);
+        const unlimited = Boolean(data.unlimited);
+
+        if (!cancelled) {
+          console.info(`${tag} fetch end`, {
+            ms: Date.now() - startedAt,
+            response: { owns, unlimited },
+          });
+          setState({
+            ready: true,
+            signedIn: Boolean(token),
+            unlimitedActive: unlimited,
+            personalDownload: owns,
+            commercialDownload: owns,
+            ownsPhoto: owns,
+            isUnlimited: unlimited,
+            hasOriginal,
+          });
+        }
+      } catch (err) {
+        console.warn(`${tag} unexpected`, err);
+        if (!cancelled) {
+          setState({
+            ...fallbackEntitlements(hasOriginal),
+            signedIn: false,
+          });
+        }
       }
     }
     void run();
     return () => {
       cancelled = true;
     };
-  }, [photoId]);
+  }, [photoId, enabled, hasOriginal, refreshKey]);
 
   return state;
 }

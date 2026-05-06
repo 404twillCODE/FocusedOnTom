@@ -51,6 +51,35 @@ export type Photo = {
   eventSlug?: string;
   /** Optional GPS if the sync script was run with PHOTOGRAPHY_INCLUDE_GPS=true. */
   gps?: { lat: number; lng: number };
+  /** TE Visuals metadata passthrough fields (safe optional no-ops for legacy). */
+  filename?: string;
+  techCaption?: string;
+  capturedAt?: string;
+  photographer?: "tom" | "eric" | "team";
+  section?: string;
+  sectionId?: string;
+  sectionTitle?: string;
+  sectionSlug?: string;
+  sectionOrder?: number;
+  photoOrderWithinSection?: number;
+  personalPriceCents?: number;
+  commercialPriceCents?: number;
+  watermarkRequired?: boolean;
+  sortOrder?: number;
+  createdAt?: string;
+  cursor?: string;
+  displayOrder?: number;
+  galleryId?: string;
+  galleryTitle?: string;
+  gallerySlug?: string;
+  category?: string;
+  publicUrl?: string;
+  proxyUrl?: string;
+  prices?: {
+    personalCents?: number;
+    commercialCents?: number;
+    currency?: string;
+  };
 };
 
 export type PhotoEvent = {

@@ -6,26 +6,45 @@ import {
   isEmailAdmin,
 } from "@/lib/supabase/admin";
 import { hasActiveUnlimited, ownsPhoto } from "@/lib/photo-access";
+import { isPhotographySourceTeVisuals } from "@/lib/tevisuals/client";
 
 /**
- * Returns whether the authed user has an active Unlimited subscription,
- * and (if photo_id is passed) whether they've purchased that photo.
- *
- * Never throws — returns `{ unlimited: false, owns: false }` as a safe
- * default. Drives watermark hiding in the lightbox.
+ * Returns whether the user has Unlimited and/or owns a photo (legacy FocusedOnTom
+ * storefront only). TE-backed catalogs do not expose purchase state on FOT —
+ * buying and entitlement checks happen on TE Visuals.
  */
 export async function GET(request: NextRequest) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) {
-    return NextResponse.json({ unlimited: false, owns: false });
-  }
-  const photoId = request.nextUrl.searchParams.get("photo_id");
+  const photoIdRaw = request.nextUrl.searchParams.get("photo_id");
+
   try {
+    if (isPhotographySourceTeVisuals()) {
+      return NextResponse.json({
+        unlimited: false,
+        owns: false,
+        source: "tevisuals",
+      });
+    }
+
+    // ---------------------------------------------------------------------
+    // Legacy FOT commerce — requires Supabase user
+    // ---------------------------------------------------------------------
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
+      return NextResponse.json({ unlimited: false, owns: false });
+    }
+
     const auth = await getUserEmailFromRequest(request);
-    const isAdmin = auth ? await isEmailAdmin(auth.email) : false;
-    if (isAdmin) {
+    if (!auth?.email?.trim()) {
+      console.error(
+        "[api/photo/entitlements] legacy: signed-in user missing email on JWT"
+      );
+      return NextResponse.json({ unlimited: false, owns: false });
+    }
+
+    if (await isEmailAdmin(auth.email)) {
       return NextResponse.json({ unlimited: true, owns: true, admin: true });
     }
+
     const admin = getSupabaseAdmin();
 
     const [subRes, orderRes] = await Promise.all([
@@ -34,12 +53,12 @@ export async function GET(request: NextRequest) {
         .select("status, current_period_end")
         .eq("user_id", userId)
         .maybeSingle(),
-      photoId
+      photoIdRaw
         ? admin
             .from("photo_orders")
             .select("id, status")
             .eq("user_id", userId)
-            .eq("photo_id", photoId)
+            .eq("photo_id", photoIdRaw)
             .in("status", ["paid", "delivered"])
             .limit(1)
         : Promise.resolve({ data: null, error: null } as { data: null; error: null }),
@@ -58,11 +77,12 @@ export async function GET(request: NextRequest) {
 
     const canonicalUnlimited = await hasActiveUnlimited(userId);
     const canonicalOwns =
-      photoId && auth ? await ownsPhoto(auth, photoId) : false;
+      photoIdRaw && auth ? await ownsPhoto(auth, photoIdRaw) : false;
 
     return NextResponse.json({
       unlimited: unlimited || canonicalUnlimited,
       owns: owns || canonicalOwns,
+      source: "focusedontom",
     });
   } catch (err) {
     console.error("[api/photo/entitlements] failed", err);

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin, getUserEmailFromRequest } from "@/lib/supabase/admin";
-import { getPhotoById } from "@/lib/photography";
+import { loadPhotoById } from "@/lib/photography-source";
 import { hasActiveUnlimited } from "@/lib/photo-access";
 import { isEmailAdmin } from "@/lib/supabase/admin";
 
@@ -18,8 +18,11 @@ type PurchasePhoto = {
   access: "purchase" | "subscription";
 };
 
-function manifestPhoto(photoId: string, access: "purchase" | "subscription"): PurchasePhoto | null {
-  const photo = getPhotoById(photoId);
+async function manifestPhoto(
+  photoId: string,
+  access: "purchase" | "subscription"
+): Promise<PurchasePhoto | null> {
+  const photo = await loadPhotoById(photoId);
   if (!photo) return null;
   return {
     id: photoId,
@@ -108,7 +111,7 @@ export async function GET(request: NextRequest) {
     const found = new Set(photos.map((photo) => photo.id));
     for (const photoId of photoIds) {
       if (!found.has(photoId)) {
-        const fallback = manifestPhoto(photoId, "purchase");
+        const fallback = await manifestPhoto(photoId, "purchase");
         if (fallback) photos.push(fallback);
       }
     }

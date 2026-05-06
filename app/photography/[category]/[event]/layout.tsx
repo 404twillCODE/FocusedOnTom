@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getEvent } from "@/lib/photography";
+import { loadEvent } from "@/lib/photography-source";
 import { getSiteUrl } from "@/lib/site-url";
 
 export async function generateMetadata({
@@ -8,7 +8,7 @@ export async function generateMetadata({
   params: Promise<{ category: string; event: string }>;
 }): Promise<Metadata> {
   const { category: catRaw, event: evRaw } = await params;
-  const match = getEvent(catRaw, evRaw);
+  const match = await loadEvent(catRaw, evRaw);
   if (!match) {
     return { title: "Gallery" };
   }

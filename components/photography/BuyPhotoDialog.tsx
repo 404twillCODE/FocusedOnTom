@@ -11,6 +11,7 @@ import {
 import { trackEvent } from "@/lib/photography-analytics";
 import type { LicenseId } from "@/lib/photography-types";
 import type { Photo } from "@/lib/photography";
+import { supabase } from "@/lib/supabase/client";
 
 type BuyPhotoDialogProps = {
   photo: Photo;
@@ -21,6 +22,7 @@ type BuyPhotoDialogProps = {
 export function BuyPhotoDialog({ photo, open, onClose }: BuyPhotoDialogProps) {
   const [pending, setPending] = useState<LicenseId | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [buyerEmail, setBuyerEmail] = useState("");
 
   useEffect(() => {
     if (!open) {
@@ -39,27 +41,92 @@ export function BuyPhotoDialog({ photo, open, onClose }: BuyPhotoDialogProps) {
   }, [open, onClose]);
 
   async function onPick(license: LicenseId) {
+    if (pending !== null) return;
+
     setError(null);
     setPending(license);
+    const t0 = Date.now();
+    console.info("[checkout] start", {
+      license,
+      photoId: photo.id ?? photo.src,
+    });
     trackEvent("license_click", {
       photo_id: photo.id ?? photo.src,
       license,
     });
     try {
+      if (!photo.id?.trim()) {
+        setError("This photo is missing an id for checkout.");
+        return;
+      }
+
+      const returnUrl =
+        typeof window !== "undefined"
+          ? (() => {
+              const u = new URL(window.location.href.replace(/#.*/, ""));
+              if (photo.id?.trim()) {
+                u.searchParams.set("photo", photo.id.trim());
+              }
+              return u.href;
+            })()
+          : "";
+
+      let headers: HeadersInit = { "Content-Type": "application/json" };
+      let checkoutBuyerEmail: string | undefined;
+      try {
+        const { data } = await supabase.auth.getSession();
+        const accessToken = data.session?.access_token;
+        const sessionEmail = data.session?.user?.email?.trim();
+        const guest = buyerEmail.trim();
+        checkoutBuyerEmail = sessionEmail ?? (guest || undefined);
+        if (accessToken) {
+          headers.Authorization = `Bearer ${accessToken}`;
+        }
+      } catch {
+        checkoutBuyerEmail = buyerEmail.trim() || undefined;
+      }
+
+      const bodyJson = JSON.stringify({
+        photoId: photo.id.trim(),
+        license,
+        returnUrl,
+        ...(checkoutBuyerEmail ? { buyerEmail: checkoutBuyerEmail } : {}),
+        ...(photo.path ? { photoPath: photo.path } : {}),
+      });
+
+      console.info("[checkout] POST /api/photo/checkout", {
+        license,
+        buyerEmail: checkoutBuyerEmail ?? "(none)",
+        msBeforeFetch: Date.now() - t0,
+      });
+
       const res = await fetch("/api/photo/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          photo_id: photo.id,
-          photo_path: photo.path,
-          license,
-        }),
+        headers,
+        body: bodyJson,
+        cache: "no-store",
       });
-      const data = (await res.json()) as {
+
+      const rawText = await res.text();
+      const elapsed = Date.now() - t0;
+      let data: {
         url?: string;
         error?: string;
+        message?: string;
         mailto?: string;
-      };
+      } = {};
+      try {
+        data = JSON.parse(rawText) as typeof data;
+      } catch {
+        console.warn("[checkout] response not JSON", rawText.slice(0, 400));
+      }
+
+      console.info("[checkout] end", {
+        ok: res.ok,
+        status: res.status,
+        ms: elapsed,
+      });
+
       if (res.status === 501 || data.error === "stripe_not_configured") {
         const subject = encodeURIComponent(
           `Photo purchase: ${photo.id ?? "photo"} (${license})`
@@ -71,14 +138,32 @@ export function BuyPhotoDialog({ photo, open, onClose }: BuyPhotoDialogProps) {
         return;
       }
       if (!res.ok || !data.url) {
-        setError(data.error ?? "Something went wrong.");
+        const detail =
+          data.error ??
+          data.message ??
+          (rawText.trim() ? rawText.slice(0, 300) : `HTTP ${res.status}`);
+        console.warn("[checkout] failed", {
+          status: res.status,
+          body: rawText.slice(0, 600),
+        });
+        setError(detail);
         return;
       }
       window.location.href = data.url;
-    } catch (e) {
-      setError((e as Error).message ?? "Network error");
+    } catch (e: unknown) {
+      console.warn("[checkout] thrown", e);
+      const msg =
+        e instanceof DOMException && e.name === "AbortError"
+          ? "Checkout was interrupted (browser aborted the request). Close other tabs or try again."
+          : e instanceof Error && /abort/i.test(e.message)
+            ? "Checkout was interrupted. Try again."
+            : e instanceof Error
+              ? e.message
+              : "Network error";
+      setError(msg);
     } finally {
       setPending(null);
+      console.info("[checkout] finally", { totalMs: Date.now() - t0 });
     }
   }
 
@@ -127,14 +212,30 @@ export function BuyPhotoDialog({ photo, open, onClose }: BuyPhotoDialogProps) {
               single-use or subscribe for unlimited downloads.
             </p>
 
+            <label className="mt-5 flex flex-col gap-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-[var(--textMuted)]">
+                Email (guest checkout optional)
+              </span>
+              <input
+                type="email"
+                name="buyer-email"
+                autoComplete="email"
+                value={buyerEmail}
+                onChange={(e) => setBuyerEmail(e.target.value)}
+                placeholder="Uses your FocusedOnTom session when signed in"
+                disabled={pending !== null}
+                className="w-full rounded-lg border border-[var(--border)] bg-[var(--bg3)]/50 px-3 py-2.5 text-sm text-[var(--text)] outline-none placeholder:text-[var(--textMuted)] focus:border-[var(--ice)]/50"
+              />
+            </label>
+
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
               {LICENSE_TIERS.map((tier) => (
                 <button
                   key={tier.id}
                   type="button"
                   onClick={() => onPick(tier.id)}
-                  disabled={pending !== null}
-                  className={`group relative flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/40 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--ice)]/60 hover:bg-[var(--bg3)]/70 disabled:cursor-not-allowed disabled:opacity-60 ${
+                  disabled={pending === tier.id}
+                  className={`group relative flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg3)]/40 p-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--ice)]/60 hover:bg-[var(--bg3)]/70 disabled:cursor-wait disabled:opacity-70 ${
                     tier.subscription ? "ring-1 ring-[var(--ice)]/30" : ""
                   }`}
                 >

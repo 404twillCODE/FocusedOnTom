@@ -4,6 +4,7 @@ import { verifyDownloadToken } from "@/lib/photography-tokens";
 import { presignR2GetFromBucket } from "@/lib/r2";
 import { DOWNLOAD_TOKEN_MAX_USES } from "@/lib/photography-config";
 import { getCanonicalPhoto } from "@/lib/photo-access";
+import { isTeVisualsSourceEnabled } from "@/lib/tevisuals/client";
 
 export const runtime = "nodejs";
 
@@ -53,6 +54,22 @@ export async function GET(
   const { token } = await context.params;
   if (!token) {
     return NextResponse.json({ error: "missing_token" }, { status: 400 });
+  }
+
+  // When TE Visuals is the source of truth, FOT-issued download tokens are
+  // legacy. Buyers should use the TE Visuals download link from their
+  // checkout success email instead. We refuse the token rather than
+  // proxy-signing — proxying would leak FOT R2 originals that we are
+  // intentionally retiring.
+  if (isTeVisualsSourceEnabled()) {
+    return NextResponse.json(
+      {
+        error: "downloads_moved",
+        message:
+          "Photo downloads now go through TE Visuals. Use the download link from your purchase confirmation email, or sign in to /my-purchases to fetch a fresh link.",
+      },
+      { status: 410 }
+    );
   }
 
   const claims = await verifyDownloadToken(token);

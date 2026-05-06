@@ -6,6 +6,11 @@ import { ArrowLeft, Check, Loader2, Sparkles } from "lucide-react";
 import { LICENSE_TIERS, formatCents } from "@/lib/photography-config";
 import { supabase } from "@/lib/supabase/client";
 import { trackEvent } from "@/lib/photography-analytics";
+import {
+  buildPhotographyBuyRedirectUrl,
+  buildTeVisualsAccountUrl,
+  isClientTeVisualsPhotographySource,
+} from "@/lib/tevisuals-public-shop-url";
 
 export default function UnlimitedPage() {
   const tier = LICENSE_TIERS.find((t) => t.id === "unlimited");
@@ -56,7 +61,18 @@ export default function UnlimitedPage() {
         },
         body: JSON.stringify({ license: "unlimited" }),
       });
-      const data = (await res.json()) as { url?: string; error?: string };
+      const data = (await res.json()) as {
+        url?: string;
+        error?: string;
+        message?: string;
+      };
+      if (res.status === 410) {
+        setError(
+          data.message ??
+            "Unlimited and photo checkout are hosted on TE Visuals when using the TE-backed catalog."
+        );
+        return;
+      }
       if (res.status === 501) {
         setError(
           "Unlimited is not fully connected yet. Stripe keys need to be added in .env.local."
@@ -73,6 +89,51 @@ export default function UnlimitedPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (isClientTeVisualsPhotographySource()) {
+    const accountRaw = buildTeVisualsAccountUrl();
+    const accountViaFotRedirect = accountRaw
+      ? buildPhotographyBuyRedirectUrl(accountRaw)
+      : "/my-purchases";
+
+    return (
+      <main className="min-h-screen">
+        <section className="mx-auto max-w-5xl px-4 pt-24 pb-24 sm:px-6 sm:pt-28">
+          <nav className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em]">
+            <Link
+              href="/photography"
+              className="inline-flex items-center gap-1.5 text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Photography
+            </Link>
+            <span className="text-[var(--textMuted)]">/</span>
+            <span className="text-[var(--ice)]">Unlimited</span>
+          </nav>
+
+          <div className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--bg2)]/70 p-8 sm:p-10">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--ice)]/40 bg-[var(--ice)]/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.14em] text-[var(--ice)]">
+              <Sparkles className="h-3 w-3" />
+              TE Visuals catalog
+            </span>
+            <h1 className="mt-4 text-2xl font-semibold tracking-tight text-[var(--text)] sm:text-3xl">
+              Unlimited lives on TE Visuals
+            </h1>
+            <p className="mt-3 max-w-xl text-[var(--textMuted)]">
+              This site mirrors the portfolio; subscriptions and billing run on TE
+              Visuals. Manage your plan there after signing in on their site.
+            </p>
+            <Link
+              href={accountViaFotRedirect}
+              className="mt-6 inline-flex rounded-full border border-[var(--ice)]/50 bg-[var(--ice)]/12 px-5 py-2.5 text-sm font-medium text-[var(--ice)] transition-colors hover:bg-[var(--ice)]/20"
+            >
+              View purchases on TE Visuals
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   return (

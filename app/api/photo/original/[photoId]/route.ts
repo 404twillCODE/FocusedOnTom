@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserEmailFromRequest } from "@/lib/supabase/admin";
 import { canAccessOriginal, getCanonicalPhoto } from "@/lib/photo-access";
 import { presignR2GetFromBucket } from "@/lib/r2";
+import { isTeVisualsSourceEnabled } from "@/lib/tevisuals/client";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,19 @@ export async function GET(
   }
 
   const { photoId } = await params;
+
+  if (isTeVisualsSourceEnabled()) {
+    return NextResponse.json(
+      {
+        error: "tevisuals_download_on_te_visuals_only",
+        message:
+          "FocusedOnTom hosts the TE Visuals gallery only. Download purchases from TE Visuals (account → downloads).",
+        source: "tevisuals",
+      },
+      { status: 410 }
+    );
+  }
+
   const access = await canAccessOriginal(auth, photoId);
   if (!access.allowed) {
     return NextResponse.json({ error: "not_purchased" }, { status: 403 });

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Aperture, Camera, Gauge, Timer } from "lucide-react";
-import { photoCategories } from "@/lib/photography";
+import { loadPhotographyData } from "@/lib/photography-source";
 
 export const revalidate = 3600;
 
@@ -57,7 +57,7 @@ function Bar({ bins, title, icon }: { bins: Bin[]; title: string; icon: React.Re
   );
 }
 
-export default function StatsPage() {
+export default async function StatsPage() {
   const cameras: string[] = [];
   const lenses: string[] = [];
   const focals: string[] = [];
@@ -67,7 +67,8 @@ export default function StatsPage() {
   let totalPhotos = 0;
   let totalEvents = 0;
 
-  for (const cat of photoCategories) {
+  const { categories } = await loadPhotographyData();
+  for (const cat of categories) {
     for (const ev of cat.events) {
       totalEvents += 1;
       for (const p of ev.photos) {

@@ -2,6 +2,11 @@ import Link from "next/link";
 import { Check, Download, Sparkles } from "lucide-react";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { PHOTO_BRAND } from "@/lib/photography-config";
+import { isPhotographySourceTeVisuals } from "@/lib/tevisuals/client";
+import {
+  buildPhotographyBuyRedirectUrl,
+  buildTeVisualsAccountUrl,
+} from "@/lib/tevisuals-public-shop-url";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +31,13 @@ export default async function ThankYouPage({
 }) {
   const { session_id: sessionId, kind } = await searchParams;
   const order = sessionId ? await getOrderBySession(sessionId) : null;
+
+  const teCatalog = isPhotographySourceTeVisuals();
+  const teAccountHref = teCatalog ? buildTeVisualsAccountUrl() : null;
+  const purchasesHref =
+    teCatalog && teAccountHref
+      ? buildPhotographyBuyRedirectUrl(teAccountHref)
+      : "/my-purchases";
 
   return (
     <main className="min-h-screen">
@@ -69,10 +81,10 @@ export default async function ThankYouPage({
               Back to galleries
             </Link>
             <Link
-              href="/my-purchases"
+              href={purchasesHref}
               className="rounded-full border border-[var(--border)] bg-[var(--bg3)]/60 px-4 py-2 text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
             >
-              View purchases
+              {teCatalog ? "View purchases on TE Visuals" : "View purchases"}
             </Link>
           </div>
 

@@ -18,8 +18,10 @@ import {
 import type { Photo } from "@/lib/photography";
 import { PhotoWatermark } from "@/components/photography/PhotoWatermark";
 import { PhotoActions } from "@/components/photography/PhotoActions";
+import type { PhotoEntitlements } from "@/lib/photography-likes";
 import { useUnlimitedAndOwnership } from "@/lib/photography-likes";
 import { trackEvent } from "@/lib/photography-analytics";
+import { isClientTeVisualsPhotographySource } from "@/lib/tevisuals-public-shop-url";
 
 type LightboxProps = {
   photos: Photo[];
@@ -46,6 +48,11 @@ function useFinePointer() {
 
 export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProps) {
   const open = index !== null;
+  const current = index !== null ? photos[index] : null;
+  const entitlements = useUnlimitedAndOwnership(current?.id, {
+    enabled: Boolean(open && current),
+    photo: current ?? undefined,
+  });
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null);
   const suppressBackdropCloseRef = useRef(false);
 
@@ -98,8 +105,6 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
     };
   }, [open, onClose, goNext, goPrev]);
 
-  const current = index !== null ? photos[index] : null;
-
   const onTouchStartSwipe = useCallback(
     (e: React.TouchEvent) => {
       if (photos.length <= 1) return;
@@ -140,7 +145,7 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
 
   return (
     <AnimatePresence>
-      {open && current && (
+      {open && current != null && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -217,6 +222,7 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
           >
             <LightboxPhoto
               photo={current}
+              entitlements={entitlements}
               onDragGestureOutside={() => {
                 suppressBackdropCloseRef.current = true;
               }}
@@ -226,7 +232,7 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
               index={index}
               total={photos.length}
             />
-            <PhotoActions photo={current} />
+            <PhotoActions photo={current} entitlements={entitlements} />
           </motion.div>
         </motion.div>
       )}
@@ -236,19 +242,24 @@ export function Lightbox({ photos, index, onClose, onIndexChange }: LightboxProp
 
 function LightboxPhoto({
   photo,
+  entitlements,
   onDragGestureOutside,
 }: {
   photo: Photo;
+  entitlements: PhotoEntitlements;
   onDragGestureOutside: () => void;
 }) {
   const finePointer = useFinePointer();
-  const entitlements = useUnlimitedAndOwnership(photo.id);
-  const hideWatermark =
-    !entitlements.ready || entitlements.isUnlimited || entitlements.ownsPhoto;
+  const commerceTeCatalog = isClientTeVisualsPhotographySource();
+  const hideWatermark = commerceTeCatalog
+    ? photo.watermarkRequired === false
+    : entitlements.ready &&
+      (entitlements.isUnlimited || entitlements.ownsPhoto);
   const [fullReady, setFullReady] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoomScale, setZoomScale] = useState(2.25);
+  const [isDragging, setIsDragging] = useState(false);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const suppressClickRef = useRef(false);
   const dragRef = useRef<{
@@ -289,6 +300,7 @@ function LightboxPhoto({
     if (!zoomed) {
       setPan({ x: 0, y: 0 });
       dragRef.current = null;
+      setIsDragging(false);
     }
   }, [zoomed]);
 
@@ -309,6 +321,7 @@ function LightboxPhoto({
     };
     const onUp = () => {
       dragRef.current = null;
+      setIsDragging(false);
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -354,6 +367,7 @@ function LightboxPhoto({
       baseX: pan.x,
       baseY: pan.y,
     };
+    setIsDragging(true);
   };
 
   const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -434,7 +448,7 @@ function LightboxPhoto({
           y: pan.y,
         }}
         transition={{
-          type: dragRef.current ? false : "spring",
+          type: isDragging ? false : "spring",
           stiffness: 230,
           damping: 30,
         }}
@@ -530,8 +544,35 @@ function LightboxMeta({
   if (exif?.iso) settings.push(exif.iso);
   if (exif?.focal) settings.push(exif.focal);
   if (settings.length > 0) exifBits.push(settings.join(" · "));
+  if (photo.techCaption && exifBits.length === 0) {
+    exifBits.push(photo.techCaption);
+  }
 
-  const hasMeta = Boolean(caption) || exifBits.length > 0 || total > 1;
+  const detailBits: string[] = [];
+  if (photo.capturedAt || exif?.takenAt) {
+    const captured = new Date(photo.capturedAt ?? exif?.takenAt ?? "");
+    if (!Number.isNaN(captured.getTime())) {
+      detailBits.push(
+        captured.toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      );
+    }
+  }
+  if (photo.photographer) {
+    const photographerLabel =
+      photo.photographer === "tom"
+        ? "Tom"
+        : photo.photographer === "eric"
+          ? "Eric"
+          : "Team";
+    detailBits.push(`Shot by ${photographerLabel}`);
+  }
+
+  const hasMeta =
+    Boolean(caption) || exifBits.length > 0 || detailBits.length > 0 || total > 1;
   if (!hasMeta) return null;
 
   return (
@@ -554,6 +595,16 @@ function LightboxMeta({
                   ·
                 </span>
               )}
+              <span>{bit}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      {detailBits.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-white/45 sm:text-xs">
+          {detailBits.map((bit, i) => (
+            <span key={`${bit}-${i}`} className="inline-flex items-center gap-2">
+              {i > 0 && <span className="text-white/25">·</span>}
               <span>{bit}</span>
             </span>
           ))}

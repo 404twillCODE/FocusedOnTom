@@ -429,6 +429,37 @@ async function loadMetaForDir(absDir) {
 // ---------------------------------------------------------------------------
 
 async function main() {
+  // -----------------------------------------------------------------------
+  // Migration guard: TE Visuals is now the source of truth for photography.
+  // The local upload pipeline is retained only for backwards compatibility
+  // and refuses to run when:
+  //   * PHOTOGRAPHY_SOURCE === "tevisuals" (migration switch flipped), or
+  //   * PHOTOGRAPHY_DISABLE_UPLOADS === "1" (explicit kill-switch).
+  // Use --force-upload to override (e.g. final pre-deletion archival sync).
+  // -----------------------------------------------------------------------
+  const sourceMode = (process.env.PHOTOGRAPHY_SOURCE ?? "").trim().toLowerCase();
+  const uploadsDisabled =
+    process.env.PHOTOGRAPHY_DISABLE_UPLOADS === "1" ||
+    process.env.PHOTOGRAPHY_DISABLE_UPLOADS === "true";
+  const allowOverride = ARGS.has("--force-upload");
+  if ((sourceMode === "tevisuals" || uploadsDisabled) && !allowOverride) {
+    console.warn(
+      "[photos:sync] disabled — TE Visuals is now the source of truth for photography."
+    );
+    console.warn(
+      "[photos:sync] To pull the latest catalog, hit POST /api/admin/photography/sync (admin only)."
+    );
+    console.warn(
+      "[photos:sync] Pass --force-upload if you really need to run the legacy R2 upload (archive / one-off only)."
+    );
+    process.exit(0);
+  }
+  if (allowOverride) {
+    console.warn(
+      "[photos:sync] --force-upload set: bypassing TE Visuals migration guard. Hope you mean it."
+    );
+  }
+
   const SOURCE_DIR = await pickSourceDir();
   if (!SOURCE_DIR) {
     console.error(

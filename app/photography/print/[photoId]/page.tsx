@@ -2,11 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { getPhotoById } from "@/lib/photography";
+import { loadPhotoById } from "@/lib/photography-source";
 import { PRINT_PRODUCT } from "@/lib/photography-config";
 import { PrintOrderForm } from "@/components/photography/PrintOrderForm";
 
-export const dynamic = "force-static";
+export const dynamic = "force-dynamic";
 
 export default async function PrintPhotoPage({
   params,
@@ -14,7 +14,7 @@ export default async function PrintPhotoPage({
   params: Promise<{ photoId: string }>;
 }) {
   const { photoId } = await params;
-  const photo = getPhotoById(photoId);
+  const photo = await loadPhotoById(photoId);
   if (!photo) notFound();
 
   return (

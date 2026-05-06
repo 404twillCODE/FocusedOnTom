@@ -4,6 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, LogIn, User, UserPlus } from "lucide-react";
 import { getFOYSupabase } from "@/lib/supabase/foyClient";
+import {
+  buildPhotographyBuyRedirectUrl,
+  buildTeVisualsAccountUrl,
+  isClientTeVisualsPhotographySource,
+} from "@/lib/tevisuals-public-shop-url";
 
 type AuthMode = "signin" | "signup";
 
@@ -84,6 +89,12 @@ export default function PhotographyAccountPage() {
     }
   }
 
+  const teCatalogCommerce = isClientTeVisualsPhotographySource();
+  const tePurchasesHref = (() => {
+    const raw = buildTeVisualsAccountUrl();
+    return raw ? buildPhotographyBuyRedirectUrl(raw) : "/my-purchases";
+  })();
+
   async function signOut() {
     if (!isSupabaseConfigured) {
       setError(
@@ -138,17 +149,21 @@ export default function PhotographyAccountPage() {
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Link
-                  href="/my-purchases"
+                  href={teCatalogCommerce ? tePurchasesHref : "/my-purchases"}
                   className="rounded-full border border-[var(--border)] bg-[var(--bg3)]/70 px-3 py-1.5 text-xs text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
                 >
-                  View purchases
+                  {teCatalogCommerce
+                    ? "View purchases on TE Visuals"
+                    : "View purchases"}
                 </Link>
-                <Link
-                  href="/photography/unlimited"
-                  className="rounded-full border border-[var(--border)] bg-[var(--bg3)]/70 px-3 py-1.5 text-xs text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
-                >
-                  Unlimited plan
-                </Link>
+                {!teCatalogCommerce ? (
+                  <Link
+                    href="/photography/unlimited"
+                    className="rounded-full border border-[var(--border)] bg-[var(--bg3)]/70 px-3 py-1.5 text-xs text-[var(--textMuted)] transition-colors hover:text-[var(--ice)]"
+                  >
+                    Unlimited plan
+                  </Link>
+                ) : null}
                 <button
                   type="button"
                   onClick={signOut}

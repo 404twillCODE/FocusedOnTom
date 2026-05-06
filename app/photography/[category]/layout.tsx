@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getCategory } from "@/lib/photography";
+import { loadCategory } from "@/lib/photography-source";
 import { getSiteUrl } from "@/lib/site-url";
 
 export async function generateMetadata({
@@ -8,7 +8,7 @@ export async function generateMetadata({
   params: Promise<{ category: string }>;
 }): Promise<Metadata> {
   const { category: raw } = await params;
-  const cat = getCategory(raw);
+  const cat = await loadCategory(raw);
   if (!cat) {
     return { title: "Photography" };
   }
