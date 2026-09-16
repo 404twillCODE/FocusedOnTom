@@ -1,7 +1,18 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# dependencies
+# Dependencies / archives
 /node_modules
+/old/node_modules
+/legacy-site/node_modules/
+/legacy-site/.next/
+# Local photo originals — too large for GitHub
+/legacy-site/photography/
+
+# Next.js (archived apps)
+/.next/
+/out/
+/build/
+/coverage
+
+# Yarn / pnpm
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,48 +21,21 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
+# Env / secrets
+.env*
+!.env.example
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# OS / editor
 .DS_Store
 *.pem
 
-# debug
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files — ignore all except .env.example (safe template)
-.env*
-!.env.example
-
-# workout app (local/docs only)
-WORKOUT_APP.md
-WORKOUT_TAB_REBUILD.md
-.sql
-/supabase/
-
-# photography originals — stored locally only, uploaded to Cloudflare R2 by
-# `npm run photos:sync`. The generated manifest (lib/photography-manifest.json)
-# IS committed; the raw images are not.
-/photography/**
-!/photography/.gitkeep
-
-# local upload cache used by scripts/sync-photography-to-r2.mjs
-/scripts/.cache/
-
-# vercel
+# Vercel / TypeScript
 .vercel
-
-# typescript
 *.tsbuildinfo
 next-env.d.ts
