@@ -1,6 +1,6 @@
 (() => {
  'use strict';
- if(!document.body.dataset.page?.includes('lens'))return;
+ if(!document.body.hasAttribute('data-scroll-site')&&!document.body.dataset.page?.includes('lens'))return;
  const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)],T=window.Tom;
  const base={exposure:0,contrast:0,highlights:0,shadows:0,temperature:0,tint:0,saturation:0,clarity:0,grain:0,vignette:0,zoom:1,rotation:0,panX:0,panY:0,bw:false,ratio:'1.5'};
  const presets={Natural:{},Wildlife:{contrast:14,shadows:14,saturation:8,clarity:20},Automotive:{contrast:25,highlights:-25,shadows:8,saturation:-14,clarity:22,vignette:15},Cinematic:{contrast:20,shadows:12,temperature:-12,tint:4,saturation:-25,vignette:23,grain:8},Sunset:{temperature:36,tint:8,contrast:12,highlights:-20,saturation:15},Mono:{bw:true,contrast:27,clarity:18,grain:13,vignette:12}};

@@ -1,4 +1,4 @@
-:root{--surface:#20271c;--surface-deep:#101711;--on-accent:#10150c;--accent-text:var(--acid)}
+:root{--surface:#1c2030;--surface-deep:#0d1018;--on-accent:#10150c;--accent-text:var(--acid)}
 @media(max-height:800px){.studio-stage{position:static!important}}
 button.asterisk{background:none;padding:0;line-height:inherit;color:inherit;font-family:inherit}
 .discovery-pocket>span:last-child{font-size:12px}
