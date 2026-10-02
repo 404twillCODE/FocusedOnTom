@@ -4,9 +4,9 @@
  function text(selector,value){const el=$(selector);if(el)el.textContent=value;}
  function heading(id,title,caption){const root=$('#'+id);if(!root)return;const h=$('.section-heading h2',root);if(h)h.textContent=title;const p=$('.section-heading>p',root);if(p){if(caption)p.textContent=caption;else p.remove();}}
  // Keep the identity short; the rest of the page shows the interests in action.
- const about=$('.about-body');if(about)about.innerHTML='<p>I’m Tom—a developer, photographer, and outdoors person from Upstate New York.</p><p>Code, cameras, and time outside.</p>';
+ const about=$('.about-body');if(about)about.innerHTML='<p>I’m Tom, a developer, photographer, and outdoors person from Upstate New York.</p><p>Code, cameras, and time outside.</p>';
  text('.hero-top span','TOM WILLIAMS');
- text('.hero-coordinate','CODE. CAPTURE. EXPLORE.');
+ text('.hero-coordinate','COMPUTER SCIENCE. CAMERAS. UPSTATE NEW YORK.');
  text('#worlds .section-heading p','Photography, projects, and the outdoors.');
  text('#worlds .section-heading h1','A few sides of me.');
  $$('.world-card .card-link').forEach(el=>el.textContent='Explore');
@@ -48,7 +48,7 @@
  text('#now-label','Drafts save on this device.');
  text('#edit-now','Edit a local note');
  text('#archive > .fine-print','Reference imagery, not my original photos. Imports stay on this device · 12 photos max · 20 MB each.');
- text('#explore-map > .fine-print','Schematic locations—not a navigation map.');
+ text('#explore-map > .fine-print','Schematic locations, not a navigation map.');
  text('#ny-explorer > .fine-print:last-of-type','Personal place index; access and conditions aren’t live. Saves stay on this device.');
  text('#interactive-desk > .fine-print','Concept artwork.');
  text('#camp-builder .fine-print','Layout sketch, not a safety plan. Saved on this device.');
@@ -59,7 +59,7 @@
  text('.pack-summary .fine-print','Personal kit, not a complete safety checklist. Saved on this device.');
  text('.boat-caption','CURRENT SETUP / PLANNED UPGRADES · NOT TO SCALE');
  text('#boat-journal .launch-study .fine-print','Abstract model, not a real launch-depth assessment.');
- text('.nodexity-room .fine-print','Visual experiment—not a product demo.');
+ text('.nodexity-room .fine-print','Visual experiment, not a product demo.');
  text('.gallery-room > .fine-print','Sample records. No files are scanned or changed.');
  text('#language-output + .fine-print','Example only; custom code isn’t executed.');
  // Less chrome around the same interactions.
