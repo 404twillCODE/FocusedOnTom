@@ -4,15 +4,22 @@ body[data-page=tools] header{position:static;max-width:780px;margin:auto;padding
 .tools-back:hover{color:var(--ink)}
 body[data-page=tools] .settings-trigger{font-size:.75rem;letter-spacing:0}
 body[data-page=tools] .toolbox{max-width:780px;margin:0 auto;padding:65px 30px 100px}
-.toolbox h1{font-size:2rem;font-weight:500;letter-spacing:-.04em;line-height:1.2;margin:0 0 30px}
+.toolbox h1{font-size:2rem;font-weight:500;letter-spacing:-.04em;line-height:1.2;margin:0}
+.tools-intro{margin:12px 0 28px;color:var(--muted);font-size:1rem;line-height:1.5}
 .tools-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
 .tools-list li{border-bottom:1px solid var(--line)}
-.tools-list a{display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:72px;padding:20px 12px;color:var(--ink);font-size:1rem;text-decoration:none;transition:background .15s,color .15s}
-.tools-list a:hover{background:var(--surface-deep);color:var(--accent-text)}
+.tools-list a{display:grid;grid-template-columns:64px minmax(0,1fr) auto;align-items:center;gap:18px;padding:18px 8px;color:var(--ink);text-decoration:none}
+.tools-list a:hover{background:var(--surface)}
+.tools-list a:hover .tool-name{color:var(--accent-text)}
+.tool-logo{width:64px;height:64px;object-fit:cover;border:1px solid var(--line);background:#10141c}
+.tool-copy{display:flex;flex-direction:column;gap:6px;min-width:0}
+.tool-name{font-size:1.05rem;font-weight:600;line-height:1.3}
+.tool-desc{color:var(--muted);font-size:.95rem;line-height:1.45}
+.tool-host{color:var(--ink);font-size:.8rem;letter-spacing:.01em}
 .tool-arrow{color:var(--muted);font-size:1.2rem}
 .tools-list a:focus-visible,.tools-back:focus-visible{outline:2px solid var(--acid);outline-offset:4px}
 body[data-page=tools] .discovery-pocket{display:none}
 .tools-skip{position:fixed;top:-100px;left:20px;z-index:3000;padding:15px;background:var(--acid);color:var(--on-accent)}
 .tools-skip:focus{top:15px}
-@media(max-width:600px){body[data-page=tools] header{padding:24px}body[data-page=tools] .toolbox{padding:42px 24px 70px}.tools-list a{padding-inline:4px}}
+@media(max-width:600px){body[data-page=tools] header{padding:24px}body[data-page=tools] .toolbox{padding:42px 24px 70px}.tools-list a{grid-template-columns:52px minmax(0,1fr);padding-inline:0}.tool-logo{width:52px;height:52px}.tool-arrow{display:none}}
 @media(prefers-reduced-motion:reduce){.tools-list a{transition:none}}

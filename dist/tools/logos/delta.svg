@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#091219"/>
+  <defs>
+    <clipPath id="basin">
+      <path d="M32 14.2 51 51.2H13Z"/>
+    </clipPath>
+  </defs>
+  <path d="M32 11.5 53.5 53H10.5Z" fill="none" stroke="#73ddd4" stroke-width="4" stroke-linejoin="round"/>
+  <g clip-path="url(#basin)">
+    <path d="M6 39.5c8-5.5 13 4.5 19 .4s11 4.4 17 .2 11 4 16-.3V58H6Z" fill="#73ddd4"/>
+    <path d="M8 39.2c8-5 13 4.2 19 .3s11 4 17 .2 11 3.6 16-.2" fill="none" stroke="#e8fffb" stroke-width="2" stroke-linecap="round"/>
+  </g>
+</svg>
