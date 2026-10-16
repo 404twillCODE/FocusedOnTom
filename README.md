@@ -1,3 +1,25 @@
+# Focused on Tom — device workspace portfolio
+
+The active redesign is in `dist/index.html`, `dist/scenes.css`, and `dist/scenes.js`.
+The photography library is fetched automatically from TEVisuals through the server.
+
+## Run locally
+
+```sh
+npm ci
+npm run dev
+```
+
+Open http://127.0.0.1:3851. The ignored `.env.local` contains the server-only
+read key for the photo feed. See [PHOTO-SYNC.md](PHOTO-SYNC.md) for setup,
+refresh timing, watermark protection, purchase links, and deployment details.
+
+The Python static-server command below is only for the archived static pages;
+it cannot serve the current photo API.
+
+
+---
+
 # Focused on Tom
 
 Complete editable source for the latest portfolio, including all four pages,
@@ -49,8 +71,8 @@ from the JavaScript files. Refresh the browser after editing.
 
 Settings, discoveries, photo imports, and drafts are local to the browser and
 origin where the site runs. They do not transfer from the hosted website to
-localhost or publish to other visitors. Original photographs and a TE Visuals
-feed have not been connected.
+localhost or publish to other visitors. The current homepage uses the live TEVisuals feed described in PHOTO-SYNC.md.
+Archived pages retain their original static behavior.
 
 The included landscape is credited reference imagery from Wilder With You:
 https://www.wilderwithyou.com/blog/how-to-spend-2-days-in-lake-placid-new-york-the-perfect-weekend-itinerary

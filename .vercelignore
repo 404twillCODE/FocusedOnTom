@@ -1,0 +1,6 @@
+old/
+legacy-site/
+node_modules/
+.git/
+.env*
+tests/

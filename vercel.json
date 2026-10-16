@@ -1,6 +1,28 @@
 {
   "framework": null,
-  "installCommand": "",
+  "installCommand": "npm ci",
   "buildCommand": "",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 60
+    }
+  },
+  "redirects": [
+    {
+      "source": "/photography",
+      "destination": "/#photography",
+      "permanent": false
+    },
+    {
+      "source": "/projects",
+      "destination": "/#projects",
+      "permanent": false
+    },
+    {
+      "source": "/about",
+      "destination": "/#about",
+      "permanent": false
+    }
+  ]
 }
