@@ -145,8 +145,12 @@ addEventListener('scroll',requestFrame,{passive:true});addEventListener('resize'
 function resizeScene(){
  if(!routeReady){requestFrame();return}
  const path=location.pathname,section=path.startsWith('/photography')?'photography':path.startsWith('/projects')?'projects':path==='/connect'?'contact':'about';
- const wasRestoring=restoringRoute;restoringRoute=true;instantScene(section);
- requestAnimationFrame(()=>{restoringRoute=wasRestoring;requestFrame()});
+ // A resize only needs the route guard during this synchronous reposition.
+ // Deferred restoration can capture another resize's temporary true value and
+ // permanently disable scroll-to-URL updates when resize events arrive together.
+ const wasRestoring=restoringRoute;restoringRoute=true;
+ try{instantScene(section)}finally{restoringRoute=wasRestoring}
+ requestFrame();
 }
 function destination(hash){
  const el=document.querySelector(hash);if(!el)return null;
