@@ -33,7 +33,7 @@ export function makeCatalog(rows, generatedAt) {
     const buyUrl = new URL(photoUrl); buyUrl.searchParams.set('buy', 'personal');
     const commercialUrl = new URL(photoUrl); commercialUrl.searchParams.set('buy', 'commercial');
     // Revision excludes temporary signed tokens; new content/order still changes the catalog hash.
-    const revision = createHash('sha256').update([row.photoId,row.publicUrl || '',row.width,row.height,row.createdAt].join('|')).digest('hex').slice(0,16);
+    const revision = createHash('sha256').update(['wordmark-v2',row.photoId,row.publicUrl || '',row.width,row.height,row.createdAt].join('|')).digest('hex').slice(0,16);
     const image = `/api/photo-preview?id=${encodeURIComponent(row.photoId)}&v=${revision}`;
     const caption = text(row.techCaption), parts = caption.split('•').map(x=>x.trim()).filter(Boolean);
     const timestamp = Date.parse(row.capturedAt);

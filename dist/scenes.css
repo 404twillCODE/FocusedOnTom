@@ -375,3 +375,6 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,body *::-webkit-scrollbar{displa
 .photo-app img,#lightbox img{user-select:none;-webkit-user-select:none;-webkit-user-drag:none;-webkit-touch-callout:none}
 #lightbox .zoom-hint{bottom:12px}.is-zoomed .photo-information{opacity:0;pointer-events:none}
 @media(max-width:600px){.photo-information{left:18px;right:18px;gap:14px;font-size:10px;bottom:48px}.photo-information>a{max-width:115px;text-align:center;line-height:1.5}#photo-details[open]{width:calc(100vw - 36px);padding:14px 18px}#lightbox-zoom{bottom:125px;height:calc(100% - 125px)}}
+
+/* Three projects in the requested desktop order. */
+.project-cards{grid-template-columns:repeat(3,minmax(0,1fr));gap:26px}.project-card{cursor:pointer;text-decoration:none}.project-card:focus-visible{outline:2px solid #c8b997;outline-offset:8px}.project-card-caption strong{font-size:clamp(23px,2.7vw,38px)}@media(max-width:700px){.project-cards{grid-template-columns:1fr;gap:35px}.project-card-caption strong{font-size:30px}}

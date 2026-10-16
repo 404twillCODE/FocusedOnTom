@@ -30,7 +30,7 @@ The catalog exposes local preview URLs and public TEVisuals photo/checkout links
 `GET /api/photo-preview` only accepts a catalog photo ID and a fixed thumbnail or
 large size, never a caller-supplied upstream URL. It fetches an approved preview,
 limits dimensions, composites a T&E Visuals watermark into pixels, and strips
-embedded metadata. Camera details remain available separately in Photo details.
+embedded metadata. Camera settings remain visible in the photo caption.
 This app never requests original-file keys or buyer entitlements.
 
 Buy and commercial-license links open the exact photo's checkout on TEVisuals.
@@ -56,6 +56,21 @@ The original `FOT_SYNC_API_KEY` on TEVisuals remains valid and unchanged.
 filtering, metadata and purchase links, fail-closed auth errors, preview URL
 allowlists, and actual watermark pixels with bounded image dimensions.
 
+The preview renderer uses bundled vector letter outlines, so its watermark does
+not depend on fonts installed on the server. Processed previews have a bounded
+memory cache; concurrent requests for the same image share one render. Catalog
+authorization is still checked before returning any cached image.
+
+The local preview can use `FOT_LOCAL_CATALOG` to point to an ignored JSON file
+containing the public catalog and approved public preview sources. The current
+local fixture includes all six collections and 531 photos. This option is used
+only by `scripts/dev-server.mjs`; the production API retains authenticated live
+sync. Do not commit the local environment or fixture as production configuration.
+
+Collection routes use `/photography/<category>/<collection>` and individual
+photos add `?photo=<id>`. Browser Back closes the current detail first. Arrow
+navigation replaces the photo query without adding an entry for every image.
+
 ## TEVisuals feed release
 
 The approved source update is saved on GitHub branch
@@ -65,5 +80,5 @@ It was based on the previously serving production commit `b9c176c`, not the
 failed remote-main release. Preserve the manifest-only auth changes in
 `lib/syncAuth.ts` and the manifest route when preparing future TEVisuals releases.
 
-The Focused on Tom redesign remains local; its public deployment will also need
-the read-only server environment variable before the live library can work.
+The Focused on Tom production project uses the read-only `FOT_SYNC_API_KEY`
+server variable for the live library. Local catalog fixtures are never deployed.

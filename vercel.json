@@ -10,19 +10,23 @@
   },
   "redirects": [
     {
-      "source": "/photography",
-      "destination": "/#photography",
-      "permanent": false
-    },
-    {
-      "source": "/projects",
-      "destination": "/#projects",
-      "permanent": false
-    },
-    {
       "source": "/about",
       "destination": "/#about",
       "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/photography/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/projects/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/connect",
+      "destination": "/index.html"
     }
   ]
 }
