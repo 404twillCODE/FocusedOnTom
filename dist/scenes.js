@@ -166,6 +166,7 @@ addEventListener('keydown',e=>{if(['ArrowDown','ArrowUp','PageDown','PageUp','Ho
 addEventListener('popstate',()=>restoreRoute());
 updateScenes();
 const projects = [
+ {image:'/project-previews/delta-water-explorer.webp',website:'https://delta-water-explorer.vercel.app/',imageCaption:'Delta Water Explorer · live website',name:'Delta Water Explorer',slug:'delta-water-explorer',tag:'DATA VISUALIZATION · WEB APPLICATION',headline:'Know the water. Find your window.',description:'An interactive explorer for Delta Reservoir near Rome, New York. It brings observed water levels, seasonal drawdown, and the historical record into one place, with clear sources and context.',stack:['NOAA / NWPS','USGS','Interactive charts'],notes:['Explore recent NOAA pool observations and the historical USGS record.','Compare seasonal drawdown, refill signals, and measured water-level trends.','Inspect the data sources, coverage gaps, and analysis methods behind each view.'],links:[]},
  {image:'/project-previews/nodexity-site.png',website:'https://nodexity.com/',imageCaption:'Nodexity · live website',name:'Nodexity',tag:'SERVER MANAGEMENT',headline:'Minecraft servers, in one place.',description:'A Minecraft server manager that brings starting, stopping, monitoring, and configuring servers into one place. Built around making self-hosting easier to manage.',stack:['Node.js','Minecraft','Server tools'],notes:['Start and stop servers from a central workspace.','Monitor server activity and manage configuration.','Explore the project’s website for current details and availability.'],links:[['Visit Nodexity','https://nodexity.com/']]},
  {image:'/minecraft/assets/grass-block.svg',route:'/minecraft',imageCaption:'Minecraft Mods · custom creations and wikis',name:'Minecraft Mods',tag:'MINECRAFT JAVA · MODS & WIKIS',headline:'A few changes. A whole new world.'},
  {image:'/project-previews/galleryx-site.jpg',website:'https://galleryx-sigma.vercel.app/',imageCaption:'GalleryX · live website',name:'GalleryX',tag:'DESKTOP APPLICATION · IN DEVELOPMENT',headline:'A better view of your media.',description:'An offline-first photo and video browser for large libraries on internal and external drives. GalleryX indexes media where it lives, so your original files stay in place.',stack:['Electron','SQLite','Local media'],notes:['Indexes folders in place and builds a thumbnail cache for fast browsing.','Includes photo and video galleries, favorites, timeline views, and duplicate review.','Keeps cached previews available when an external drive is disconnected.','Deletion goes to the operating system’s Trash or Recycle Bin.'],links:[['Browse my GitHub','https://github.com/404twillCODE']]},
@@ -188,7 +189,7 @@ function renderProject(){
 }
 async function openProject(index,card){
  if(projectBusy)return;
- if(!restoringRoute)setRoute('/projects/'+projects[index].name.toLowerCase());
+ if(!restoringRoute)setRoute('/projects/'+(projects[index].slug||projects[index].name.toLowerCase()));
  const routeToken=routeRestoreToken;projectBusy=true;projectIndex=index;projectReturnCard=card;renderProject();
  const indexView=$('.projects-index'),detail=$('.project-detail-view'),start=card.querySelector('img').getBoundingClientRect();indexView.inert=true;
  await Promise.all([...document.querySelectorAll('.project-card')].filter(c=>c!==card).map((c,i)=>animate(c,[{opacity:1,transform:'none'},{opacity:0,transform:'translateY(24px)'}],300,i*45)));
@@ -414,7 +415,7 @@ async function restoreRoute(){
   }else if(!libraryLoading&&collections.length){$('#gallery-message').textContent='That collection is no longer available. Choose another collection.'}
  }
  if(section==='projects'&&path!=='/projects'){
-  const index=projects.findIndex(p=>!p.route&&'/projects/'+p.name.toLowerCase()===path);
+  const index=projects.findIndex(p=>!p.route&&'/projects/'+(p.slug||p.name.toLowerCase())===path);
   if(index>=0){projectIndex=index;projectReturnCard=$('#project-cards').children[index];renderProject();$('.projects-index').hidden=true;$('.project-detail-view').hidden=false}
  }
  document.title=section==='photography'&&!$('.album-detail').hidden?collections[collectionIndex].title+' — Focused on Tom':({about:'Focused on Tom — Code & Cameras',photography:'Photography — Focused on Tom',projects:'Projects — Focused on Tom',contact:'Get in touch — Focused on Tom'})[section];

@@ -28,5 +28,16 @@
       "source": "/connect",
       "destination": "/index.html"
     }
+  ],
+  "headers": [
+    {
+      "source": "/tools/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    }
   ]
 }
