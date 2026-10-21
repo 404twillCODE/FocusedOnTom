@@ -39,3 +39,9 @@ yarn-error.log*
 .vercel
 *.tsbuildinfo
 next-env.d.ts
+
+# Archived app build output and existing nested checkout
+/old/.next/
+/focusedontom/
+
+/archives/device-workspace/node_modules/

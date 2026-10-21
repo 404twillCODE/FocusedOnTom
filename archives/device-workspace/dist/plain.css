@@ -1,0 +1,229 @@
+/* Flatten the generic dark-theme treatment: solid surfaces, readable type, one spacing rhythm. */
+
+:root {
+  --bg: #0e1218;
+  --surface: #171c27;
+  --surface-deep: #10141c;
+  --ink: #f7f8fb;
+  --muted: #d5dbe6;
+  --line: #5c6780;
+  --acid: #e6b325;
+  --space: 80px;
+}
+
+body {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+h1, h2, h3, .hero-title, .chapter-title, .scene-content h2, .closing h2 {
+  font-style: normal;
+  background: none;
+  -webkit-text-fill-color: currentColor;
+}
+
+h1 i, h2 i, h3 i, .chapter-title i, .scene-content i {
+  font-style: normal;
+  font-family: inherit;
+  -webkit-text-stroke: 0;
+}
+
+.section-heading .eyebrow,
+.chapter-title > .eyebrow,
+.scene-content > .eyebrow,
+.about-label > .eyebrow,
+.closing > .eyebrow,
+.big-star {
+  display: none;
+}
+
+.hero-title,
+.hero-title .title-line,
+.hero-title .tom,
+.hero-title .on,
+.chapter-title h1,
+.scene-content h2 {
+  color: var(--ink);
+}
+
+.asterisk {
+  animation: none;
+  font-size: 0.28em;
+  letter-spacing: 0;
+}
+
+.hero-shade,
+.cool-edition .hero-shade,
+.chapter-bg,
+.scene-shade {
+  background: rgba(8, 10, 14, 0.55);
+}
+
+.hero-top,
+.hero-coordinate,
+.photo-credit,
+.hero-foot p {
+  color: #f7f8fb;
+}
+
+.grain-layer,
+.scroll-position {
+  display: none !important;
+}
+
+.scroll-position,
+dialog::backdrop,
+.premium-dialog::backdrop,
+.world-card,
+.lab-panel,
+.project-tile,
+.media-record,
+.now-card,
+.ny-pin,
+.scroll-chapters a > span {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+dialog::backdrop,
+.premium-dialog::backdrop {
+  background: rgba(8, 10, 14, 0.86);
+}
+
+.world-card,
+.lab-panel,
+.project-tile,
+.media-record,
+.now-card,
+.life-detail,
+.story-timeline,
+.studio-panel,
+.boat-controls {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left-color: var(--line);
+}
+
+.world-grid,
+.cool-edition .world-grid,
+.now-grid,
+.adventure-cards {
+  grid-template-columns: 1fr;
+}
+
+.world-card {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 20px;
+  padding: 22px 24px;
+}
+
+.world-card:hover,
+html[data-motion="full"] .world-card:hover,
+.note:hover,
+.project-tile:hover,
+.media-record:hover,
+.tackle-grid button:hover {
+  transform: none;
+  opacity: 1;
+}
+
+.lens-graphic,
+.code-graphic,
+.outdoor-mark {
+  height: auto;
+  margin: 0;
+  transform: none;
+  padding: 0;
+}
+
+.lens-circle {
+  width: 72px;
+  height: 72px;
+}
+
+.card-copy h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  margin: 0 0 8px;
+}
+
+.card-top {
+  grid-column: 1 / -1;
+}
+
+.section,
+.premium-section,
+.clean-edition .section,
+.clean-edition .premium-section {
+  padding-top: var(--space);
+  padding-bottom: var(--space);
+}
+
+.section-heading,
+.clean-edition .section-heading {
+  margin-bottom: 32px;
+  gap: 24px;
+}
+
+button,
+a,
+.world-card,
+.note,
+.project-tile,
+.lab-tabs button,
+.outline-button,
+.explore-button,
+.scroll-chapters b,
+.desk-hotspot b {
+  transition: none;
+}
+
+button:hover,
+a:hover,
+.lab-tabs button:hover,
+.outline-button:hover,
+.explore-button:hover {
+  opacity: 1;
+}
+
+button:disabled {
+  opacity: 0.55;
+}
+
+.reveal,
+.scroll-reveal,
+html:not([data-motion="off"]):not([data-motion="subtle"]) .scroll-reveal:not(.is-revealed) {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+.scene-explore-new-york .scene-frame,
+.cool-edition .scene-explore-new-york .scene-frame {
+  box-shadow: none;
+  border-color: var(--line);
+}
+
+.scene-content > .eyebrow,
+.scene-content h2,
+.scene-content p {
+  color: #f7f8fb;
+}
+
+.next-world::before {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  :root {
+    --space: 48px;
+  }
+
+  .world-card {
+    grid-template-columns: 1fr;
+  }
+}

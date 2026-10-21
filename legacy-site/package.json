@@ -3,18 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/dev.mjs",
+    "dev": "next dev --webpack --port 3002",
     "dev:sync-first": "npm run photos:dev && next dev",
     "dev:fast": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 3002",
     "lint": "next lint",
     "format": "prettier --write .",
     "photos:dev": "node scripts/sync-photography-to-r2.mjs --soft-env",
     "photos:sync": "node scripts/sync-photography-to-r2.mjs",
     "photos:sync:dry": "node scripts/sync-photography-to-r2.mjs --dry-run --verbose",
     "photos:sync:force": "node scripts/sync-photography-to-r2.mjs --force",
-    "photos:verify-cdn": "node scripts/verify-photography-manifest-cdn.mjs"
+    "photos:verify-cdn": "node scripts/verify-photography-manifest-cdn.mjs",
+    "dev:with-photo-sync": "node scripts/dev.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1036.0",

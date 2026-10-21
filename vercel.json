@@ -2,7 +2,7 @@
   "framework": null,
   "installCommand": "npm ci",
   "buildCommand": "",
-  "outputDirectory": "dist",
+  "outputDirectory": "new-site",
   "functions": {
     "api/*.js": {
       "maxDuration": 60
@@ -25,6 +25,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/contact",
+      "destination": "/index.html"
+    },
+    {
       "source": "/connect",
       "destination": "/index.html"
     }
@@ -39,5 +43,8 @@
         }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": false
+  }
 }

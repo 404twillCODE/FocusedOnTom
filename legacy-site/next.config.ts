@@ -52,6 +52,7 @@ function getRemoteImagePatterns() {
 }
 
 const nextConfig: NextConfig = {
+  turbopack: { root: __dirname },
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,

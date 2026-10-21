@@ -1,7 +1,9 @@
+import { hasSupabasePublicEnv } from "@/lib/supabase/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/admin";
 
 export async function getSessionUser() {
+  if (!hasSupabasePublicEnv()) return null;
   const supabase = await createServerSupabaseClient();
   const { data } = await supabase.auth.getUser();
   return data.user ?? null;

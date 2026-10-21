@@ -1,3 +1,4 @@
+import { hasSupabasePublicEnv } from "@/lib/supabase/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceSupabaseClient } from "@/lib/supabase/admin";
 import { placesToGeoJSON } from "./geojson";
@@ -34,6 +35,7 @@ async function publicClient() {
 }
 
 export async function getPlaces(options?: { includeHidden?: boolean }): Promise<Place[]> {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = options?.includeHidden
     ? createServiceSupabaseClient()
     : await publicClient();
@@ -54,6 +56,7 @@ export async function getPlaceBySlug(
   slug: string,
   options?: { includeHidden?: boolean }
 ): Promise<Place | undefined> {
+  if (!hasSupabasePublicEnv()) return undefined;
   const supabase = options?.includeHidden
     ? createServiceSupabaseClient()
     : await publicClient();
@@ -68,6 +71,7 @@ export async function getPlaceById(
   id: string,
   options?: { includeHidden?: boolean }
 ): Promise<Place | undefined> {
+  if (!hasSupabasePublicEnv()) return undefined;
   const supabase = options?.includeHidden
     ? createServiceSupabaseClient()
     : await publicClient();
@@ -84,6 +88,7 @@ export async function getPlaceById(
 }
 
 export async function getVisitsForPlace(placeId: string) {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("visits")
@@ -95,6 +100,7 @@ export async function getVisitsForPlace(placeId: string) {
 }
 
 export async function getMediaForPlace(placeId: string) {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("media")
@@ -106,6 +112,7 @@ export async function getMediaForPlace(placeId: string) {
 }
 
 export async function getGoalsForPlace(placeId: string) {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("goals")
@@ -116,6 +123,7 @@ export async function getGoalsForPlace(placeId: string) {
 }
 
 export async function getFieldReport(placeId: string) {
+  if (!hasSupabasePublicEnv()) return undefined;
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("field_reports")
@@ -127,6 +135,7 @@ export async function getFieldReport(placeId: string) {
 }
 
 export async function getCampsites(placeId: string) {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("park_campsites")
@@ -138,6 +147,7 @@ export async function getCampsites(placeId: string) {
 }
 
 export async function getTrips() {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("trips")
@@ -148,6 +158,7 @@ export async function getTrips() {
 }
 
 export async function getTripBySlug(slug: string) {
+  if (!hasSupabasePublicEnv()) return undefined;
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("trips")
@@ -159,6 +170,7 @@ export async function getTripBySlug(slug: string) {
 }
 
 export async function getStopsForTrip(tripId: string) {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("trip_stops")
@@ -183,6 +195,7 @@ export async function getStopsForTrip(tripId: string) {
 }
 
 export async function getMediaForTrip(tripId: string) {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("media")
@@ -194,6 +207,7 @@ export async function getMediaForTrip(tripId: string) {
 }
 
 export async function getGoalsForTrip(tripId: string) {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("goals")
@@ -204,6 +218,7 @@ export async function getGoalsForTrip(tripId: string) {
 }
 
 export async function getCollections() {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("collections")
@@ -214,6 +229,7 @@ export async function getCollections() {
 }
 
 export async function getCollectionBySlug(slug: string) {
+  if (!hasSupabasePublicEnv()) return undefined;
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("collections")
@@ -225,6 +241,7 @@ export async function getCollectionBySlug(slug: string) {
 }
 
 export async function getPlacesForCollection(collectionId: string): Promise<Place[]> {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("collection_places")
@@ -251,6 +268,7 @@ export async function collectionProgress(collectionId: string) {
 }
 
 export async function getCommunitySubmissions(options?: { includePending?: boolean }) {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = options?.includePending
     ? createServiceSupabaseClient()
     : await publicClient();
@@ -263,6 +281,7 @@ export async function getCommunitySubmissions(options?: { includePending?: boole
 }
 
 export async function searchExplore(query: string) {
+  if (!hasSupabasePublicEnv()) return { places: [] as Place[], trips: [], collections: [] };
   const q = query.trim();
   if (!q) return { places: [] as Place[], trips: [], collections: [] };
   const supabase = await publicClient();
@@ -290,6 +309,11 @@ export type { ExploreFilters } from "./geojson";
 export { filterPlaces, placesToGeoJSON } from "./geojson";
 
 export async function getExploreStats() {
+  if (!hasSupabasePublicEnv()) {
+    return { placesVisited: 0, placesTotal: 0, wantToVisit: 0, stateParksVisited: 0,
+      fireTowersVisited: 0, primitiveCampsites: 0, nightsCamped: 0, boatLaunches: 0,
+      lakesVisited: 0, fishingAccess: 0, photos: 0, trips: 0, milesTraveled: 0 };
+  }
   const supabase = await publicClient();
   const [{ data: places, error: pErr }, { data: visits, error: vErr }, { data: media, error: mErr }, { data: trips, error: tErr }] =
     await Promise.all([
@@ -333,6 +357,7 @@ export async function getLatestTrip() {
 }
 
 export async function getRecentPhotos(limit = 4) {
+  if (!hasSupabasePublicEnv()) return [];
   const supabase = await publicClient();
   const { data, error } = await supabase
     .from("media")
@@ -351,6 +376,7 @@ export async function queryPlacesGeoJSON(params: {
   bbox?: string;
   includeHidden?: boolean;
 }) {
+  if (!hasSupabasePublicEnv()) return placesToGeoJSON([]);
   const supabase = params.includeHidden
     ? createServiceSupabaseClient()
     : await publicClient();

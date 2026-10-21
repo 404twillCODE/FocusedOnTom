@@ -1,0 +1,89 @@
+/* Quiet dark surfaces: one edge, no refractive rims or layered reflections. */
+:root{--glass-edge:#d6e8f01f;--glass-surface:#111b2480;--glass-shadow:0 12px 32px #0002}
+.site-header,.site-header.scrolled{border:1px solid #d6e8f02b;border-radius:100px;background:linear-gradient(115deg,#ffffff12,#d5edff04 45%,#ffffff09),#0b12194d;box-shadow:0 8px 24px #0003;backdrop-filter:blur(20px) saturate(145%);-webkit-backdrop-filter:blur(20px) saturate(145%)}
+.site-header:before,.site-header:after{display:none}
+.site-header.scrolled{background:linear-gradient(115deg,#ffffff12,#d5edff04 45%,#ffffff09),#0b12194d}
+.site-header nav a,.site-header nav a[aria-current],.site-header nav a:hover{border:0;box-shadow:none;background:none}
+.site-header nav a[aria-current],.site-header nav a:hover{color:#eff7fa}
+.header-contact,.header-contact:hover{background:none;border-color:transparent;box-shadow:none}
+.brand-mark{background:none;box-shadow:none;border-color:#d6e8f022}
+.collection-grid{gap:27px;align-items:start}
+.collection-card{position:relative;overflow:hidden;border-radius:20px;padding:8px 8px 20px;border:1px solid var(--glass-edge);background:#111a2259;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;transition:border-color .3s,translate .5s var(--ease)}
+.collection-card:before,.collection-card:after{display:none}
+.collection-card:hover{translate:0 -4px;border-color:#d6e8f03d;box-shadow:none}
+.collection-image,.collection-card:nth-child(3n+2) .collection-image,.collection-card:nth-child(3) .collection-image{height:290px;min-height:0;border:0;border-radius:13px;padding:0;background:#0c141b;box-shadow:none;clip-path:none;overflow:hidden}
+.collection-image img{border-radius:13px}.collection-image:after{border-radius:13px;background:linear-gradient(0deg,#0710195c,transparent 40%)}
+.collection-meta{padding:17px 9px 0}.collection-meta h3{font-size:13px;font-weight:600;color:#edf5f8}.collection-meta>span{color:#86abbf}.collection-caption{padding:9px 9px 0;color:#839eae;font-size:7px;line-height:1.7}
+.collection-number,.collection-open{border:1px solid #e0f0ff24;background:#0d1922b3;box-shadow:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.collection-open{color:#d5e9f2;border-radius:10px;width:34px;height:34px}.collection-card:hover .collection-open{background:#1d303bd9;border-color:#e0f0ff40;color:white}
+.filter-tabs{background:#111b2466;border-color:var(--glass-edge);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.filter-tabs button.active{background:#c9e8f014;border-color:transparent;box-shadow:none}
+.projects{background:radial-gradient(ellipse at 20% 30%,#224d6326,transparent 60%),#0b1015}
+.workbench-index,.workbench-screen{background:var(--glass-surface);border-color:var(--glass-edge);box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+.workbench-index{border-radius:20px}.workbench-screen{border-radius:22px;position:relative}.workbench-screen:after{display:none}
+.project-selector.selected{background:#c9e8f00c;border-color:transparent;box-shadow:none}.project-selector:hover{background:#c9e8f008}
+.workbench-bar{background:#dcefff04;border-color:#d6e8f016;box-shadow:none}.workbench-visual{background-color:#08131c45}.workbench-visual:after{display:none}
+.workbench-copy{background:none;border-color:#d6e8f016}.workbench-open,.workbench-open:hover{background:#c9e8f008;border-color:#d6e8f02b;box-shadow:none;color:#e2f4fc}
+.project-dialog,.contact-dialog{background:#101a23f5;border-color:#d6e8f02b;box-shadow:0 24px 70px #0006}
+.channel-item{box-shadow:none}.channel-item:after{display:none}
+@media(max-width:1100px){.collection-grid{gap:20px}.collection-image,.collection-card:nth-child(3n+2) .collection-image,.collection-card:nth-child(3) .collection-image{height:240px}.collection-meta h3{font-size:12px}}
+@media(max-width:760px){.collection-grid{gap:24px}.collection-card{border-radius:20px;padding:8px 8px 20px}.collection-image,.collection-card:nth-child(3n+2) .collection-image,.collection-card:nth-child(3) .collection-image{height:auto;aspect-ratio:1.28}.collection-meta h3{font-size:14px}.site-header nav{border-color:#d6e8f02b;background:#0d151bf2;box-shadow:0 12px 30px #0003}.workbench-screen{border-radius:22px}}
+/* Single glass capsule with a quiet compact state away from the page top. */
+.site-header nav a{font-size:11px;color:#b9c7d1;letter-spacing:-.1px}
+.site-header nav a sup{display:none}
+.site-header nav a:after{display:none}
+.site-header nav a[aria-current]{color:#fff;background:#ffffff0b}
+.site-header nav a:hover{color:#fff;background:#ffffff08}
+.site-header .header-contact{color:#e1ebf1}
+@media(max-width:760px){.site-header nav a{font-size:15px}.site-header nav{background:#0d151bba;backdrop-filter:blur(20px) saturate(145%);-webkit-backdrop-filter:blur(20px) saturate(145%)}}
+
+/* The full navigation recedes into a small, discoverable capsule on scroll. */
+.site-header,.site-header.scrolled{transition:width .55s var(--ease),height .45s var(--ease),padding .45s var(--ease),background .3s,border-color .3s,box-shadow .3s}
+.site-header nav{transition:opacity .2s,visibility .2s,transform .4s var(--ease)}
+.site-header .header-contact{transition:opacity .2s,visibility .2s,background .3s,color .3s}
+.site-header nav a{transition:background .3s,color .3s,translate .3s var(--ease),box-shadow .3s}
+.site-header nav a:after{display:block;left:15px;right:15px;bottom:5px;height:1px;background:linear-gradient(90deg,var(--orange),transparent);opacity:.7;transform:scaleX(0);transform-origin:left;transition:transform .35s var(--ease)}
+.site-header nav a:hover,.site-header nav a[aria-current]{background:linear-gradient(145deg,#d5edff14,#d5edff04);color:#f3fafc;box-shadow:inset 0 1px 0 #e9f8ff0c}
+.site-header nav a:hover{translate:0 -1px}
+.site-header nav a:hover:after,.site-header nav a[aria-current]:after{transform:scaleX(1)}
+.site-header .header-contact:hover{color:#ffb18d;background:#ff80540d}
+.site-header .header-contact span{transition:translate .3s var(--ease)}
+.site-header .header-contact:hover span{translate:2px -2px}
+.site-header.nav-compact .menu-toggle{display:flex;flex-direction:column;align-items:center;justify-content:center;width:26px;height:32px;gap:5px;flex-shrink:0;margin-left:14px;color:#cedde5}
+.site-header.nav-compact .menu-toggle span{display:block;width:17px;height:1px;background:currentColor;transition:transform .3s}
+.site-header.nav-compact:not(:hover):not(:has(:focus-visible)):not(.menu-open){width:240px;height:52px;padding-inline:24px}
+.site-header.nav-compact:not(:hover):not(:has(:focus-visible)):not(.menu-open) nav,.site-header.nav-compact:not(:hover):not(:has(:focus-visible)):not(.menu-open) .header-contact{opacity:0;visibility:hidden;pointer-events:none}
+.site-header.nav-compact:not(:hover):not(:has(:focus-visible)):not(.menu-open) .header-contact{position:absolute;right:55px}
+.site-header.nav-compact .brand{flex-shrink:0}
+@media(min-width:761px){
+ .site-header nav{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap}
+ .site-header .header-contact{margin-left:auto}
+ .site-header.nav-compact:not(:hover):not(:has(:focus-visible)):not(.menu-open) nav{transform:translate(-50%,-5px)}
+ .site-header.nav-compact .menu-toggle{margin-left:14px}
+}
+@media(max-width:760px){
+ .site-header.nav-compact:not(:hover):not(:has(:focus-visible)):not(.menu-open){width:204px;height:48px;padding-inline:14px}
+ .site-header.nav-compact .menu-toggle{margin-left:auto}
+ .site-header.nav-compact.menu-open{width:calc(100% - 24px);height:62px}
+ .site-header.nav-compact.menu-open nav{visibility:visible;opacity:1;pointer-events:auto}
+ .site-header.nav-compact .header-contact{margin-right:14px}
+}
+@media(prefers-reduced-motion:reduce){.site-header,.site-header nav,.site-header nav a,.site-header .header-contact,.site-header .header-contact span{transition:none;translate:none}}
+html.motion-off .site-header,html.motion-off .site-header nav,html.motion-off .site-header nav a,html.motion-off .site-header .header-contact,html.motion-off .site-header .header-contact span{transition:none;translate:none}
+/* Anchor the opener so expanding the capsule never moves it under the pointer. */
+.site-header,.site-header.scrolled{left:auto;margin-inline:0}
+.site-header.nav-compact .menu-toggle{position:absolute;right:24px;top:50%;transform:translateY(-50%);margin:0}
+.site-header.nav-compact .header-contact{margin-right:44px}
+@media(max-width:760px){.site-header.nav-compact .menu-toggle{right:14px}.site-header.nav-compact .header-contact{margin-right:40px}}
+/* Brand-only compact capsule, with simple underline feedback on the links. */
+.site-header,.site-header.scrolled{left:32px;right:32px;margin-inline:auto}
+.site-header nav a,.site-header nav a:hover,.site-header nav a[aria-current]{background:none;box-shadow:none;border:0}
+.site-header.nav-compact .menu-toggle{display:none}
+.site-header.nav-compact .header-contact{margin-right:0}
+.site-header.nav-compact:not(:hover):not(:has(:focus-visible)):not(.menu-open){width:192px;padding-inline:18px}
+@media(max-width:760px){
+ .site-header,.site-header.scrolled{left:12px;right:12px}
+ .site-header.nav-compact:not(:hover):not(:has(:focus-visible)):not(.menu-open){width:172px;padding-inline:14px}
+ .site-header.nav-compact.menu-open .menu-toggle{display:flex}
+ .site-header.nav-compact.menu-open .header-contact{margin-right:40px}
+}
