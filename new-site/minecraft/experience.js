@@ -1,3 +1,4 @@
+import {connectNavigation} from '../navigation.js';
 import './sky.js';
 const root=document.documentElement,header=document.querySelector('.site-header'),motion=matchMedia('(prefers-reduced-motion: reduce)');
 let disabled=motion.matches;
@@ -26,12 +27,6 @@ function updateScroll(){
 }
 function request(){if(!queued){queued=true;requestAnimationFrame(updateScroll)}}
 addEventListener('scroll',request,{passive:true});addEventListener('resize',request);addEventListener('portfolio:motion',request);updateScroll();
-const menu=header.querySelector('.menu-toggle');
-function closeMenu(){header.classList.remove('menu-open');menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','Open navigation')}
-menu.addEventListener('click',()=>{const open=header.classList.toggle('menu-open');menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close navigation':'Open navigation')});
-header.querySelector('.brand').addEventListener('click',event=>{if(matchMedia('(hover:none)').matches&&header.classList.contains('nav-compact')&&!header.classList.contains('menu-open')){event.preventDefault();header.classList.add('menu-open');menu.setAttribute('aria-expanded','true');menu.setAttribute('aria-label','Close navigation')}});
-document.addEventListener('pointerdown',event=>{if(!header.contains(event.target))closeMenu()});
-header.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')closeMenu()});
-header.querySelectorAll('nav a').forEach(link=>link.addEventListener('click',closeMenu));
-addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu()});
+connectNavigation(header);
+
 document.querySelectorAll('[data-filter],#mod-search').forEach(element=>{element.addEventListener('click',request);element.addEventListener('input',request)});

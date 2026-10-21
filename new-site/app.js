@@ -1,3 +1,4 @@
+import {connectNavigation} from './navigation.js';
 import './scroll-experience.js';
 import {groupAlbumPhotos} from './album-groups.js';
 import {createPhotoZoom} from './photo-zoom.js';
@@ -55,21 +56,7 @@ const sectionObserver=new IntersectionObserver(entries=>{
   entries.forEach(entry=>{if(entry.isIntersecting){$$('.site-header nav a').forEach(link=>{if(link.hash==='#'+entry.target.id)link.setAttribute('aria-current','location');else link.removeAttribute('aria-current')})}});
 },{rootMargin:'-20% 0px -55% 0px'});
 $$('main>section[id]').forEach(section=>sectionObserver.observe(section));
-const menu=$('.menu-toggle');
-function closeMenu(){ $('.site-header').classList.remove('menu-open');menu.setAttribute('aria-expanded','false');menu.setAttribute('aria-label','Open navigation'); }
-menu.addEventListener('click',()=>{const open=$('.site-header').classList.toggle('menu-open');menu.setAttribute('aria-expanded',String(open));menu.setAttribute('aria-label',open?'Close navigation':'Open navigation');});
-$$('.site-header a').forEach(a=>a.addEventListener('click',closeMenu));
-addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});
-// Tapping opens the capsule; mouse users can simply hover over it.
-document.addEventListener('pointerdown',event=>{if(!event.target.closest('.site-header'))closeMenu()});
-$('.site-header').addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')closeMenu()});
-$('.site-header .brand').addEventListener('click',event=>{
-  const header=$('.site-header');
-  if(matchMedia('(hover: none)').matches&&header.classList.contains('nav-compact')&&!header.classList.contains('menu-open')){
-    event.preventDefault();event.stopImmediatePropagation();header.classList.add('menu-open');
-    menu.setAttribute('aria-expanded','true');menu.setAttribute('aria-label','Close navigation');
-  }
-},true);
+connectNavigation($('.site-header'));
 function node(tag,className,text){const el=document.createElement(tag);if(className)el.className=className;if(text!==undefined)el.textContent=text;return el;}
 // Two identical full-width groups keep the ribbon continuous on ultrawide displays.
 const ticker=$('.ticker'),tickerTrack=node('div','ticker-track'),tickerGroup=node('div','ticker-group');

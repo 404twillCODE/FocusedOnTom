@@ -180,3 +180,12 @@ html.motion-off .site-header,html.motion-off .site-header nav,html.motion-off .s
 }
 
 .site-header{font-family:Manrope,sans-serif;line-height:1.5}.site-header button{font:inherit;padding:0;border:0;background:none;color:inherit}.site-header .brand-mark>span{display:block}.site-header .brand>span:last-child{display:block}
+
+/* Mobile expansion must not depend on sticky touch :hover or keyboard focus. */
+@media(max-width:760px){
+ .site-header.nav-compact:not(.nav-expanded):not(.menu-open){width:204px;height:48px;padding-inline:14px}
+ .site-header.nav-compact:not(.nav-expanded):not(.menu-open) .menu-toggle{display:none}
+ .site-header.nav-compact.nav-expanded,.site-header.nav-compact.menu-open,
+ .site-header.nav-compact.nav-expanded:not(:hover):not(:has(:focus-visible)):not(.menu-open){width:calc(100% - 24px);height:60px;padding-inline:14px}
+ .site-header.nav-compact.nav-expanded .menu-toggle,.site-header.nav-compact.menu-open .menu-toggle{display:flex}
+}

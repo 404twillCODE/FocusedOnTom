@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file-if-exists=.env.local scripts/new-site-server.mjs",
-    "test": "node --test tests/photos.test.mjs tests/preview-cache.test.mjs tests/portfolio-photos.test.mjs tests/album-groups.test.mjs tests/contact-form.test.mjs",
+    "test": "node --test tests/photos.test.mjs tests/preview-cache.test.mjs tests/portfolio-photos.test.mjs tests/album-groups.test.mjs tests/contact-form.test.mjs tests/navigation.test.mjs",
     "dev:old": "npm --prefix old run dev",
     "dev:legacy": "npm --prefix legacy-site run dev",
     "dev:original": "npm --prefix focusedontom run dev -- --webpack --port 3003",
