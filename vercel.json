@@ -1,8 +1,8 @@
 {
   "framework": null,
   "installCommand": "npm ci",
-  "buildCommand": "",
-  "outputDirectory": "new-site",
+  "buildCommand": "npm run build",
+  "outputDirectory": "build",
   "functions": {
     "api/*.js": {
       "maxDuration": 60

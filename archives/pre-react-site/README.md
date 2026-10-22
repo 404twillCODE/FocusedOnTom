@@ -1,0 +1,1 @@
+Original HTML, JavaScript, and styles before the React migration. Shared photos, fonts, Minecraft textures, and the catalog remain in new-site/. Git history also preserves the complete original site. This archive is excluded from deployment.

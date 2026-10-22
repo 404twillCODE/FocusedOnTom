@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {validateContact,sendContact,ContactError} from '../new-site/contact-form.js';
+import {validateContact,sendContact,ContactError} from '../frontend/src/lib/contact-service.ts';
 const endpoint='https://formspree.io/f/mdaladkg';
 const note={name:'  Example Visitor ',email:' visitor@example.com ',message:' A question about working together. '};
 

@@ -1,0 +1,42 @@
+[
+  {
+    "path": "/",
+    "name": "HomePage",
+    "bodyClass": ""
+  },
+  {
+    "path": "/minecraft/boat-motors/",
+    "name": "MinecraftBoatMotorsPage",
+    "bodyClass": "minecraft-guide"
+  },
+  {
+    "path": "/minecraft/boat-motors/wiki/",
+    "name": "MinecraftBoatMotorsWikiPage",
+    "bodyClass": "minecraft-guide"
+  },
+  {
+    "path": "/minecraft/",
+    "name": "MinecraftPage",
+    "bodyClass": "minecraft-home"
+  },
+  {
+    "path": "/minecraft/nuclear-strike/",
+    "name": "MinecraftNuclearStrikePage",
+    "bodyClass": "minecraft-guide"
+  },
+  {
+    "path": "/minecraft/nuclear-strike/wiki/",
+    "name": "MinecraftNuclearStrikeWikiPage",
+    "bodyClass": "minecraft-guide"
+  },
+  {
+    "path": "/minecraft/rocket-rpg/",
+    "name": "MinecraftRocketRpgPage",
+    "bodyClass": "minecraft-guide"
+  },
+  {
+    "path": "/minecraft/rocket-rpg/wiki/",
+    "name": "MinecraftRocketRpgWikiPage",
+    "bodyClass": "minecraft-guide"
+  }
+]

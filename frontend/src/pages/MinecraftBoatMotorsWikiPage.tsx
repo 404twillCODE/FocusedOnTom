@@ -1,0 +1,1419 @@
+import SiteHeader from "../components/SiteHeader";
+import { MotionToggle } from "../motion/MotionProvider";
+import { useMinecraftExperience } from "../motion/useExperience";
+
+import { useMinecraftLibrary } from "../lib/useMinecraftLibrary";
+
+export default function MinecraftBoatMotorsWikiPage() {
+  const {
+    query,
+    setQuery,
+    copyStatus,
+    copyCommand,
+    matchesRecipe,
+    visibleRecipes,
+  } = useMinecraftLibrary(
+    [],
+    [
+      "9.9 HP motor Iron ingot Redstone dust Iron ingot Copper ingot Furnace Copper ingot Iron ingot Iron ingot",
+      "20 HP motor Iron ingot Redstone dust Iron ingot Copper ingot Furnace Copper ingot Iron ingot Gold ingot Iron ingot",
+      "25 HP motor Iron ingot Redstone dust Iron ingot Gold ingot Furnace Gold ingot Iron ingot Redstone dust Iron ingot",
+      "50 HP motor Gold ingot Amethyst shard Gold ingot Diamond Furnace Diamond Gold ingot Redstone dust Gold ingot",
+      "100 HP motor Diamond Netherite ingot Diamond Diamond Furnace Diamond Gold ingot Redstone dust Gold ingot",
+      "Empty gas cans Iron ingot Iron ingot Iron ingot Iron ingot Iron ingot Iron ingot Iron ingot",
+      "Gasoline Empty gas cans Coal Sugar Blaze powder",
+    ],
+  );
+  useMinecraftExperience();
+  return (
+    <>
+      <a className="skip" href="#main">
+        {"Skip to content"}
+      </a>
+      <SiteHeader home={false} />
+      <div className="mc-backdrop" aria-hidden="true"></div>
+      <canvas id="mod-stars" aria-hidden="true"></canvas>
+      <div className="mc-progress" aria-hidden="true"></div>
+      <main id="main" className="wiki-layout">
+        <aside className="wiki-sidebar">
+          <a className="back-link" href="/minecraft#collection">
+            {"← All mods"}
+          </a>
+          <p className="eyebrow">{"BOAT MOTORS / WIKI"}</p>
+          <nav aria-label="Wiki sections">
+            <a href="#overview">{"Getting started"}</a>
+            <a href="#crafting">{"Crafting recipes"}</a>
+            <a href="#fuel">{"Fuel & tank sizes"}</a>
+            <a href="#dashboard">{"Dashboard & sound"}</a>
+            <a href="#installation">{"Installation"}</a>
+            <a href="#compatibility">{"Versions & loaders"}</a>
+            <a href="#commands">{"Creative commands"}</a>
+            <a href="#questions">{"Common questions"}</a>
+          </nav>
+          <div className="sidebar-release">
+            <div className="release-heading">
+              <span className="release-dot" aria-hidden="true"></span>
+              <strong>{"Release pending"}</strong>
+            </div>
+            <p>
+              {"The download will be available when this mod is published."}
+            </p>
+            <a
+              className="release-link"
+              href="https://modrinth.com/mod/boat-motors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {"View on Modrinth ↗"}
+            </a>
+          </div>
+        </aside>
+        <article className="wiki-content">
+          <header className="wiki-hero">
+            <div>
+              <p className="eyebrow">
+                {"MINECRAFT / TRANSPORTATION / v2.0 beta"}
+              </p>
+              <h1>
+                {"Boat Motors"}
+                <span>{"The essentials."}</span>
+              </h1>
+              <p>
+                {
+                  "Give your boat a motor, fill the tank, and head out. Five horsepower tiers, engine sounds, and a live speed and fuel dashboard."
+                }
+              </p>
+              <a className="text-link" href="#crafting">
+                {"Jump to crafting ↓"}
+              </a>
+            </div>
+            <img
+              src="/minecraft/assets/boat-motors-cover.svg"
+              alt="Rendered boat motors item model"
+              width="900"
+              height="650"
+            />
+          </header>
+          <section id="overview" className="wiki-section">
+            <p className="eyebrow">{"FIELD GUIDE"}</p>
+            <h2>{"Getting started."}</h2>
+            <ol className="steps">
+              <li>
+                {
+                  "Craft a motor, then place a boat, chest boat, bamboo raft, or chest raft in water."
+                }
+              </li>
+              <li>
+                {"Hold the motor and "}
+                <strong>{"right-click the boat"}</strong>
+                {" to attach it. New motors start empty."}
+              </li>
+              <li>
+                {"Hold a filled gas can and "}
+                <strong>{"right-click the boat"}</strong>
+                {" to add fuel."}
+              </li>
+              <li>
+                {"Board the boat. Use "}
+                <strong>{"W"}</strong>
+                {" to accelerate, "}
+                <strong>{"S"}</strong>
+                {" to brake or reverse, and "}
+                <strong>{"A / D"}</strong>
+                {" to steer."}
+              </li>
+            </ol>
+          </section>
+          <section id="crafting" className="wiki-section">
+            <p className="eyebrow">{"FIELD GUIDE"}</p>
+            <h2>{"Crafting recipes."}</h2>
+            <p>
+              {
+                "Use a crafting table. Read each 3 × 3 grid left to right, from the top row down. Dotted slots stay empty. Each slot shows the ingredient and its name. The item to the right is the crafting result."
+              }
+            </p>
+            <label className="recipe-search">
+              <span>{"Find a recipe or ingredient"}</span>
+              <input
+                type="search"
+                id="recipe-search"
+                placeholder="Try iron, gas, or motor…"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </label>
+            <div className="recipe-list">
+              <article
+                className="recipe"
+                id="recipe-motor_9_9hp"
+                data-recipe=""
+                data-search="9.9 HP motor Iron ingot Redstone dust Iron ingot Copper ingot Furnace Copper ingot Iron ingot Iron ingot"
+                hidden={
+                  !matchesRecipe(
+                    "9.9 HP motor Iron ingot Redstone dust Iron ingot Copper ingot Furnace Copper ingot Iron ingot Iron ingot",
+                  )
+                }
+              >
+                <div className="recipe-heading">
+                  <h3>{"9.9 HP motor"}</h3>
+                  <span>{"MAKES 1"}</span>
+                </div>
+                <p>{"Place ingredients exactly as shown."}</p>
+                <div className="recipe-body">
+                  <div
+                    className="crafting-grid"
+                    role="group"
+                    aria-label="9.9 HP motor crafting grid, read left to right, top to bottom"
+                  >
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Redstone dust">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-redstone.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Redstone dust"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Copper ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-copper_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Copper ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Furnace">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-furnace.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Furnace"}</span>
+                    </span>
+                    <span className="craft-slot" title="Copper ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-copper_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Copper ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot empty" aria-label="Empty slot">
+                      <span aria-hidden="true">{"·"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                  </div>
+                  <span className="recipe-arrow" aria-hidden="true">
+                    {"→"}
+                  </span>
+                  <div className="recipe-output">
+                    <span className="output-visual">
+                      <img
+                        src="/minecraft/assets/items/boat_motors-motor_9_9hp.png"
+                        alt=""
+                        width="80"
+                        height="80"
+                        loading="lazy"
+                      />
+                      <span>{"1×"}</span>
+                    </span>
+                    <strong>{"9.9 HP motor"}</strong>
+                  </div>
+                </div>
+              </article>
+              <article
+                className="recipe"
+                id="recipe-motor_20hp"
+                data-recipe=""
+                data-search="20 HP motor Iron ingot Redstone dust Iron ingot Copper ingot Furnace Copper ingot Iron ingot Gold ingot Iron ingot"
+                hidden={
+                  !matchesRecipe(
+                    "20 HP motor Iron ingot Redstone dust Iron ingot Copper ingot Furnace Copper ingot Iron ingot Gold ingot Iron ingot",
+                  )
+                }
+              >
+                <div className="recipe-heading">
+                  <h3>{"20 HP motor"}</h3>
+                  <span>{"MAKES 1"}</span>
+                </div>
+                <p>{"Place ingredients exactly as shown."}</p>
+                <div className="recipe-body">
+                  <div
+                    className="crafting-grid"
+                    role="group"
+                    aria-label="20 HP motor crafting grid, read left to right, top to bottom"
+                  >
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Redstone dust">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-redstone.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Redstone dust"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Copper ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-copper_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Copper ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Furnace">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-furnace.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Furnace"}</span>
+                    </span>
+                    <span className="craft-slot" title="Copper ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-copper_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Copper ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Gold ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-gold_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Gold ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                  </div>
+                  <span className="recipe-arrow" aria-hidden="true">
+                    {"→"}
+                  </span>
+                  <div className="recipe-output">
+                    <span className="output-visual">
+                      <img
+                        src="/minecraft/assets/items/boat_motors-motor_20hp.png"
+                        alt=""
+                        width="80"
+                        height="80"
+                        loading="lazy"
+                      />
+                      <span>{"1×"}</span>
+                    </span>
+                    <strong>{"20 HP motor"}</strong>
+                  </div>
+                </div>
+              </article>
+              <article
+                className="recipe"
+                id="recipe-motor_25hp"
+                data-recipe=""
+                data-search="25 HP motor Iron ingot Redstone dust Iron ingot Gold ingot Furnace Gold ingot Iron ingot Redstone dust Iron ingot"
+                hidden={
+                  !matchesRecipe(
+                    "25 HP motor Iron ingot Redstone dust Iron ingot Gold ingot Furnace Gold ingot Iron ingot Redstone dust Iron ingot",
+                  )
+                }
+              >
+                <div className="recipe-heading">
+                  <h3>{"25 HP motor"}</h3>
+                  <span>{"MAKES 1"}</span>
+                </div>
+                <p>{"Place ingredients exactly as shown."}</p>
+                <div className="recipe-body">
+                  <div
+                    className="crafting-grid"
+                    role="group"
+                    aria-label="25 HP motor crafting grid, read left to right, top to bottom"
+                  >
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Redstone dust">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-redstone.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Redstone dust"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Gold ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-gold_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Gold ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Furnace">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-furnace.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Furnace"}</span>
+                    </span>
+                    <span className="craft-slot" title="Gold ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-gold_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Gold ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Redstone dust">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-redstone.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Redstone dust"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                  </div>
+                  <span className="recipe-arrow" aria-hidden="true">
+                    {"→"}
+                  </span>
+                  <div className="recipe-output">
+                    <span className="output-visual">
+                      <img
+                        src="/minecraft/assets/items/boat_motors-motor_25hp.png"
+                        alt=""
+                        width="80"
+                        height="80"
+                        loading="lazy"
+                      />
+                      <span>{"1×"}</span>
+                    </span>
+                    <strong>{"25 HP motor"}</strong>
+                  </div>
+                </div>
+              </article>
+              <article
+                className="recipe"
+                id="recipe-motor_50hp"
+                data-recipe=""
+                data-search="50 HP motor Gold ingot Amethyst shard Gold ingot Diamond Furnace Diamond Gold ingot Redstone dust Gold ingot"
+                hidden={
+                  !matchesRecipe(
+                    "50 HP motor Gold ingot Amethyst shard Gold ingot Diamond Furnace Diamond Gold ingot Redstone dust Gold ingot",
+                  )
+                }
+              >
+                <div className="recipe-heading">
+                  <h3>{"50 HP motor"}</h3>
+                  <span>{"MAKES 1"}</span>
+                </div>
+                <p>{"Place ingredients exactly as shown."}</p>
+                <div className="recipe-body">
+                  <div
+                    className="crafting-grid"
+                    role="group"
+                    aria-label="50 HP motor crafting grid, read left to right, top to bottom"
+                  >
+                    <span className="craft-slot" title="Gold ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-gold_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Gold ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Amethyst shard">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-amethyst_shard.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Amethyst shard"}</span>
+                    </span>
+                    <span className="craft-slot" title="Gold ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-gold_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Gold ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Diamond">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-diamond.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Diamond"}</span>
+                    </span>
+                    <span className="craft-slot" title="Furnace">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-furnace.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Furnace"}</span>
+                    </span>
+                    <span className="craft-slot" title="Diamond">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-diamond.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Diamond"}</span>
+                    </span>
+                    <span className="craft-slot" title="Gold ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-gold_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Gold ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Redstone dust">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-redstone.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Redstone dust"}</span>
+                    </span>
+                    <span className="craft-slot" title="Gold ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-gold_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Gold ingot"}</span>
+                    </span>
+                  </div>
+                  <span className="recipe-arrow" aria-hidden="true">
+                    {"→"}
+                  </span>
+                  <div className="recipe-output">
+                    <span className="output-visual">
+                      <img
+                        src="/minecraft/assets/items/boat_motors-motor_50hp.png"
+                        alt=""
+                        width="80"
+                        height="80"
+                        loading="lazy"
+                      />
+                      <span>{"1×"}</span>
+                    </span>
+                    <strong>{"50 HP motor"}</strong>
+                  </div>
+                </div>
+              </article>
+              <article
+                className="recipe"
+                id="recipe-motor_100hp"
+                data-recipe=""
+                data-search="100 HP motor Diamond Netherite ingot Diamond Diamond Furnace Diamond Gold ingot Redstone dust Gold ingot"
+                hidden={
+                  !matchesRecipe(
+                    "100 HP motor Diamond Netherite ingot Diamond Diamond Furnace Diamond Gold ingot Redstone dust Gold ingot",
+                  )
+                }
+              >
+                <div className="recipe-heading">
+                  <h3>{"100 HP motor"}</h3>
+                  <span>{"MAKES 1"}</span>
+                </div>
+                <p>{"Place ingredients exactly as shown."}</p>
+                <div className="recipe-body">
+                  <div
+                    className="crafting-grid"
+                    role="group"
+                    aria-label="100 HP motor crafting grid, read left to right, top to bottom"
+                  >
+                    <span className="craft-slot" title="Diamond">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-diamond.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Diamond"}</span>
+                    </span>
+                    <span className="craft-slot" title="Netherite ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-netherite_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Netherite ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Diamond">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-diamond.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Diamond"}</span>
+                    </span>
+                    <span className="craft-slot" title="Diamond">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-diamond.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Diamond"}</span>
+                    </span>
+                    <span className="craft-slot" title="Furnace">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-furnace.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Furnace"}</span>
+                    </span>
+                    <span className="craft-slot" title="Diamond">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-diamond.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Diamond"}</span>
+                    </span>
+                    <span className="craft-slot" title="Gold ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-gold_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Gold ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Redstone dust">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-redstone.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Redstone dust"}</span>
+                    </span>
+                    <span className="craft-slot" title="Gold ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-gold_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Gold ingot"}</span>
+                    </span>
+                  </div>
+                  <span className="recipe-arrow" aria-hidden="true">
+                    {"→"}
+                  </span>
+                  <div className="recipe-output">
+                    <span className="output-visual">
+                      <img
+                        src="/minecraft/assets/items/boat_motors-motor_100hp.png"
+                        alt=""
+                        width="80"
+                        height="80"
+                        loading="lazy"
+                      />
+                      <span>{"1×"}</span>
+                    </span>
+                    <strong>{"100 HP motor"}</strong>
+                  </div>
+                </div>
+              </article>
+              <article
+                className="recipe"
+                id="recipe-empty_gas_can"
+                data-recipe=""
+                data-search="Empty gas cans Iron ingot Iron ingot Iron ingot Iron ingot Iron ingot Iron ingot Iron ingot"
+                hidden={
+                  !matchesRecipe(
+                    "Empty gas cans Iron ingot Iron ingot Iron ingot Iron ingot Iron ingot Iron ingot Iron ingot",
+                  )
+                }
+              >
+                <div className="recipe-heading">
+                  <h3>{"Empty gas cans"}</h3>
+                  <span>{"MAKES 4"}</span>
+                </div>
+                <p>{"Place ingredients exactly as shown."}</p>
+                <div className="recipe-body">
+                  <div
+                    className="crafting-grid"
+                    role="group"
+                    aria-label="Empty gas cans crafting grid, read left to right, top to bottom"
+                  >
+                    <span className="craft-slot empty" aria-label="Empty slot">
+                      <span aria-hidden="true">{"·"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot empty" aria-label="Empty slot">
+                      <span aria-hidden="true">{"·"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                    <span className="craft-slot" title="Iron ingot">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-iron_ingot.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Iron ingot"}</span>
+                    </span>
+                  </div>
+                  <span className="recipe-arrow" aria-hidden="true">
+                    {"→"}
+                  </span>
+                  <div className="recipe-output">
+                    <span className="output-visual">
+                      <img
+                        src="/minecraft/assets/items/boat_motors-empty_gas_can.png"
+                        alt=""
+                        width="80"
+                        height="80"
+                        loading="lazy"
+                      />
+                      <span>{"4×"}</span>
+                    </span>
+                    <strong>{"Empty gas cans"}</strong>
+                  </div>
+                </div>
+              </article>
+              <article
+                className="recipe"
+                id="recipe-gas_can"
+                data-recipe=""
+                data-search="Gasoline Empty gas cans Coal Sugar Blaze powder"
+                hidden={
+                  !matchesRecipe(
+                    "Gasoline Empty gas cans Coal Sugar Blaze powder",
+                  )
+                }
+              >
+                <div className="recipe-heading">
+                  <h3>{"Gasoline"}</h3>
+                  <span>{"MAKES 1"}</span>
+                </div>
+                <p>
+                  {
+                    "Shapeless recipe — arrange these four ingredients anywhere."
+                  }
+                </p>
+                <div className="recipe-body">
+                  <div
+                    className="crafting-grid"
+                    role="group"
+                    aria-label="Gasoline crafting grid, read left to right, top to bottom"
+                  >
+                    <span className="craft-slot" title="Empty gas cans">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/boat_motors-empty_gas_can.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Empty gas cans"}</span>
+                    </span>
+                    <span className="craft-slot" title="Coal">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-coal.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Coal"}</span>
+                    </span>
+                    <span className="craft-slot" title="Sugar">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-sugar.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Sugar"}</span>
+                    </span>
+                    <span className="craft-slot" title="Blaze powder">
+                      <img
+                        className="ingredient-icon"
+                        src="/minecraft/assets/items/minecraft-blaze_powder.png"
+                        alt=""
+                        width="48"
+                        height="48"
+                        loading="lazy"
+                      />
+                      <span>{"Blaze powder"}</span>
+                    </span>
+                    <span className="craft-slot empty" aria-label="Empty slot">
+                      <span aria-hidden="true">{"·"}</span>
+                    </span>
+                    <span className="craft-slot empty" aria-label="Empty slot">
+                      <span aria-hidden="true">{"·"}</span>
+                    </span>
+                    <span className="craft-slot empty" aria-label="Empty slot">
+                      <span aria-hidden="true">{"·"}</span>
+                    </span>
+                    <span className="craft-slot empty" aria-label="Empty slot">
+                      <span aria-hidden="true">{"·"}</span>
+                    </span>
+                    <span className="craft-slot empty" aria-label="Empty slot">
+                      <span aria-hidden="true">{"·"}</span>
+                    </span>
+                  </div>
+                  <span className="recipe-arrow" aria-hidden="true">
+                    {"→"}
+                  </span>
+                  <div className="recipe-output">
+                    <span className="output-visual">
+                      <img
+                        src="/minecraft/assets/items/boat_motors-gas_can.png"
+                        alt=""
+                        width="80"
+                        height="80"
+                        loading="lazy"
+                      />
+                      <span>{"1×"}</span>
+                    </span>
+                    <strong>{"Gasoline"}</strong>
+                  </div>
+                </div>
+              </article>
+            </div>
+            <p id="no-recipes" hidden={visibleRecipes !== 0}>
+              {"No recipes match. Try another ingredient or item."}
+            </p>
+          </section>
+          <section id="fuel" className="wiki-section">
+            <p className="eyebrow">{"FIELD GUIDE"}</p>
+            <h2>{"Fuel & refuelling."}</h2>
+            <p>
+              {"One full gas can holds "}
+              <strong>{"one US gallon"}</strong>
+              {
+                ". Craft it from one empty can, coal, sugar, and blaze powder. Charcoal does not substitute for coal."
+              }
+            </p>
+            <div className="table-wrap">
+              <table>
+                <caption>{"Motor sizes and tank capacities"}</caption>
+                <thead>
+                  <tr>
+                    <th>{"Motor"}</th>
+                    <th>{"Tank"}</th>
+                    <th>{"Finish"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{"9.9 HP"}</td>
+                    <td>{"2.5 gallons"}</td>
+                    <td>{"Red"}</td>
+                  </tr>
+                  <tr>
+                    <td>{"20 HP"}</td>
+                    <td>{"4 gallons"}</td>
+                    <td>{"Blue"}</td>
+                  </tr>
+                  <tr>
+                    <td>{"25 HP"}</td>
+                    <td>{"5 gallons"}</td>
+                    <td>{"Green"}</td>
+                  </tr>
+                  <tr>
+                    <td>{"50 HP"}</td>
+                    <td>{"8 gallons"}</td>
+                    <td>{"Gold"}</td>
+                  </tr>
+                  <tr>
+                    <td>{"100 HP"}</td>
+                    <td>{"12 gallons"}</td>
+                    <td>{"Black"}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ul className="guide-list">
+              <li>
+                {
+                  "Right-click with more cans to fill larger tanks. Fuel that does not fit stays in the can."
+                }
+              </li>
+              <li>
+                {
+                  "A completely used can becomes an empty can. Reuse it in the gasoline recipe."
+                }
+              </li>
+              <li>
+                {
+                  "Sneak-right-click with shears to remove the motor. Right-click with a different motor to swap it. Remaining fuel stays with the returned motor."
+                }
+              </li>
+              <li>{"If the tank runs dry, you can still paddle normally."}</li>
+            </ul>
+          </section>
+          <section id="dashboard" className="wiki-section">
+            <p className="eyebrow">{"FIELD GUIDE"}</p>
+            <h2>{"Your dashboard."}</h2>
+            <div
+              className="dashboard-demo"
+              role="img"
+              aria-label="Illustration of the boat dashboard: 18 miles per hour, half a tank, 4.5 miles per gallon"
+            >
+              <div>
+                <span>{"MPH"}</span>
+                <strong>{"18"}</strong>
+              </div>
+              <div>
+                <span>{"GAS"}</span>
+                <span className="gas-leds" aria-hidden="true">
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                  <i></i>
+                </span>
+              </div>
+              <div>
+                <span>{"MPG"}</span>
+                <strong>{"4.5"}</strong>
+              </div>
+            </div>
+            <p className="caption">
+              {"Dashboard illustration. Values change while you drive."}
+            </p>
+            <ul className="guide-list">
+              <li>
+                <strong>{"MPH:"}</strong>
+                {" your current speed."}
+              </li>
+              <li>
+                <strong>{"GAS:"}</strong>
+                {" a segmented gauge and gallons remaining."}
+              </li>
+              <li>
+                <strong>{"MPG:"}</strong>
+                {
+                  " estimated fuel economy at your current speed, not a guaranteed range."
+                }
+              </li>
+              <li>
+                <strong>{"HP:"}</strong>
+                {" your attached motor’s horsepower."}
+              </li>
+              <li>
+                {
+                  "Each motor has an original engine loop with pitch changing as you accelerate. Adjust it with Minecraft’s "
+                }
+                <strong>{"Friendly Creatures"}</strong>
+                {
+                  " volume slider. The engine runs while occupied, fueled, and in water."
+                }
+              </li>
+            </ul>
+          </section>
+          <section id="installation" className="wiki-section">
+            <p className="eyebrow">{"FIELD GUIDE"}</p>
+            <h2>{"Install the right build."}</h2>
+            <ol className="steps">
+              <li>
+                {
+                  "Choose exactly one jar that matches your Minecraft version and loader."
+                }
+              </li>
+              <li>
+                {
+                  "Install the required loader. Fabric and Quilt Boat Motors builds require matching Fabric API; native Forge and NeoForge Boat Motors builds do not. Other mods here currently require Fabric API."
+                }
+              </li>
+              <li>
+                {"Put the mod in your profile’s "}
+                <code>{"mods"}</code>
+                {
+                  " folder. For multiplayer, install it on the server and every client."
+                }
+              </li>
+              <li>{"Fully restart Minecraft to load the mod."}</li>
+            </ol>
+          </section>
+          <section id="compatibility" className="wiki-section">
+            <p className="eyebrow">{"FIELD GUIDE"}</p>
+            <h2>{"Versions & loaders."}</h2>
+            <p>
+              {"47 jars cover 63 available combinations across "}
+              <strong>{"Fabric, Quilt, Forge, and NeoForge"}</strong>
+              {". Fabric and Quilt share the Fabric jars."}
+            </p>
+            <div className="version-list">
+              <span>{"26.3"}</span>
+              <span>{"26.2"}</span>
+              <span>{"26.1.2"}</span>
+              <span>{"26.1.1"}</span>
+              <span>{"26.1"}</span>
+              <span>{"1.21.11"}</span>
+              <span>{"1.21.10"}</span>
+              <span>{"1.21.9"}</span>
+              <span>{"1.21.8"}</span>
+              <span>{"1.21.7"}</span>
+              <span>{"1.21.6"}</span>
+              <span>{"1.21.5"}</span>
+              <span>{"1.21.4"}</span>
+              <span>{"1.21.3"}</span>
+              <span>{"1.21.2"}</span>
+              <span>{"1.21.1"}</span>
+            </div>
+            <p>
+              <strong>{"Forge 1.21.2 is unavailable:"}</strong>
+              {" there is no official Forge release for that version."}
+            </p>
+            <p>
+              {
+                "This is a beta. All 63 combinations passed isolated server startup and motor/fuel saving checks. Eleven gameplay tests passed on Fabric 26.3. Only Fabric 26.3 has had a visual client check; the other client renderers still need in-game visual testing."
+              }
+            </p>
+          </section>
+          <section id="commands" className="wiki-section">
+            <p className="eyebrow">{"FIELD GUIDE"}</p>
+            <h2>{"Creative mode. testing."}</h2>
+            <p>
+              {
+                "Requires cheats or operator permission. These commands give items; they do not fill a new motor’s tank."
+              }
+            </p>
+            <div className="command-row">
+              <code>{"/give @s boat_motors:motor_9_9hp"}</code>
+              <button
+                type="button"
+                data-copy="/give @s boat_motors:motor_9_9hp"
+                aria-label="Copy command for 9.9 HP motor"
+                onClick={() => copyCommand("/give @s boat_motors:motor_9_9hp")}
+              >
+                {"Copy"}
+              </button>
+            </div>
+            <div className="command-row">
+              <code>{"/give @s boat_motors:motor_20hp"}</code>
+              <button
+                type="button"
+                data-copy="/give @s boat_motors:motor_20hp"
+                aria-label="Copy command for 20 HP motor"
+                onClick={() => copyCommand("/give @s boat_motors:motor_20hp")}
+              >
+                {"Copy"}
+              </button>
+            </div>
+            <div className="command-row">
+              <code>{"/give @s boat_motors:motor_25hp"}</code>
+              <button
+                type="button"
+                data-copy="/give @s boat_motors:motor_25hp"
+                aria-label="Copy command for 25 HP motor"
+                onClick={() => copyCommand("/give @s boat_motors:motor_25hp")}
+              >
+                {"Copy"}
+              </button>
+            </div>
+            <div className="command-row">
+              <code>{"/give @s boat_motors:motor_50hp"}</code>
+              <button
+                type="button"
+                data-copy="/give @s boat_motors:motor_50hp"
+                aria-label="Copy command for 50 HP motor"
+                onClick={() => copyCommand("/give @s boat_motors:motor_50hp")}
+              >
+                {"Copy"}
+              </button>
+            </div>
+            <div className="command-row">
+              <code>{"/give @s boat_motors:motor_100hp"}</code>
+              <button
+                type="button"
+                data-copy="/give @s boat_motors:motor_100hp"
+                aria-label="Copy command for 100 HP motor"
+                onClick={() => copyCommand("/give @s boat_motors:motor_100hp")}
+              >
+                {"Copy"}
+              </button>
+            </div>
+            <div className="command-row">
+              <code>{"/give @s boat_motors:gas_can"}</code>
+              <button
+                type="button"
+                data-copy="/give @s boat_motors:gas_can"
+                aria-label="Copy command for Gasoline"
+                onClick={() => copyCommand("/give @s boat_motors:gas_can")}
+              >
+                {"Copy"}
+              </button>
+            </div>
+            <div className="command-row">
+              <code>{"/give @s boat_motors:empty_gas_can"}</code>
+              <button
+                type="button"
+                data-copy="/give @s boat_motors:empty_gas_can"
+                aria-label="Copy command for Empty gas cans"
+                onClick={() =>
+                  copyCommand("/give @s boat_motors:empty_gas_can")
+                }
+              >
+                {"Copy"}
+              </button>
+            </div>
+            <p className="copy-status" role="status" aria-live="polite">
+              {copyStatus}
+            </p>
+          </section>
+          <section id="questions" className="wiki-section">
+            <p className="eyebrow">{"FIELD GUIDE"}</p>
+            <h2>{"Common questions."}</h2>
+            <details className="faq">
+              <summary>{"Why is my motorboat slow?"}</summary>
+              <p>
+                {
+                  "New motors have no fuel. Refuel, board the boat, and accelerate while in water."
+                }
+              </p>
+            </details>
+            <details className="faq">
+              <summary>{"Why is there still gas in my can?"}</summary>
+              <p>
+                {
+                  "The tank could not hold the whole gallon. The rest remains in your can."
+                }
+              </p>
+            </details>
+            <details className="faq">
+              <summary>
+                {"Do I need a smaller motor to craft a larger one?"}
+              </summary>
+              <p>
+                {"No. Craft each horsepower tier directly from its recipe."}
+              </p>
+            </details>
+            <details className="faq">
+              <summary>{"Where are the items in Creative?"}</summary>
+              <p>{"Look in Tools & Utilities."}</p>
+            </details>
+            <details className="faq">
+              <summary>{"How do I get the ingredients?"}</summary>
+              <p>
+                {
+                  "Smelt raw iron, copper, and gold. Mine redstone, diamonds, and coal. Harvest amethyst clusters in geodes. Craft sugar from sugar cane, blaze powder from blaze rods, and netherite ingots from four scraps and four gold ingots."
+                }
+              </p>
+            </details>
+          </section>
+          <footer className="wiki-end">
+            <a href="/minecraft">{"← Explore all mods"}</a>
+            <a href="#main">{"Back to top ↑"}</a>
+            <p>
+              {
+                "Code, assets, and documentation were created with AI assistance. Engine loops are original synthesized audio. There is no in-game generative AI functionality."
+              }
+            </p>
+          </footer>
+        </article>
+      </main>
+      <footer className="mc-footer">
+        <a href="/">{"Focused on Tom"}</a>
+        <span>{"© 2026 Tom Williams"}</span>
+        <a href="/#contact">{"Let’s connect ↗"}</a>
+        <p>
+          {
+            "Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft."
+          }
+        </p>
+        <MotionToggle id="mc-motion" />
+      </footer>
+    </>
+  );
+}
