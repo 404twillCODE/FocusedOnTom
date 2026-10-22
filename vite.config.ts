@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
 import { localPhotoApi } from "./scripts/local-photo-api.mjs";
+import { bundleStyles } from "./scripts/bundle-styles.ts";
 
 const resolve = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 const routes = JSON.parse(
@@ -12,7 +13,7 @@ const routes = JSON.parse(
 export default defineConfig({
   root: resolve("./frontend/"),
   publicDir: resolve("./new-site/"),
-  plugins: [react(), localPhotoApi()],
+  plugins: [react(), localPhotoApi(), bundleStyles(resolve("./new-site/"))],
   server: { host: "127.0.0.1", port: 3851, strictPort: true },
   build: {
     outDir: resolve("./build/"),

@@ -50,9 +50,26 @@ const { PortfolioProvider, CollectionGrid, CollectionToolbar } =
   await import("../frontend/src/components/Portfolio.tsx");
 const { default: ContactCard } =
   await import("../frontend/src/components/ContactCard.tsx");
+const { default: ToolsPage } =
+  await import("../frontend/src/pages/ToolsPage.tsx");
 globalThis.location = window.location;
 globalThis.history = window.history;
 const realFetch = globalThis.fetch;
+
+test("restored tools retain their original destinations and safe new-tab behavior", () => {
+  const view = render(React.createElement(ToolsPage));
+  const tools = view
+    .getByRole("list", { name: "Saved tools" })
+    .querySelectorAll("a");
+  assert.deepEqual(
+    [...tools].map((link) => link.href),
+    ["https://fmhy.net/video", "https://tvapp1.com/"],
+  );
+  for (const link of tools) {
+    assert.equal(link.target, "_blank");
+    assert.match(link.rel, /noopener/);
+  }
+});
 afterEach(() => {
   cleanup();
   globalThis.fetch = realFetch;

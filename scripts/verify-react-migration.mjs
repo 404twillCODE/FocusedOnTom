@@ -6,6 +6,7 @@ const routes = JSON.parse(
   await readFile(new URL("../frontend/routes.json", import.meta.url), "utf8"),
 );
 for (const route of routes) {
+  if (route.path === "/tools/") continue;
   const source = await readFile(
     new URL(
       "../archives/pre-react-site" + route.path + "index.html",
@@ -27,8 +28,11 @@ for (const route of routes) {
     );
   assert.equal(current.title, original.title, route.path + " title");
   assert.deepEqual(
-    values(current, "link[rel=stylesheet]", "href"),
-    values(original, "link[rel=stylesheet]", "href"),
+    current
+      .querySelector("link[data-style-sources]")
+      .getAttribute("data-style-sources")
+      .split("|"),
+    [...values(original, "link[rel=stylesheet]", "href"), "/performance.css"],
     route.path + " styles",
   );
   assert.deepEqual(
@@ -65,6 +69,28 @@ for (const route of routes) {
     );
   console.log("Preserved design, content, and page metadata:", route.path);
 }
+const tools = new JSDOM(
+  await readFile(new URL("../build/tools/index.html", import.meta.url), "utf8"),
+).window.document;
+assert.match(tools.querySelector("meta[name=robots]").content, /noindex/);
+assert.equal(tools.querySelectorAll(".tool-link").length, 2);
+for (const route of routes) {
+  const html = new JSDOM(
+    await readFile(
+      new URL("../build" + route.path + "index.html", import.meta.url),
+      "utf8",
+    ),
+  ).window.document;
+  assert.equal(
+    html.querySelectorAll("link[rel=stylesheet]").length,
+    1,
+    "one bundled stylesheet per page",
+  );
+  const href = html.querySelector("link[rel=stylesheet]").getAttribute("href");
+  assert.ok(
+    (await readFile(new URL("../build" + href, import.meta.url))).length > 1000,
+  );
+}
 console.log(
-  "All 8 React pages preserve the original design assets, headings, recipes, and metadata.",
+  "All original React pages preserve the design assets, headings, recipes, and metadata.",
 );

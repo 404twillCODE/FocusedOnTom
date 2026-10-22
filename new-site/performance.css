@@ -1,0 +1,6 @@
+/* Pause work hidden behind opaque galleries or outside the visible hero. */
+html.overlay-open .hero-stage *,html.hero-out-of-view .hero-stage *{animation-play-state:paused!important}
+/* Keep the final appearance without retaining an animation layer on every tile. */
+html:not(.motion-off) .album-photo.is-visible{animation-fill-mode:backwards}
+.album-photo{contain:paint}
+.footer-tools{margin-left:18px;color:var(--cyan);white-space:nowrap}

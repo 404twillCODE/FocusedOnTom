@@ -38,5 +38,10 @@
     "path": "/minecraft/rocket-rpg/wiki/",
     "name": "MinecraftRocketRpgWikiPage",
     "bodyClass": "minecraft-guide"
+  },
+  {
+    "path": "/tools/",
+    "name": "ToolsPage",
+    "bodyClass": "tools-page"
   }
 ]

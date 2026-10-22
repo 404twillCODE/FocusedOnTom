@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 3851",
-    "test": "tsx --test tests/photos.test.mjs tests/preview-cache.test.mjs tests/portfolio-photos.test.mjs tests/album-groups.test.mjs tests/contact-form.test.mjs tests/react-ui.test.mjs",
+    "test": "tsx --test tests/photos.test.mjs tests/preview-cache.test.mjs tests/portfolio-photos.test.mjs tests/album-groups.test.mjs tests/contact-form.test.mjs tests/react-ui.test.mjs tests/scene-performance.test.mjs",
     "dev:old": "npm --prefix old run dev",
     "dev:legacy": "npm --prefix legacy-site run dev",
     "dev:original": "npm --prefix focusedontom run dev -- --webpack --port 3003",
@@ -32,6 +32,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "jsdom": "^26.1.0",
+    "lightningcss": "^1.33.0",
     "prettier": "^3.9.10",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",

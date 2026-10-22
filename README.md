@@ -20,15 +20,15 @@ npm run verify:migration
 npm run preview
 ```
 
-The production build pre-renders all eight pages to HTML, then React hydrates them. This preserves immediate readable content, metadata, and crafting guides instead of waiting for JavaScript to draw the page. Each page loads its own component bundle.
+The production build pre-renders all nine pages to HTML, then React hydrates them. This preserves immediate readable content, metadata, and crafting guides instead of waiting for JavaScript to draw the page. Each page loads its own component bundle.
 
 ## Source layout
 
-- `frontend/src/pages/`: the home page, Minecraft hub, three mod pages, and three wikis as TSX.
+- `frontend/src/pages/`: the home page, restored tools page, Minecraft hub, three mod pages, and three wikis as TSX.
 - `frontend/src/components/`: shared navigation, project workbench, portfolio filters, grouped albums, photo viewer, contact card, and orange ticker.
 - `frontend/src/lib/`: typed projects, gallery models, album grouping, contact validation/delivery, and mod search helpers.
 - `frontend/src/motion/`: shared motion preferences and effects. The existing canvas drawing algorithms are retained as isolated JavaScript engines, with explicit cleanup when React unmounts them. React owns the UI and event state.
-- `new-site/`: unchanged public styles, photographs, fonts, Minecraft textures, catalog, and logo. The old browser controllers are no longer shipped.
+- `new-site/`: public styles, photographs, fonts, Minecraft textures, catalog, and logo. The old browser controllers are no longer shipped.
 - `api/` and `scripts/`: existing server-side photo integration, original matching, preview processing, and sync jobs. Private keys remain on the server.
 - `archives/pre-react-site/`: the previous HTML, JavaScript, and styles, excluded from deployment. Photos and fonts remain shared in `new-site/`; Git history preserves the complete original version.
 
@@ -41,6 +41,14 @@ TE Visuals section labels, image sources, purchase/licensing links, and original
 The contact card uses the same Formspree endpoint (`mdaladkg`) and inbox (`twj2390@gmail.com`). Validation prevents invalid sends, duplicate sends are blocked, errors retain the draft, and a receipt appears only after provider confirmation. Tests use a fake transport and send no email.
 
 Existing photo API authentication, Cloudflare R2 credentials, and TE Visuals sync configuration remain unchanged. Use ignored `.env.local` and `.env.photos.local` files for local server configuration. No secret is included in Vite's browser bundle.
+
+## Performance and tools
+
+Scroll effects cache their elements, read geometry before changing styles, and skip unchanged updates. Reveal observers inspect newly added elements instead of rescanning the page when a counter changes. Album grids are memoized, so navigating the viewer does not rebuild hundreds of photo tiles. Background animation pauses behind an open gallery and when the page is hidden; offscreen hero animations also pause. Canvas resolution is capped for desktop and mobile while retaining the existing star effects and reduced-motion controls.
+
+The same complete font faces are served as WOFF2, reducing their combined size from 602,236 to 202,268 bytes. Production builds combine each page's stylesheets in their original cascade order into one minified, content-hashed asset. Development retains individual stylesheets. A development-only timing output helps compare scroll updates and is removed from production builds.
+
+`/tools/` restores the two original saved links in the current design. It is reachable from the home footer and retains noindex metadata and headers.
 
 ## Publishing
 

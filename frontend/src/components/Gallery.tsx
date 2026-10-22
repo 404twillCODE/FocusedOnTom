@@ -1,15 +1,16 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
-  type CSSProperties,
   type MouseEvent,
   type PointerEvent,
 } from "react";
 import { usePortfolio } from "./Portfolio";
+import AlbumGrid from "./AlbumGrid";
 import {
   groupAlbumPhotos,
   safeUrl,
@@ -64,13 +65,24 @@ export default function Gallery() {
     () => groupAlbumPhotos(collection?.photos || []),
     [collection],
   );
-  const visibleGroups = groups.filter(
-    (group) => !section || (group.name || "__ungrouped") === section,
+  const visibleGroups = useMemo(
+    () =>
+      groups.filter(
+        (group) => !section || (group.name || "__ungrouped") === section,
+      ),
+    [groups, section],
   );
-  const visiblePhotos = visibleGroups.flatMap((group) => group.photos);
+  const visiblePhotos = useMemo(
+    () => visibleGroups.flatMap((group) => group.photos),
+    [visibleGroups],
+  );
+  const allPhotos = useMemo(
+    () => groups.flatMap((group) => group.photos),
+    [groups],
+  );
   const photos =
     kind === "photo" && !visiblePhotos.some((photo) => photo.id === photoId)
-      ? groups.flatMap((group) => group.photos)
+      ? allPhotos
       : visiblePhotos;
   const index = photos.findIndex((photo) => photo.id === photoId);
   useLayoutEffect(() => {
@@ -112,6 +124,13 @@ export default function Gallery() {
       .forEach((photo) => observer.observe(photo));
     return () => observer.disconnect();
   }, [collection, section]);
+  const openPhoto = useCallback(
+    (photoId: string, trigger: HTMLButtonElement) => {
+      lastPhoto.current = trigger;
+      location.hash = `photo/${collection!.id}/${photoId}`;
+    },
+    [collection?.id],
+  );
   function close() {
     replaceRoute("photography");
   }
@@ -239,65 +258,13 @@ export default function Gallery() {
               </button>
             ))}
           </div>
-          <div id="album-grid" className="album-grid">
-            {visibleGroups.map((group, groupIndex) => (
-              <section key={group.name} className="album-section">
-                {(group.name || groups.length > 1) && (
-                  <div className="album-section-heading">
-                    <span className="album-section-index">
-                      {String(groupIndex + 1).padStart(2, "0")} /
-                    </span>
-                    <h3>{group.name || "More photographs"}</h3>
-                    <span className="album-section-count">
-                      {group.photos.length} photograph
-                      {group.photos.length === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                )}
-                <div className="album-section-grid">
-                  {group.photos.map((photo) => {
-                    const position = visiblePhotos.findIndex(
-                      (item) => item.id === photo.id,
-                    );
-                    return (
-                      <button
-                        key={photo.id}
-                        className="album-photo"
-                        type="button"
-                        aria-label={`View photograph ${position + 1}: ${collection?.name}`}
-                        style={
-                          {
-                            "--photo-delay": `${(position % 4) * 65}ms`,
-                          } as CSSProperties
-                        }
-                        onClick={(event) => {
-                          lastPhoto.current = event.currentTarget;
-                          location.hash = `photo/${collection!.id}/${photo.id}`;
-                        }}
-                      >
-                        <img
-                          src={safeUrl(photo.thumbnailUrl || photo.url)}
-                          alt={`${collection?.name} — ${photo.name || "Photograph " + (position + 1)}`}
-                          loading="lazy"
-                          decoding="async"
-                          width={photo.width}
-                          height={photo.height}
-                          style={
-                            photo.width && photo.height
-                              ? {
-                                  aspectRatio: `${photo.width} / ${photo.height}`,
-                                }
-                              : undefined
-                          }
-                        />
-                        <span>View photograph ↗</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
+          <AlbumGrid
+            groups={visibleGroups}
+            photos={visiblePhotos}
+            showHeadings={groups.length > 1}
+            name={collection?.name || ""}
+            onOpen={openPhoto}
+          />
           <p className="album-signoff">
             A few things worth a second look.{" "}
             <span>PHOTOGRAPHS BY TOM WILLIAMS</span>

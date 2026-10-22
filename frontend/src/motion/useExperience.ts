@@ -37,39 +37,37 @@ export function useHomeExperience() {
       { threshold: 0.1, rootMargin: "0px 0px 30px 0px" },
     );
     const seen = new WeakSet<Element>();
-    function scan() {
-      document
-        .querySelectorAll(
-          ".section-heading>div>*, .section-index>span, .filter-tabs button, .gallery-hint, .about-copy>p, .now-list>div, .about-copy>.text-link",
-        )
-        .forEach((element) => {
-          if (seen.has(element)) return;
-          seen.add(element);
-          element.classList.remove("reveal");
-          element.classList.add("detail-reveal");
-          detail.observe(element);
-        });
-      document.querySelectorAll(".reveal").forEach((element) => {
-        if (seen.has(element)) return;
-        seen.add(element);
+    const detailSelector =
+      ".section-heading>div>*, .section-index>span, .filter-tabs button, .gallery-hint, .about-copy>p, .now-list>div, .about-copy>.text-link";
+    function observe(element: Element) {
+      if (seen.has(element)) return;
+      seen.add(element);
+      if (element.matches(detailSelector)) {
+        element.classList.remove("reveal");
+        element.classList.add("detail-reveal");
+        detail.observe(element);
+      } else
         (element.matches(".scroll-album, .workbench-reveal")
           ? album
           : reveal
         ).observe(element);
-      });
     }
-    scan();
-    const changes = new MutationObserver(scan);
+    function scan(node: ParentNode) {
+      if (node instanceof Element && node.matches(detailSelector + ", .reveal"))
+        observe(node);
+      node.querySelectorAll(detailSelector + ", .reveal").forEach(observe);
+    }
+    scan(document);
+    // Text-counter changes do not introduce reveal elements. Only inspect added subtrees.
+    const changes = new MutationObserver((records) => {
+      for (const record of records)
+        for (const node of record.addedNodes)
+          if (node instanceof Element) scan(node);
+    });
     changes.observe(document.getElementById("main")!, {
       childList: true,
       subtree: true,
     });
-    const progress = () => {
-      const total = root.scrollHeight - innerHeight;
-      const bar = document.querySelector<HTMLElement>(".reading-progress");
-      if (bar)
-        bar.style.transform = `scaleX(${total > 0 ? Math.min(1, scrollY / total) : 0})`;
-    };
     const sectionObserver = new IntersectionObserver(
       (entries) => {
         for (const entry of entries)
@@ -87,8 +85,6 @@ export function useHomeExperience() {
     document
       .querySelectorAll("main>section[id]")
       .forEach((section) => sectionObserver.observe(section));
-    addEventListener("scroll", progress, { passive: true });
-    progress();
     const stopHome = startHomeEngine();
     return () => {
       stopHome();
@@ -97,7 +93,6 @@ export function useHomeExperience() {
       detail.disconnect();
       changes.disconnect();
       sectionObserver.disconnect();
-      removeEventListener("scroll", progress);
       root.classList.remove("motion-ready");
     };
   }, []);

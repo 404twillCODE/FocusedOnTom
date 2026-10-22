@@ -1,21 +1,16 @@
+import { measureWork } from "../lib/workMeasure";
+import { createSceneUpdater } from "./scene-layout";
 export function startHomeEngine() {
   const stop = [];
   function listen(target, type, listener, options) {
     target.addEventListener(type, listener, options);
     stop.push(() => target.removeEventListener(type, listener, options));
   }
-  const hero = document.querySelector(".hero");
   const canvas = document.querySelector("#ambient-field");
   const ctx = canvas.getContext("2d");
-  const clamp = (value, min = 0, max = 1) =>
-    Math.min(max, Math.max(min, value));
-  const ease = (value) => {
-    const t = clamp(value);
-    return t * t * (3 - 2 * t);
-  };
   let width = innerWidth,
     height = innerHeight,
-    dpr = Math.min(devicePixelRatio || 1, 1.5);
+    dpr = Math.min(devicePixelRatio || 1, innerWidth <= 760 ? 1 : 1.25);
   let dirty = true,
     previous = 0,
     frame = 0,
@@ -24,14 +19,15 @@ export function startHomeEngine() {
   let particles = [],
     meteor = null,
     nextMeteor = 0;
+  const reducedMedia = matchMedia("(prefers-reduced-motion: reduce)");
   const still = () =>
     document.documentElement.classList.contains("motion-off") ||
-    matchMedia("(prefers-reduced-motion: reduce)").matches;
+    reducedMedia.matches;
   const mobile = () => innerWidth <= 760;
   function sizeCanvas() {
     width = innerWidth;
     height = innerHeight;
-    dpr = Math.min(devicePixelRatio || 1, 1.5);
+    dpr = Math.min(devicePixelRatio || 1, innerWidth <= 760 ? 1 : 1.25);
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -48,134 +44,11 @@ export function startHomeEngine() {
     dirty = true;
   }
   sizeCanvas();
+  const scene = createSceneUpdater();
+  scene.configure(still());
   function updateScenes() {
     dirty = false;
-    const reduced = still(),
-      heroRect = hero.getBoundingClientRect();
-    const codeScene = document.getElementById("projects");
-    codeScene.classList.toggle(
-      "pinned-code",
-      !reduced && innerWidth >= 1050 && innerHeight >= 700,
-    );
-    const codeProgress = clamp(
-      (innerHeight * 0.7 - codeScene.getBoundingClientRect().top) /
-        (innerHeight * 0.7 + codeScene.offsetHeight * 0.45),
-    );
-    codeScene.style.setProperty(
-      "--code-progress",
-      ease(codeProgress).toFixed(5),
-    );
-    const albumGrid = document.getElementById("collection-grid");
-    const albumGridTop = albumGrid.getBoundingClientRect().top;
-    const albumPositions = [...albumGrid.querySelectorAll(".scroll-album")].map(
-      (card) => {
-        // Measure the layout position so the animated tilt cannot feed back into it.
-        const center = albumGridTop + card.offsetTop + card.offsetHeight * 0.5;
-        return [
-          card,
-          reduced
-            ? 0
-            : clamp((innerHeight * 0.5 - center) / (innerHeight * 0.85), -1, 1),
-        ];
-      },
-    );
-    for (const [card, position] of albumPositions)
-      card.style.setProperty("--album-position", position.toFixed(5));
-    for (const id of ["photography", "projects"]) {
-      const section = document.getElementById(id),
-        heading = section.querySelector(".section-heading");
-      const top = heading.getBoundingClientRect().top;
-      section.style.setProperty(
-        "--title-enter",
-        (reduced
-          ? 1
-          : ease((innerHeight * 0.95 - top) / (innerHeight * 0.65))
-        ).toFixed(5),
-      );
-      section.style.setProperty(
-        "--title-drift",
-        (reduced
-          ? 0
-          : clamp((innerHeight * 0.3 - top) / (innerHeight * 0.8))
-        ).toFixed(5),
-      );
-    }
-    const about = document.getElementById("about");
-    const portraitTop =
-      about.querySelector(".portrait").offsetTop +
-      about.getBoundingClientRect().top;
-    const copyTop =
-      about.querySelector(".about-copy").offsetTop +
-      about.getBoundingClientRect().top;
-    about.style.setProperty(
-      "--portrait-enter",
-      (reduced
-        ? 1
-        : ease((innerHeight * 0.95 - portraitTop) / (innerHeight * 0.7))
-      ).toFixed(5),
-    );
-    about.style.setProperty(
-      "--about-enter",
-      (reduced
-        ? 1
-        : ease((innerHeight * 0.95 - copyTop) / (innerHeight * 0.7))
-      ).toFixed(5),
-    );
-    const progress = reduced
-      ? 0
-      : clamp(-heroRect.top / Math.max(1, hero.offsetHeight - innerHeight));
-    hero.style.setProperty("--scene", progress.toFixed(5));
-    hero.style.setProperty(
-      "--scene-zoom",
-      ease((progress - 0.12) / 0.8).toFixed(5),
-    );
-    hero.style.setProperty(
-      "--title-fade",
-      (1 - ease(progress / 0.48)).toFixed(5),
-    );
-    hero.style.setProperty("--title-shift", `${-progress * 110}px`);
-    hero.style.setProperty("--tilt", `${-7 * (1 - ease(progress / 0.7))}deg`);
-    hero.style.setProperty(
-      "--scene-exit",
-      ease((progress - 0.56) / 0.36).toFixed(5),
-    );
-    document.querySelector("#depth-value").textContent = String(
-      Math.round(progress * 999),
-    ).padStart(3, "0");
-    for (const id of ["photography", "projects", "about", "contact"]) {
-      const section = document.getElementById(id),
-        rect = section.getBoundingClientRect();
-      const enter = reduced
-        ? 1
-        : ease((innerHeight - rect.top) / (innerHeight * 0.9));
-      const travel = reduced
-        ? 0
-        : clamp(
-            (innerHeight * 0.5 - rect.top) / Math.max(1, rect.height),
-            -1,
-            1,
-          );
-      section.style.setProperty("--chapter-enter", enter.toFixed(5));
-      section.style.setProperty("--chapter-travel", travel.toFixed(5));
-    }
-    let active = "home";
-    for (const id of ["home", "photography", "projects", "about", "contact"]) {
-      if (
-        document.getElementById(id).getBoundingClientRect().top <
-        innerHeight * 0.48
-      )
-        active = id;
-    }
-    if (document.querySelector("#viewer[open],#gallery-dialog[open]"))
-      active = "photography";
-    if (document.documentElement.dataset.chapter !== active)
-      document.documentElement.dataset.chapter = active;
-    document.querySelectorAll(".chapter-nav a").forEach((link) => {
-      const current = link.hash === "#" + active;
-      link.classList.toggle("active", current);
-      if (current) link.setAttribute("aria-current", "location");
-      else link.removeAttribute("aria-current");
-    });
+    scene.update(still());
   }
   function drawAmbient(time, delta, animate = true) {
     ctx.clearRect(0, 0, width, height);
@@ -295,14 +168,14 @@ export function startHomeEngine() {
   function tick(time) {
     frame = 0;
     if (document.hidden) return;
-    if (dirty) updateScenes();
+    if (dirty) measureWork("fot:scene", updateScenes);
     const reduced = still(),
       delta = Math.min(50, time - previous || 16.67);
     if (!reduced && time - previous > 32) {
       drawAmbient(time, delta);
       previous = time;
     }
-    if (!reduced) frame = requestAnimationFrame(tick);
+    if (!reduced && !scene.overlayOpen()) frame = requestAnimationFrame(tick);
     else drawAmbient(0, 0, false);
   }
   function requestFrame() {
@@ -312,10 +185,17 @@ export function startHomeEngine() {
   listen(window, "scroll", requestFrame, { passive: true });
   listen(window, "resize", () => {
     sizeCanvas();
+    scene.configure(still());
     requestFrame();
   });
-  listen(window, "portfolio:motion", requestFrame);
-  listen(window, "portfolio:collections", requestFrame);
+  listen(window, "portfolio:motion", () => {
+    scene.configure(still());
+    requestFrame();
+  });
+  listen(window, "portfolio:collections", () => {
+    scene.refreshCards();
+    requestFrame();
+  });
   listen(document, "visibilitychange", () => {
     if (!document.hidden) requestFrame();
     else if (frame) {
@@ -335,7 +215,14 @@ export function startHomeEngine() {
     },
     { passive: true },
   );
-  const dialogObserver = new MutationObserver(requestFrame);
+  const dialogObserver = new MutationObserver(() => {
+    document.documentElement.classList.toggle(
+      "overlay-open",
+      scene.overlayOpen(),
+    );
+    previous = 0;
+    requestFrame();
+  });
   document.querySelectorAll("dialog").forEach((dialog) =>
     dialogObserver.observe(dialog, {
       attributes: true,
@@ -348,5 +235,9 @@ export function startHomeEngine() {
     stop.forEach((dispose) => dispose());
     cancelAnimationFrame(frame);
     dialogObserver.disconnect();
+    document.documentElement.classList.remove(
+      "overlay-open",
+      "hero-out-of-view",
+    );
   };
 }

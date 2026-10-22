@@ -28,7 +28,9 @@ export function MotionProvider({ children }: { children: ReactNode }) {
   }, [disabled]);
   function toggle() {
     const next = !disabled;
-    try { localStorage.setItem("fot-motion", next ? "off" : "on"); } catch {}
+    try {
+      localStorage.setItem("fot-motion", next ? "off" : "on");
+    } catch {}
     setDisabled(next);
   }
   return <MotionContext value={{ disabled, toggle }}>{children}</MotionContext>;

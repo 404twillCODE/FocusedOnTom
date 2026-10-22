@@ -1,5 +1,9 @@
 export const pages = {
   "/": { load: () => import("./pages/HomePage"), bodyClass: "" },
+  "/tools/": {
+    load: () => import("./pages/ToolsPage"),
+    bodyClass: "tools-page",
+  },
   "/minecraft/boat-motors/": {
     load: () => import("./pages/MinecraftBoatMotorsPage"),
     bodyClass: "minecraft-guide",

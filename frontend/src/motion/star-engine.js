@@ -16,13 +16,14 @@ export function startStarEngine() {
     pointerX = innerWidth / 2,
     pointerY = innerHeight / 2;
   const mobile = () => innerWidth <= 760;
+  const reducedMedia = matchMedia("(prefers-reduced-motion: reduce)");
   const still = () =>
     document.documentElement.classList.contains("motion-off") ||
-    matchMedia("(prefers-reduced-motion: reduce)").matches;
+    reducedMedia.matches;
   function sizeCanvas() {
     width = innerWidth;
     height = innerHeight;
-    dpr = Math.min(devicePixelRatio || 1, 1.5);
+    dpr = Math.min(devicePixelRatio || 1, innerWidth <= 760 ? 1 : 1.25);
     canvas.width = Math.round(width * dpr);
     canvas.height = Math.round(height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
