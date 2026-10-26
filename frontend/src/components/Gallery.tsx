@@ -11,6 +11,7 @@ import {
 } from "react";
 import { usePortfolio } from "./Portfolio";
 import AlbumGrid from "./AlbumGrid";
+import { clampPhotoScale, photoZoomPosition, wheelPhotoScale } from "../lib/photoZoom";
 import {
   groupAlbumPhotos,
   safeUrl,
@@ -287,7 +288,7 @@ type ViewerProps = {
   index: number;
   onClose: () => void;
 };
-function PhotoViewer({ collection, photos, index, onClose }: ViewerProps) {
+export function PhotoViewer({ collection, photos, index, onClose }: ViewerProps) {
   const dialog = useRef<HTMLDialogElement>(null),
     image = useRef<HTMLImageElement>(null),
     frame = useRef<HTMLButtonElement>(null);
@@ -309,7 +310,9 @@ function PhotoViewer({ collection, photos, index, onClose }: ViewerProps) {
     touch = useRef<number | null>(null);
   const photo = photos[index],
     open = !!photo && !!collection;
-  function resetZoom() {
+  const zoomGeometry = useRef({ scale: 1, width: 0, height: 0 });
+  const resetZoom = useCallback(() => {
+    zoomGeometry.current = { scale: 1, width: 0, height: 0 };
     setZoomed(false);
     setDragging(false);
     drag.current = null;
@@ -319,7 +322,7 @@ function PhotoViewer({ collection, photos, index, onClose }: ViewerProps) {
     frame.current?.style.removeProperty("--zoom-height");
     frame.current?.style.setProperty("--pan-x", "0px");
     frame.current?.style.setProperty("--pan-y", "0px");
-  }
+  }, []);
   useEffect(() => {
     const element = dialog.current;
     if (!element) return;
@@ -334,11 +337,11 @@ function PhotoViewer({ collection, photos, index, onClose }: ViewerProps) {
     setCopied(false);
     setStatus("");
     setLoading(!(image.current?.complete && image.current?.naturalWidth));
-  }, [photo?.id]);
+  }, [photo?.id, resetZoom]);
   useEffect(() => {
     addEventListener("resize", resetZoom);
     return () => removeEventListener("resize", resetZoom);
-  }, []);
+  }, [resetZoom]);
   function move(delta: number) {
     if (!collection || !photos.length) return;
     replaceRoute(
@@ -352,55 +355,49 @@ function PhotoViewer({ collection, photos, index, onClose }: ViewerProps) {
     frame.current?.style.setProperty("--pan-x", `${value.x}px`);
     frame.current?.style.setProperty("--pan-y", `${value.y}px`);
   }
-  function zoom(event: MouseEvent<HTMLButtonElement>) {
-    if (suppressClick.current) {
-      suppressClick.current = false;
-      return;
-    }
-    const img = image.current,
-      element = frame.current;
-    if (!img || !element) return;
-    const photo = img.getBoundingClientRect(),
-      box = element.getBoundingClientRect(),
-      keyboard = event.detail === 0;
-    if (
-      !keyboard &&
-      (event.clientX < photo.left ||
-        event.clientX > photo.right ||
-        event.clientY < photo.top ||
-        event.clientY > photo.bottom)
-    ) {
-      onClose();
-      return;
-    }
-    if (zoomed) {
-      resetZoom();
-      return;
-    }
-    if (!img.complete || !img.naturalWidth) return;
-    const scale = Math.min(
-      4,
-      Math.max(
-        2.25,
-        (box.width / photo.width) * 1.2,
-        (box.height / photo.height) * 1.2,
-      ),
-    );
-    const width = photo.width * scale,
-      height = photo.height * scale;
-    pan.current.limitX = Math.max(0, (width - box.width) / 2);
-    pan.current.limitY = Math.max(0, (height - box.height) / 2);
-    element.style.setProperty("--zoom-width", `${width}px`);
-    element.style.setProperty("--zoom-height", `${height}px`);
+  const applyScale = useCallback((requested: number, clientX?: number, clientY?: number) => {
+    const img = image.current, element = frame.current;
+    if (!img || !element || !img.complete || !img.naturalWidth) return;
+    const scale = clampPhotoScale(requested);
+    if (scale <= 1.001) { resetZoom(); return; }
+    const bounds = img.getBoundingClientRect(), box = element.getBoundingClientRect();
+    const previous = zoomGeometry.current;
+    const width = previous.width || bounds.width, height = previous.height || bounds.height;
+    const next = photoZoomPosition(previous.scale, scale, pan.current.x, pan.current.y,
+      clientX === undefined ? 0 : clientX - box.left - box.width / 2,
+      clientY === undefined ? 0 : clientY - box.top - box.height / 2,
+      width, height, box.width, box.height);
+    zoomGeometry.current = { scale, width, height };
+    pan.current = next;
+    element.style.setProperty("--zoom-width", `${width * scale}px`);
+    element.style.setProperty("--zoom-height", `${height * scale}px`);
+    element.style.setProperty("--pan-x", `${next.x}px`);
+    element.style.setProperty("--pan-y", `${next.y}px`);
     setZoomed(true);
-    updatePan(
-      keyboard
-        ? 0
-        : -(event.clientX - photo.left - photo.width / 2) * (scale - 1),
-      keyboard
-        ? 0
-        : -(event.clientY - photo.top - photo.height / 2) * (scale - 1),
-    );
+  }, [resetZoom]);
+  useEffect(() => {
+    const element = frame.current;
+    if (!open || !element) return;
+    const wheel = (event: WheelEvent) => {
+      if (event.ctrlKey || !event.deltaY || drag.current) return;
+      const img = image.current;
+      if (!img?.complete || !img.naturalWidth) return;
+      const bounds = img.getBoundingClientRect();
+      if (zoomGeometry.current.scale === 1 && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) return;
+      event.preventDefault();
+      applyScale(wheelPhotoScale(zoomGeometry.current.scale, event.deltaY, event.deltaMode, element.clientHeight), event.clientX, event.clientY);
+    };
+    element.addEventListener("wheel", wheel, { passive: false });
+    return () => element.removeEventListener("wheel", wheel);
+  }, [open, photo?.id, applyScale]);
+  function zoom(event: MouseEvent<HTMLButtonElement>) {
+    if (suppressClick.current) { suppressClick.current = false; return; }
+    const img = image.current;
+    if (!img) return;
+    const bounds = img.getBoundingClientRect(), keyboard = event.detail === 0;
+    if (!keyboard && (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom)) { onClose(); return; }
+    if (zoomGeometry.current.scale > 1) { resetZoom(); return; }
+    applyScale(2.25, keyboard ? undefined : event.clientX, keyboard ? undefined : event.clientY);
   }
   function pointerDown(event: PointerEvent<HTMLButtonElement>) {
     if (!zoomed || !event.isPrimary || event.button !== 0) return;
@@ -561,7 +558,7 @@ function PhotoViewer({ collection, photos, index, onClose }: ViewerProps) {
             }}
           />
           <span className="viewer-zoom-hint" aria-hidden="true">
-            Click to zoom <span>＋</span>
+            Click or scroll to zoom <span>＋</span>
           </span>
         </button>
         <button

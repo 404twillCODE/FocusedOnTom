@@ -1,0 +1,50 @@
+import test, {afterEach} from "node:test";
+import assert from "node:assert/strict";
+import {JSDOM} from "jsdom";
+import React from "react";
+import {photoZoomPosition, wheelPhotoScale} from "../frontend/src/lib/photoZoom.ts";
+
+const dom=new JSDOM("<html><body></body></html>",{url:"https://focusedontom.test/"});
+for(const key of ["window","document","navigator","HTMLElement","HTMLDialogElement","Node","MouseEvent","KeyboardEvent","Event","WheelEvent","location","history"]){Object.defineProperty(globalThis,key,{configurable:true,value:dom.window[key]});}
+globalThis.IS_REACT_ACT_ENVIRONMENT=true;
+globalThis.addEventListener=window.addEventListener.bind(window);
+globalThis.removeEventListener=window.removeEventListener.bind(window);
+HTMLDialogElement.prototype.showModal=function(){this.open=true;};
+HTMLDialogElement.prototype.close=function(){this.open=false;};
+const {render,fireEvent,cleanup}=await import("@testing-library/react");
+const {PhotoViewer}=await import("../frontend/src/components/Gallery.tsx");
+afterEach(cleanup);
+test("wheel zoom respects scale limits, delta units and the point under the cursor",()=>{
+  assert.equal(wheelPhotoScale(1,120,0,600),1);
+  assert.equal(wheelPhotoScale(4,-120,0,600),4);
+  assert.ok(wheelPhotoScale(1,-120,0,600)>1);
+  assert.equal(wheelPhotoScale(2,2,1,600),wheelPhotoScale(2,32,0,600));
+  const position=photoZoomPosition(2,3,-100,50,100,0,800,600,800,600);
+  assert.equal(position.x,-200); assert.equal(position.y,75);
+  const bounded=photoZoomPosition(2,4,10000,-10000,0,0,800,600,800,600);
+  assert.equal(bounded.x,bounded.limitX); assert.equal(bounded.y,-bounded.limitY);
+});
+test("click and wheel zoom keep the existing viewer markup, reset per photo, and dismiss outside the image",()=>{
+  const photos=[{id:"a",name:"First",url:"https://photos.test/a.jpg"},{id:"b",name:"Second",url:"https://photos.test/b.jpg"}];
+  const collection={id:"album",name:"Test album",category:"Nature",photos,totalPhotos:2};
+  let closed=0;
+  const view=render(React.createElement(PhotoViewer,{collection,photos,index:0,onClose:()=>closed++}));
+  const frame=view.container.querySelector("#zoom-photo"),img=view.container.querySelector("#viewer-image");
+  Object.defineProperty(img,"complete",{configurable:true,value:true});
+  Object.defineProperty(img,"naturalWidth",{configurable:true,value:2400});
+  frame.getBoundingClientRect=()=>({left:0,top:0,width:800,height:600,right:800,bottom:600});
+  img.getBoundingClientRect=()=>({left:200,top:0,width:400,height:600,right:600,bottom:600});
+  fireEvent.click(frame,{clientX:400,clientY:300,detail:1});
+  assert.equal(frame.getAttribute("aria-pressed"),"true");
+  assert.equal(frame.style.getPropertyValue("--zoom-width"),"900px");
+  fireEvent.wheel(frame,{clientX:400,clientY:300,deltaY:-120,deltaMode:0});
+  assert.ok(parseFloat(frame.style.getPropertyValue("--zoom-width"))>900);
+  fireEvent.wheel(frame,{clientX:400,clientY:300,deltaY:120,deltaMode:0});
+  assert.ok(Math.abs(parseFloat(frame.style.getPropertyValue("--zoom-width"))-900)<0.01);
+  view.rerender(React.createElement(PhotoViewer,{collection,photos,index:1,onClose:()=>closed++}));
+  assert.equal(frame.getAttribute("aria-pressed"),"false");
+  assert.equal(frame.style.getPropertyValue("--zoom-width"),"");
+  fireEvent.click(frame,{clientX:100,clientY:300,detail:1});
+  assert.equal(closed,1);
+  assert.equal(view.container.querySelectorAll(".viewer-thumbnail").length,2);
+});
