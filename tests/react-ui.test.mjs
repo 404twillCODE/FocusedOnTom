@@ -222,3 +222,29 @@ test("React contact validation makes no request and a failed send preserves the 
     "Please keep this draft if delivery fails.",
   );
 });
+
+
+test("contact card stays revealed when opening, closing, and reopening the form", async () => {
+  const view = render(React.createElement(ContactCard, { request: 0 }));
+  const card = view.container.querySelector("#contact-card");
+  // The scroll observer reveals the card once, then stops observing it.
+  card.classList.add("is-visible");
+  const open = view.getByRole("button", { name: "Tell me your idea ↗" });
+  open.focus();
+  fireEvent.click(open);
+  await act(async () => {});
+  assert.ok(card.classList.contains("is-visible"));
+  assert.equal(view.container.querySelector("#contact-compose").hidden, false);
+  assert.equal(document.activeElement, view.getByLabelText(/^Your name/));
+  fireEvent.change(view.getByLabelText(/^Your name/), {
+    target: { value: "Saved draft" },
+  });
+  fireEvent.click(view.getByRole("button", { name: "Back to note" }));
+  assert.ok(card.classList.contains("is-visible"));
+  assert.equal(document.activeElement, open);
+  view.rerender(React.createElement(ContactCard, { request: 1 }));
+  await act(async () => {});
+  assert.ok(card.classList.contains("is-visible"));
+  assert.equal(view.container.querySelector("#contact-compose").hidden, false);
+  assert.equal(view.getByLabelText(/^Your name/).value, "Saved draft");
+});

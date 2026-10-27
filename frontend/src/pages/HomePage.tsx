@@ -470,9 +470,6 @@ export default function HomePage() {
             {"© "}
             <span className="year">{new Date().getFullYear()}</span>
             {" TOM WILLIAMS"}
-            <a className="footer-tools" href="/tools/">
-              Tools ↗
-            </a>
           </span>
           <a href="#home">
             {"MADE WITH A LITTLE CURIOSITY "}

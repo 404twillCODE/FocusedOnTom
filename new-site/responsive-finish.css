@@ -274,11 +274,11 @@ html.motion-off .ticker>.ticker-track{animation:none;will-change:auto}html.motio
 #contact{overflow-anchor:none}
 #contact-card{overflow:hidden;scroll-margin-top:105px;transition:border-color .45s,box-shadow .45s;align-self:center}
 #contact-card [hidden]{display:none!important}
-#contact-card.is-composing{border-color:#bde4f047;box-shadow:0 25px 75px #0003;rotate:0deg;translate:none}
+#contact-card[data-composing]{border-color:#bde4f047;box-shadow:0 25px 75px #0003;rotate:0deg;translate:none}
 .letter-summary>p,.letter-compose>p{font-size:var(--text-body);line-height:1.8;color:#a9bfcd}
 .contact-back{display:grid;place-items:center;width:38px;height:38px;margin:-9px -7px -9px 0;border:0;border-radius:50%;background:#c7e9f00a;color:#b5d6e6;font-size:25px;transition:background .25s,color .25s}
 .contact-back:hover{background:#c7e9f018;color:#ffac89}
-.is-composing .letter-decoration{display:none}
+#contact-card[data-composing] .letter-decoration{display:none}
 .letter-compose h3{font-size:clamp(29px,2.7vw,40px);margin:27px 0 10px;letter-spacing:-1.5px;line-height:1.1}
 .letter-compose>p{font-size:15px;margin:0 0 25px}
 #contact-form{display:grid;gap:20px;margin-top:25px}

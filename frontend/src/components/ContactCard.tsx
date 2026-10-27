@@ -147,7 +147,9 @@ export default function ContactCard({ request }: { request: number }) {
     <div
       ref={card}
       id="contact-card"
-      className={"contact-letter reveal" + (open ? " is-composing" : "")}
+      // Keep the observer-owned reveal classes stable across form state changes.
+      className="contact-letter reveal"
+      data-composing={open || undefined}
       data-form-state={state}
       onKeyDown={(event) => {
         if (event.key === "Escape" && open) {

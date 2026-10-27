@@ -48,7 +48,7 @@ Scroll effects cache their elements, read geometry before changing styles, and s
 
 The same complete font faces are served as WOFF2, reducing their combined size from 602,236 to 202,268 bytes. Production builds combine each page's stylesheets in their original cascade order into one minified, content-hashed asset. Development retains individual stylesheets. A development-only timing output helps compare scroll updates and is removed from production builds.
 
-`/tools/` restores the two original saved links in the current design. It is reachable from the home footer and retains noindex metadata and headers.
+`/tools/` restores the two original saved links in the current design. It is available directly at `/tools/` and retains noindex metadata and headers.
 
 ## Publishing
 
