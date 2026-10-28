@@ -135,7 +135,7 @@ export function CollectionToolbar() {
               <>
                 {" "}
                 <span id="collection-count">
-                  {String(catalog.length || 6).padStart(2, "0")}
+                  {String(catalog.length).padStart(2, "0")}
                 </span>
               </>
             )}

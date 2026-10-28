@@ -159,12 +159,13 @@ test("live portfolio replaces the bundled catalog and clears removed publication
     }] });
   };
   try {
-    const view = render(React.createElement(PortfolioProvider, null, React.createElement(CollectionGrid)));
+    const view = render(React.createElement(PortfolioProvider, null, React.createElement(CollectionToolbar), React.createElement(CollectionGrid)));
     await waitFor(() => assert.ok(view.getByRole("button", { name: "Explore New portraits collection" })));
     assert.equal(view.queryByRole("button", { name: "Explore Bundled collection" }), null);
     removed = true;
     fireEvent.focus(window);
     await waitFor(() => assert.equal(view.queryByRole("button", { name: "Explore New portraits collection" }), null));
+    assert.ok(view.getByRole("button", { name: "All work 00" }));
   } finally {
     delete document.hidden;
   }
