@@ -151,47 +151,72 @@ export function CollectionGrid() {
     list = catalog.filter(
       (collection) => filter === "all" || collection.category === filter,
     );
+  return <CollectionList key={filter} collections={list} />;
+}
+function CollectionList({ collections }: { collections: Collection[] }) {
+  const [limit, setLimit] = useState(6);
+  const visible = collections.slice(0, limit);
+  const remaining = Math.max(0, collections.length - limit);
   useEffect(() => {
     dispatchEvent(new Event("portfolio:collections"));
-  }, [catalog, filter]);
+  }, [collections, limit]);
   return (
-    <div id="collection-grid" className="collection-grid" aria-live="polite">
-      {list.map((collection, index) => (
-        <button
-          key={collection.id}
-          type="button"
-          className="collection-card scroll-album reveal"
-          aria-label={`Explore ${collection.name} collection`}
-          onClick={() => {
-            location.hash = `gallery/${collection.id}`;
-          }}
-        >
-          <div className="collection-image">
-            <img
-              src={safeUrl(collection.coverUrl || collection.photos[0]?.url)}
-              alt={`${collection.name} — photograph by Tom Williams`}
-              loading="lazy"
-              decoding="async"
-            />
-            <span className="collection-number">
-              {String(index + 1).padStart(2, "0")}
-            </span>
-            <span className="collection-open">↗</span>
-          </div>
-          <div className="collection-meta">
-            <h3>{collection.name}</h3>
-            <span>{collection.category.toUpperCase()}</span>
-          </div>
-          <p className="collection-caption">
-            {collection.totalPhotos} photographs ·{" "}
-            {collection.photos[0]?.date || "Through my lens"}
-          </p>
-        </button>
-      ))}
-      {catalog.length > 0 && !list.length && (
-        <p className="catalog-status">No collections in this category yet.</p>
+    <>
+      <div id="collection-grid" className="collection-grid" aria-live="polite">
+        {visible.map((collection, index) => (
+          <button
+            key={collection.id}
+            type="button"
+            className="collection-card scroll-album reveal"
+            aria-label={`Explore ${collection.name} collection`}
+            onClick={() => {
+              location.hash = `gallery/${collection.id}`;
+            }}
+          >
+            <div className="collection-image">
+              <img
+                src={safeUrl(collection.coverUrl || collection.photos[0]?.url)}
+                alt={`${collection.name} — photograph by Tom Williams`}
+                loading="lazy"
+                decoding="async"
+              />
+              <span className="collection-number">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <span className="collection-open">↗</span>
+            </div>
+            <div className="collection-meta">
+              <h3>{collection.name}</h3>
+              <span>{collection.category.toUpperCase()}</span>
+            </div>
+            <p className="collection-caption">
+              {collection.totalPhotos} photographs ·{" "}
+              {collection.photos[0]?.date || "Through my lens"}
+            </p>
+          </button>
+        ))}
+        {!collections.length && (
+          <p className="catalog-status">No collections in this category yet.</p>
+        )}
+      </div>
+      {collections.length > 6 && (
+        <div className="collection-pagination">
+          <span className="collection-page-count">
+            {visible.length} of {collections.length} collections
+          </span>
+          <button
+            type="button"
+            className="collection-more"
+            aria-controls="collection-grid"
+            aria-expanded={limit > 6}
+            onClick={() => setLimit(remaining ? Math.min(limit + 6, collections.length) : 6)}
+          >
+            {remaining ? "Show more collections" : "Show fewer collections"}
+            <span aria-hidden="true">{remaining ? "⌄" : "⌃"}</span>
+          </button>
+        </div>
       )}
-    </div>
+    </>
   );
 }
 export function CatalogStatus() {

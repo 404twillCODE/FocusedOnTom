@@ -171,6 +171,39 @@ test("live portfolio replaces the bundled catalog and clears removed publication
   }
 });
 
+test("home collections reveal six at a time and reset when the category changes", async () => {
+  const collections = Array.from({ length: 13 }, (_, i) => ({
+    id: `collection-${i}`, name: `Session ${i + 1}`,
+    category: i % 2 ? "Nature" : "Automotive",
+    photos: [{ id: `photo-${i}`, url: "https://example.com/photo.webp", capturedAt: `2026-04-${String(i + 1).padStart(2, "0")}` }],
+  }));
+  globalThis.fetch = async () => Response.json({ collections });
+  const view = render(React.createElement(PortfolioProvider, null, React.createElement(CollectionToolbar), React.createElement(CollectionGrid)));
+  const cards = () => view.getAllByRole("button", { name: /Explore .* collection/ });
+  await waitFor(() => assert.equal(cards().length, 6));
+  assert.equal(cards()[0].getAttribute("aria-label"), "Explore Session 13 collection");
+  let more = view.getByRole("button", { name: "Show more collections" });
+  assert.equal(more.getAttribute("aria-expanded"), "false");
+  assert.equal(more.getAttribute("aria-controls"), "collection-grid");
+  fireEvent.click(more);
+  assert.equal(cards().length, 12);
+  assert.equal(more.getAttribute("aria-expanded"), "true");
+  fireEvent.click(more);
+  assert.equal(cards().length, 13);
+  fireEvent.click(view.getByRole("button", { name: "Show fewer collections" }));
+  assert.equal(cards().length, 6);
+  fireEvent.click(view.getByRole("button", { name: "Show more collections" }));
+  fireEvent.click(view.getByRole("button", { name: "Automotive" }));
+  assert.equal(cards().length, 6);
+  fireEvent.click(view.getByRole("button", { name: "Show more collections" }));
+  assert.equal(cards().length, 7);
+  fireEvent.click(view.getByRole("button", { name: "Out in the world" }));
+  assert.equal(cards().length, 6);
+  assert.equal(view.queryByRole("button", { name: "Show more collections" }), null);
+  fireEvent.click(view.getByRole("button", { name: /All work/ }));
+  assert.equal(cards().length, 6);
+});
+
 test("React portfolio filters preserve complete albums and restore all collections", async () => {
   const collections = [
     {

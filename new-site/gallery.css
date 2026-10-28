@@ -131,3 +131,13 @@
 }
 @media(prefers-reduced-motion:reduce){.gallery-dialog .album-navigation,.viewer-thumbnails,.viewer-thumbnail-preview{transition:none}}
 html.motion-off .album-navigation,html.motion-off .viewer-thumbnails,html.motion-off .viewer-thumbnail-preview{transition:none}
+
+/* The homepage starts with two rows; additional collections stay in the same grid. */
+.collection-pagination{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:32px}
+.collection-page-count{font-size:12px;color:var(--muted)}
+.collection-more{display:inline-flex;align-items:center;gap:24px;padding:14px 24px;border:1px solid var(--line);border-radius:999px;background:rgba(160,214,226,.04);color:var(--ink);font:inherit;font-size:14px;cursor:pointer;transition:background .2s,border-color .2s}
+.collection-more:hover{background:rgba(160,214,226,.1);border-color:var(--cyan)}
+.collection-more:focus-visible{outline:2px solid var(--cyan);outline-offset:5px}
+.collection-more>span{color:var(--cyan);font-size:21px;line-height:1}
+@media(prefers-reduced-motion:reduce){.collection-more{transition:none}}
+html.motion-off .collection-more{transition:none}

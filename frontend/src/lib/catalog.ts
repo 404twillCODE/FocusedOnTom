@@ -4,6 +4,7 @@ export type Photo = {
   thumbnailUrl?: string;
   name?: string;
   date?: string;
+  capturedAt?: string | null;
   width?: number;
   height?: number;
   section?: string;
@@ -36,14 +37,13 @@ export function safeUrl(raw?: string) {
     return "";
   }
 }
-const order = [
-  "Camping",
-  "Adam LZ World Tour",
-  "Buffalo Cars And Coffee",
-  "Gas Station Shoot",
-  "Chrysler 300",
-  "Sylvan Beach",
-];
+function collectionDate(collection: Collection) {
+  return collection.photos.reduce((latest, photo) => {
+    const captured = Date.parse(photo.capturedAt || "");
+    const date = Number.isFinite(captured) ? captured : Date.parse(photo.date || "");
+    return Number.isFinite(date) ? Math.max(latest, date) : latest;
+  }, 0);
+}
 export function normalizeCatalog(value: unknown): Collection[] {
   if (
     !value ||
@@ -69,10 +69,9 @@ export function normalizeCatalog(value: unknown): Collection[] {
         (photo) => photo.id && safeUrl(photo.url),
       ),
     }))
-    .sort(
-      (a, b) =>
-        (order.includes(a.name) ? order.indexOf(a.name) : 100) -
-        (order.includes(b.name) ? order.indexOf(b.name) : 100),
+    .sort((a, b) =>
+      collectionDate(b) - collectionDate(a) ||
+      a.name.localeCompare(b.name, "en", { numeric: true }) || a.id.localeCompare(b.id),
     );
 }
 export function groupAlbumPhotos(photos: Photo[]) {
