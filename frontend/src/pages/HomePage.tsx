@@ -225,7 +225,7 @@ export default function HomePage() {
                 <span>{"REAL PLACES. REAL MOMENTS. MY POINT OF VIEW."}</span>
                 <a
                   className="text-link"
-                  href="https://www.tevisuals.com/portfolio"
+                  href="https://www.tevisuals.com/photographer/tom"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
