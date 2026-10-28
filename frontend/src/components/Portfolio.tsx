@@ -43,6 +43,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       refreshing = true;
       try {
         const response = await fetch("/api/portfolio-photos", {
+          cache: "no-store",
           signal: AbortSignal.any([
             controller.signal,
             AbortSignal.timeout(45000),
@@ -50,7 +51,8 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         });
         if (response.ok) {
           const data = normalizeCatalog(await response.json());
-          if (data.length) apply(data);
+          apply(data);
+          setStatus("");
         }
       } catch {
       } finally {
@@ -85,12 +87,19 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       )
         apply(pending.current);
     };
+    const focus = () => {
+      if (pending.current) apply(pending.current);
+    };
     document.addEventListener("visibilitychange", visible);
+    document.addEventListener("focusin", focus);
+    addEventListener("focus", visible);
     addEventListener("hashchange", route);
     return () => {
       controller.abort();
       clearInterval(interval);
       document.removeEventListener("visibilitychange", visible);
+      document.removeEventListener("focusin", focus);
+      removeEventListener("focus", visible);
       removeEventListener("hashchange", route);
     };
   }, []);

@@ -16,7 +16,7 @@ test('all pages are fetched and cache refresh discovers uploads and removals',as
  let now=0,calls=0,updated=false;
  const get=createLibrary({clock:()=>now,getKey:()=> 'test-key',fetcher:async(url,options)=>{calls++;assert.equal(options.headers.Authorization,'Bearer test-key');if(updated)return page([{...row,photoId:'new-photo'}]);return url.searchParams.has('cursor')?page([{...row,photoId:'photo-2'}]):page([row],true,'second');}});
  assert.equal((await get()).records.size,2);assert.equal(calls,2);await get();assert.equal(calls,2);
- now=61_000;updated=true;const fresh=await get();assert.equal(fresh.records.has('new-photo'),true);assert.equal(fresh.records.has('photo-1'),false);
+ now=16_000;updated=true;const fresh=await get();assert.equal(fresh.records.has('new-photo'),true);assert.equal(fresh.records.has('photo-1'),false);
 });
 test('authentication failure fails closed rather than serving expired cached metadata',async()=>{
  let now=0,fail=false;const get=createLibrary({clock:()=>now,getKey:()=> 'test-key',fetcher:async()=>fail?new Response('',{status:401}):page([row])});

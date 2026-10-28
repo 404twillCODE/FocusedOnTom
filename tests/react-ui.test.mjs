@@ -148,6 +148,28 @@ test("all six React workbench choices update the accessible preview and destinat
   }
 });
 
+test("live portfolio replaces the bundled catalog and clears removed publications without reloading", async () => {
+  Object.defineProperty(document, "hidden", { configurable: true, value: false });
+  let removed = false;
+  globalThis.fetch = async (url, options) => {
+    if (url === "/api/portfolio-photos") assert.equal(options.cache, "no-store");
+    const id = url === "/catalog.json" ? "Bundled" : "New portraits";
+    return Response.json({ collections: removed && url !== "/catalog.json" ? [] : [{
+      id, name: id, category: "Portraits", photos: [{ id: "new", url: "https://example.com/new.webp" }],
+    }] });
+  };
+  try {
+    const view = render(React.createElement(PortfolioProvider, null, React.createElement(CollectionGrid)));
+    await waitFor(() => assert.ok(view.getByRole("button", { name: "Explore New portraits collection" })));
+    assert.equal(view.queryByRole("button", { name: "Explore Bundled collection" }), null);
+    removed = true;
+    fireEvent.focus(window);
+    await waitFor(() => assert.equal(view.queryByRole("button", { name: "Explore New portraits collection" }), null));
+  } finally {
+    delete document.hidden;
+  }
+});
+
 test("React portfolio filters preserve complete albums and restore all collections", async () => {
   const collections = [
     {

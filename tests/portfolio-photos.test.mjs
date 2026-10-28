@@ -1,7 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {publicPhotoSources,cleanPortfolioCatalog} from '../server/portfolio-library.js';
+import {publicPhotoSources,cleanPortfolioCatalog,refreshPortfolioCatalog} from '../server/portfolio-library.js';
 import {originalSourcesForCatalog} from '../server/original-photos.js';
+
+test('new published photos appear without an independently indexed original, and empty publications propagate',async()=>{
+ const catalog={collections:[{id:'new-portraits',photos:[{id:'new-client-copy',url:'https://cdn.tevisuals.com/public/portfolio/portraits/new/photo.webp'}]}]};
+ const result=await refreshPortfolioCatalog(async()=>catalog);
+ assert.equal(result.collections[0].photos[0].id,'new-client-copy');
+ assert.equal(result.collections[0].photos[0].originalUrl,undefined);
+ assert.equal(result.imageDelivery,'cloudflare-webp');
+ assert.equal(result.refreshAfterSeconds,15);
+ assert.deepEqual((await refreshPortfolioCatalog(async()=>({collections:[]}))).collections,[]);
+ await assert.rejects(refreshPortfolioCatalog(async()=>{throw Error('Feed unavailable')}),/Feed unavailable/);
+});
 
 test('only Tom photographs from the public image library become clean sources',()=>{
   const photo={id:'lake',src:'https://cdn.tevisuals.com/public/portfolio/nature/camping/lake.webp',filename:'lake.jpg',width:2400,height:1600,attribution:'tom'};

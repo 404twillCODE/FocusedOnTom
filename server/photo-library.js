@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 
 export const SOURCE = 'https://www.tevisuals.com';
-const TTL = 60_000;
+const TTL = 15_000;
 export class LibraryError extends Error {
   constructor(message, status = 503) { super(message); this.status = status; }
 }
@@ -61,7 +61,7 @@ export function makeCatalog(rows, generatedAt) {
     return group;
   }).sort((a,b)=>a.title.localeCompare(b.title));
   const version = createHash('sha256').update(JSON.stringify(collections)).digest('hex');
-  return {records, public: {collections,version,generatedAt,source:SOURCE+'/photographer/tom',refreshAfterSeconds:60}};
+  return {records, public: {collections,version,generatedAt,source:SOURCE+'/photographer/tom',refreshAfterSeconds:15}};
 }
 
 export function createLibrary({fetcher=fetch, clock=Date.now, getKey=()=>process.env.FOT_SYNC_API_KEY?.trim()}={}) {
@@ -71,7 +71,7 @@ export function createLibrary({fetcher=fetch, clock=Date.now, getKey=()=>process
     if(!key) throw new LibraryError('Photo sync is not configured.');
     const photos=[], seen=new Set(); let cursor=null, generatedAt;
     for(let page=0;page<100;page++) {
-      const url=new URL('/api/sync/focused-on-tom/manifest',SOURCE);url.searchParams.set('limit','500');
+      const url=new URL('/api/sync/focused-on-tom/portfolio',SOURCE);url.searchParams.set('limit','500');
       if(cursor)url.searchParams.set('cursor',cursor);
       const response=await fetcher(url,{headers:{Authorization:`Bearer ${key}`},redirect:'error',signal:AbortSignal.timeout(20_000)});
       if(!response.ok)throw new LibraryError('The photo source is temporarily unavailable.');

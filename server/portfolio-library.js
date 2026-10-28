@@ -1,6 +1,4 @@
-import {readFile} from 'node:fs/promises';
 import {getLibrary,previewSource} from './photo-library.js';
-import {listTomOriginals,originalSourcesForCatalog} from './original-photos.js';
 
 const SOURCE='https://www.tevisuals.com';
 
@@ -55,29 +53,16 @@ async function refreshPublishedCatalog(){
   return cleanPortfolioCatalog(catalog,new Map(groups.flatMap(group=>[...group])));
 }
 
-export async function refreshPortfolioCatalog(){
-  const [catalog,originals]=await Promise.all([refreshPublishedCatalog(),listTomOriginals()]);
-  const sources=await originalSourcesForCatalog(catalog,originals.keys);
-  const result=catalog;
-  for(const collection of result.collections)for(const photo of collection.photos){
-    const original=sources.get(photo.id);
-    photo.originalUrl=original.url;photo.originalWidth=original.width;photo.originalHeight=original.height;
-  }
-  // Display the CDN's compressed WebP exports; retain original references for sync.
-  result.imageDelivery='cloudflare-webp';
-  result.originalsSync=originals.live?'live':'verified-inventory';
-  result.refreshAfterSeconds=15;
-  return result;
+export async function refreshPortfolioCatalog(loadPublished=refreshPublishedCatalog){
+  // Published WebP records are authoritative. Client-gallery publications need
+  // not have a second, independently indexed original to appear here.
+  const catalog=await loadPublished();
+  return {...catalog,imageDelivery:'cloudflare-webp',refreshAfterSeconds:15};
 }
 
 let cached,expires=0,pending;
 export async function getPortfolioCatalog(){
   if(cached&&Date.now()<expires)return cached;
-  if(!pending)pending=refreshPortfolioCatalog().then(data=>{cached=data;expires=Date.now()+15000;return data}).catch(async()=>{
-    // The bundled catalog also points to the unmodified public source files.
-    const fallback=JSON.parse(await readFile(new URL('../new-site/catalog.json',import.meta.url),'utf8'));
-    if(!['published-source','cloudflare-original','cloudflare-webp'].includes(fallback.imageDelivery))throw Error('Clean photo library unavailable.');
-    return fallback;
-  }).finally(()=>pending=null);
+  if(!pending)pending=refreshPortfolioCatalog().then(data=>{cached=data;expires=Date.now()+15000;return data}).finally(()=>pending=null);
   return pending;
 }
