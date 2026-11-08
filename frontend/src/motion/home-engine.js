@@ -45,6 +45,31 @@ export function startHomeEngine() {
   }
   sizeCanvas();
   const scene = createSceneUpdater();
+  // Native cursor images can stay stale until the next physical mouse move.
+  // Render the chapter cursor from the same CSS state as the rest of the page.
+  const cursor = document.createElement("span");
+  cursor.className = "theme-pointer";
+  cursor.setAttribute("aria-hidden", "true");
+  cursor.hidden = true;
+  document.body.append(cursor);
+  let mouseInPage = false,
+    cursorMoved = false;
+
+  function updateCursor() {
+    if (!mouseInPage) return;
+    const target = document.elementFromPoint(pointerX, pointerY);
+    // Keep native text, wait and zoom cursors where the page sets them.
+    cursor.hidden = !target || getComputedStyle(target).cursor !== "none";
+    if (cursorMoved) {
+      cursor.style.transform = `translate3d(${pointerX}px, ${pointerY}px, 0)`;
+      cursorMoved = false;
+    }
+  }
+  function hideCursor() {
+    mouseInPage = false;
+    cursor.hidden = true;
+    document.body.classList.remove("theme-pointer-active");
+  }
   scene.configure(still());
   function updateScenes() {
     dirty = false;
@@ -168,6 +193,7 @@ export function startHomeEngine() {
   function tick(time) {
     frame = 0;
     if (document.hidden) return;
+    if (dirty || cursorMoved) updateCursor();
     if (dirty) measureWork("fot:scene", updateScenes);
     const reduced = still(),
       delta = Math.min(50, time - previous || 16.67);
@@ -198,12 +224,12 @@ export function startHomeEngine() {
   });
   listen(document, "visibilitychange", () => {
     if (!document.hidden) requestFrame();
-    else if (frame) {
+    else {
+      hideCursor();
       cancelAnimationFrame(frame);
       frame = 0;
     }
   });
-  // Native SVG cursors follow the device directly: no DOM cursor and no tracking delay.
   listen(
     document,
     "pointermove",
@@ -211,10 +237,23 @@ export function startHomeEngine() {
       if (event.pointerType === "mouse") {
         pointerX = event.clientX;
         pointerY = event.clientY;
+        if (!mouseInPage) {
+          mouseInPage = true;
+          document.body.classList.add("theme-pointer-active");
+        }
+        cursorMoved = true;
+        if (!frame) frame = requestAnimationFrame(tick);
       }
     },
     { passive: true },
   );
+  listen(document, "pointerout", (event) => {
+    if (event.pointerType === "mouse" && !event.relatedTarget) hideCursor();
+  });
+  listen(document, "pointerdown", (event) => {
+    if (event.pointerType !== "mouse") hideCursor();
+  });
+  listen(window, "blur", hideCursor);
   const dialogObserver = new MutationObserver(() => {
     document.documentElement.classList.toggle(
       "overlay-open",
@@ -235,6 +274,8 @@ export function startHomeEngine() {
     stop.forEach((dispose) => dispose());
     cancelAnimationFrame(frame);
     dialogObserver.disconnect();
+    hideCursor();
+    cursor.remove();
     document.documentElement.classList.remove(
       "overlay-open",
       "hero-out-of-view",

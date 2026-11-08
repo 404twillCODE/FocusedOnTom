@@ -1,10 +1,49 @@
-/* Native cursors stay attached to the device pointer, independently of animation frames. */
-html{--native-cursor:url('/assets/cursors/home.svg') 5 3,auto}
-html[data-chapter="photography"]{--native-cursor:url('/assets/cursors/photography.svg') 16 16,crosshair}
-html[data-chapter="projects"]{--native-cursor:url('/assets/cursors/projects.svg') 16 16,auto}
-html[data-chapter="about"]{--native-cursor:url('/assets/cursors/about.svg') 16 16,auto}
-html[data-chapter="contact"]{--native-cursor:url('/assets/cursors/contact.svg') 26 5,auto}
-body,body a,body button{cursor:var(--native-cursor)}
+html {
+  --cursor-image: url('/assets/cursors/home.svg');
+  --cursor-x: 5;
+  --cursor-y: 3;
+  --cursor-fallback: auto;
+}
+html[data-chapter="photography"] {
+  --cursor-image: url('/assets/cursors/photography.svg');
+  --cursor-x: 16;
+  --cursor-y: 16;
+  --cursor-fallback: crosshair;
+}
+html[data-chapter="projects"] {
+  --cursor-image: url('/assets/cursors/projects.svg');
+  --cursor-x: 16;
+  --cursor-y: 16;
+}
+html[data-chapter="about"] {
+  --cursor-image: url('/assets/cursors/about.svg');
+  --cursor-x: 16;
+  --cursor-y: 16;
+}
+html[data-chapter="contact"] {
+  --cursor-image: url('/assets/cursors/contact.svg');
+  --cursor-x: 26;
+  --cursor-y: 5;
+}
+body, body a, body button {
+  cursor: var(--page-cursor, var(--cursor-image) var(--cursor-x) var(--cursor-y), var(--cursor-fallback));
+}
+html:not(.overlay-open) body.theme-pointer-active {
+  --page-cursor: none;
+}
+.theme-pointer {
+  position: fixed;
+  z-index: 10000;
+  inset: 0 auto auto 0;
+  width: 32px;
+  height: 32px;
+  translate: calc(var(--cursor-x) * -1px) calc(var(--cursor-y) * -1px);
+  background: var(--cursor-image) no-repeat center / contain;
+  pointer-events: none;
+}
+html.overlay-open .theme-pointer {
+  display: none;
+}
 body input,body textarea{cursor:text}.viewer-photo{cursor:zoom-in}.viewer-photo.zoomed{cursor:zoom-out}
 .pointer-orbit{display:none!important}
 .personal-channel{position:relative;z-index:2;padding:10px 0 80px}
