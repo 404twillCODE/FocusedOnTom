@@ -13,6 +13,12 @@ import Gallery from "../components/Gallery";
 import Ticker from "../components/Ticker";
 import { useHomeExperience } from "../motion/useExperience";
 
+const heroPhotograph = "/assets/hero/out-there.webp";
+
+// A mask in the photograph’s coordinates keeps the foreground aligned at every crop.
+const mountainSilhouette =
+  "M0 665 L316 649 347 642 379 641 411 639 445 644 474 651 501 645 523 643 546 648 564 653 582 650 606 654 623 659 650 655 672 650 694 644 710 642 729 646 751 655 767 649 792 643 813 645 838 642 858 646 879 648 900 646 919 654 946 647 969 646 994 644 1012 641 1036 632 1062 626 1085 622 1106 624 1125 627 1137 626 1151 635 1172 646 1198 653 1217 663 1246 668 1273 675 1300 681 1332 681 1356 686 1376 680 1396 678 1418 684 1440 680 1463 676 1489 677 1514 678 1536 671 1562 663 1586 667 1605 674 1630 667 1659 663 1687 661 1713 660 1736 658 1761 662 1784 670 1803 666 1827 666 1851 668 1879 675 1920 662 V1280 H0 Z";
+
 export default function HomePage() {
   const [composeRequest, requestCompose] = useState(0);
   useHomeExperience();
@@ -51,14 +57,38 @@ export default function HomePage() {
         </aside>
         <main id="main">
           <section
-            className="hero scroll-scene"
+            className="hero hero-depth scroll-scene"
             id="home"
             aria-labelledby="hero-title"
           >
             <div className="hero-stage">
-              <div className="scene-grid" aria-hidden="true"></div>
-              <div className="scene-orbit orbit-one" aria-hidden="true"></div>
-              <div className="scene-orbit orbit-two" aria-hidden="true"></div>
+              <svg
+                className="hero-depth-photo"
+                viewBox="0 0 1920 1280"
+                preserveAspectRatio="xMidYMid slice"
+                aria-hidden="true"
+              >
+                <image href={heroPhotograph} width="1920" height="1280" />
+              </svg>
+              <svg
+                className="hero-depth-photo hero-depth-foreground"
+                viewBox="0 0 1920 1280"
+                preserveAspectRatio="xMidYMid slice"
+                aria-hidden="true"
+              >
+                <defs>
+                  <clipPath id="hero-mountain-silhouette">
+                    <path d={mountainSilhouette} />
+                  </clipPath>
+                </defs>
+                <image
+                  href={heroPhotograph}
+                  width="1920"
+                  height="1280"
+                  clipPath="url(#hero-mountain-silhouette)"
+                />
+              </svg>
+              <div className="hero-depth-shade" aria-hidden="true"></div>
               <div className="viewfinder-label">
                 <i className="record-dot"></i>
                 <span>{"THOMAS WILLIAMS"}</span>
@@ -72,73 +102,56 @@ export default function HomePage() {
                   {"CODE. CAMERAS. CURIOSITY."}
                 </span>
                 <h1 id="hero-title">
-                  <span className="title-row title-row-one">{"FOCUSED"}</span>
+                  <span className="title-row title-row-one">{"FOCUSED"}</span>{" "}
                   <span className="title-row title-row-two">
                     {"ON TOM"}
                     <span className="title-dot">{"."}</span>
                   </span>
                 </h1>
-                <span className="title-outline" aria-hidden="true">
-                  {"ALWAYS CURIOUS"}
-                </span>
               </div>
               <div
-                className="floating-composition"
+                className="hero-depth-exposures"
+                role="group"
                 aria-label="Explore my photographs"
               >
                 <a
-                  className="scene-photo scene-photo-nature"
+                  className="hero-depth-print"
                   href="#photo/1837b224-0831-4e3c-a203-a406a79343e0/3a09cc7b-9ee7-4362-9108-478f35d95b62"
-                  aria-label="View the selected BMW photograph"
+                  aria-label="View the vintage BMW photograph from Adam LZ World Tour"
                 >
                   <img
                     src="https://cdn.tevisuals.com/public/portfolio/automotive/adam-lz-world-tour/pic00002-2-1778091089194.webp"
                     width="2400"
                     height="1600"
-                    alt="The vintage BMW from Adam LZ World Tour"
+                    alt=""
                   />
-                  <span>{"EXP. 001 / ADAM LZ WORLD TOUR"}</span>
+                  <span>
+                    01 / ADAM LZ WORLD TOUR <b aria-hidden="true">↗</b>
+                  </span>
                 </a>
                 <a
-                  className="scene-photo scene-photo-detail"
+                  className="hero-depth-print"
                   href="#photo/009bd361-4add-481a-9715-7bea5e962b1d/c0fe2e74-dc56-4c52-a2dc-d7a40923119c"
-                  aria-label="View the selected blue Shelby photograph"
+                  aria-label="View the blue Shelby photograph from Buffalo Cars and Coffee"
                 >
                   <img
                     src="https://cdn.tevisuals.com/public/portfolio/automotive/buffalo-cars-and-coffee/pic00054-1778105558661.webp"
                     width="1600"
                     height="2400"
-                    alt="The blue Shelby at Buffalo Cars and Coffee"
-                  />
-                  <span>{"EXP. 002 / BUFFALO CARS & COFFEE"}</span>
-                </a>
-                <a
-                  className="scene-photo scene-photo-focus"
-                  href="#photo/626965f0-d81e-4a23-8e4f-720993307d18/9a8c7263-b02a-4d6c-a593-24db3ff4a4ce"
-                  aria-label="View the selected lake photograph"
-                >
-                  <img
-                    src="https://cdn.tevisuals.com/public/portfolio/nature/camping/pic00126-1778713560307.webp"
-                    width="2400"
-                    height="1600"
-                    alt="A turquoise lake surrounded by forested mountains beneath a moody sky"
-                    fetchPriority="high"
+                    alt=""
                   />
                   <span>
-                    {"EXP. 003 / OUT THERE "}
-                    <b>{"↗"}</b>
+                    02 / BUFFALO CARS &amp; COFFEE <b aria-hidden="true">↗</b>
                   </span>
-                  <i className="focus-corner corner-tl"></i>
-                  <i className="focus-corner corner-tr"></i>
-                  <i className="focus-corner corner-bl"></i>
-                  <i className="focus-corner corner-br"></i>
                 </a>
-              </div>
-              <div className="focus-reticle" aria-hidden="true">
-                <span></span>
-                <span></span>
-                <i></i>
-                <b>{"AF / TRACKING CURIOSITY"}</b>
+                <a
+                  className="hero-depth-credit"
+                  href="#photo/626965f0-d81e-4a23-8e4f-720993307d18/9a8c7263-b02a-4d6c-a593-24db3ff4a4ce"
+                  aria-label="View Out There, a turquoise lake surrounded by forested mountains"
+                >
+                  <span>03 / OUT THERE</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
               </div>
               <div className="hero-intro">
                 <span className="tiny-label">
@@ -172,13 +185,6 @@ export default function HomePage() {
                   {"DEPTH "}
                   <b id="depth-value">{"000"}</b>
                 </span>
-              </div>
-              <div className="scene-exit" aria-hidden="true">
-                <span>{"EVERYTHING STARTS WITH A SECOND LOOK."}</span>
-                <strong>
-                  {"LOOK "}
-                  <em>{"CLOSER."}</em>
-                </strong>
               </div>
             </div>
           </section>

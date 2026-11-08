@@ -116,15 +116,19 @@ export function createSceneUpdater() {
         5,
       ),
     );
+    const heroTravel = heroHeight * 0.68;
     const progress = reduced
       ? 0
-      : clamp(-rects[0].top / Math.max(1, heroHeight - height));
+      : clamp(-rects[0].top / Math.max(1, heroTravel));
     style(hero, "--scene", progress.toFixed(5));
     style(hero, "--scene-zoom", ease((progress - 0.12) / 0.8).toFixed(5));
-    style(hero, "--title-fade", (1 - ease(progress / 0.48)).toFixed(5));
-    style(hero, "--title-shift", `${-progress * 110}px`);
-    style(hero, "--tilt", `${-7 * (1 - ease(progress / 0.7))}deg`);
-    style(hero, "--scene-exit", ease((progress - 0.56) / 0.36).toFixed(5));
+    const openingFade = 1 - ease((progress - 0.2) / 0.57);
+    style(hero, "--title-fade", openingFade.toFixed(5));
+    style(
+      hero,
+      "--hero-links-visibility",
+      openingFade > 0 ? "visible" : "hidden",
+    );
     const label = String(Math.round(progress * 999)).padStart(3, "0");
     if (depth.textContent !== label) depth.textContent = label;
     for (let index = 1; index < sections.length; index++) {

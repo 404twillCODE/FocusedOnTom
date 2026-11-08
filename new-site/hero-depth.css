@@ -1,0 +1,327 @@
+.hero.hero-depth {
+  height: auto;
+  z-index: 4;
+}
+
+.hero-depth .hero-stage {
+  position: relative;
+  height: max(100svh, 620px);
+  min-height: 0;
+  background: #080b0e;
+}
+
+.hero-depth :is(.hero-depth-exposures, .scroll-invitation) {
+  visibility: var(--hero-links-visibility, visible);
+}
+
+.hero-depth-photo,
+.hero-depth-shade {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  transform: scale(calc(1.02 + var(--scene-zoom, 0) * 0.09));
+}
+
+/* Both copies use the same crop and transform so the ridge stays aligned. */
+.hero-depth-photo {
+  z-index: 1;
+  filter: brightness(0.88);
+}
+
+.hero-depth-foreground {
+  z-index: 4;
+}
+
+.hero-depth-shade {
+  z-index: 5;
+  background: linear-gradient(
+    to bottom,
+    #080b0e8a,
+    transparent 43%,
+    #080b0e18 58%,
+    #080b0ece 100%
+  );
+}
+
+.hero-depth .hero-title-group {
+  z-index: 3;
+  top: auto;
+  right: 5%;
+  bottom: 47.9%;
+  left: 5%;
+  text-align: center;
+  transform: translateY(calc(var(--scene, 0) * -62px));
+}
+
+.hero-depth .hero-kicker {
+  display: block;
+  color: #ffe1d4;
+  margin-bottom: 13px;
+  font-size: clamp(10px, 0.9vw, 15px);
+  letter-spacing: 0.19em;
+  text-shadow: 0 2px 15px #080b0e;
+}
+
+.hero-depth h1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.19em;
+  font-size: min(10.25vw, 23svh);
+  line-height: 0.9;
+  letter-spacing: -0.081em;
+}
+
+.hero-depth .title-row {
+  margin: 0;
+  padding: 0 0.045em 0 0;
+  translate: none;
+  color: #eeeae2;
+  -webkit-text-stroke: 0;
+  background: linear-gradient(180deg, #f4f0e8 14%, #d2e0df 63%, #a6bfc2);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-depth .title-dot {
+  color: #ff8054;
+  -webkit-text-fill-color: #ff8054;
+}
+
+.hero-depth-exposures {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: var(--title-fade, 1);
+}
+
+.hero-depth-exposures:focus-within {
+  opacity: 1;
+}
+
+.hero-depth-print,
+.hero-depth-credit {
+  position: absolute;
+  pointer-events: auto;
+  border: 1px solid #c7e5f155;
+  background: #080b0edb;
+  color: #d7e9ef;
+  font: clamp(8px, 0.72vw, 12px) / 1.4 monospace;
+  letter-spacing: 0.065em;
+}
+
+.hero-depth-print {
+  --print-angle: -5deg;
+  left: 5.5%;
+  top: 50%;
+  bottom: 25%;
+  width: min(24vw, 45svh);
+  overflow: hidden;
+  box-shadow: 0 16px 44px #0007;
+  transform: translateY(calc(var(--scene, 0) * -35px))
+    rotate(var(--print-angle));
+}
+
+.hero-depth-print:nth-child(2) {
+  --print-angle: 5deg;
+  left: auto;
+  right: 6%;
+  top: 49.5%;
+  bottom: 24%;
+  width: min(17vw, 30svh);
+  transform: translateY(calc(var(--scene, 0) * -62px))
+    rotate(var(--print-angle));
+}
+
+.hero-depth-print img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 56%;
+}
+
+.hero-depth-print > span,
+.hero-depth-credit {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.hero-depth-print > span {
+  position: absolute;
+  inset: auto 0 0;
+  background: #080b0ee0;
+}
+
+.hero-depth-print b {
+  font-weight: normal;
+}
+
+.hero-depth-credit {
+  left: 50%;
+  bottom: 26%;
+  translate: -50% 0;
+}
+
+.hero-depth-print:hover,
+.hero-depth-print:focus-visible,
+.hero-depth-credit:hover,
+.hero-depth-credit:focus-visible {
+  border-color: #a7dce9;
+  color: #fff;
+}
+
+.hero-depth .hero-intro {
+  bottom: 6.5%;
+}
+
+.hero-depth .scroll-invitation {
+  bottom: 8%;
+}
+
+.hero-depth .scroll-invitation:focus-visible {
+  opacity: 1;
+}
+
+.hero-depth .hero-intro p,
+.hero-depth .viewfinder-label > span:last-child {
+  color: #e0eaee;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html:not(.motion-off) .hero-depth-exposures {
+    animation: depth-fade-arrival 1.25s var(--ease) 0.35s backwards;
+  }
+
+  html:not(.motion-off) .hero-depth .scroll-invitation {
+    animation: depth-fade-arrival 1.15s var(--ease) 1.4s backwards;
+  }
+
+  html:not(.motion-off) .hero-depth-print {
+    transition: border-color 0.25s ease;
+  }
+
+  html:not(.motion-off) :is(.hero-depth-photo, .hero-depth-shade) {
+    animation: depth-photo-arrival 1.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  html:not(.motion-off) .hero-depth .title-row {
+    animation: depth-title-arrival 1.25s cubic-bezier(0.16, 1, 0.3, 1) 0.12s
+      both;
+  }
+
+  html:not(.motion-off) .hero-depth .title-row-two {
+    animation-delay: 0.25s;
+  }
+}
+
+@keyframes depth-fade-arrival {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes depth-photo-arrival {
+  from {
+    scale: 1.085;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+@keyframes depth-title-arrival {
+  from {
+    opacity: 0;
+    transform: translateY(0.2em);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  .hero-depth .hero-title-group {
+    right: 5%;
+    bottom: 49.7%;
+    left: 5%;
+  }
+
+  .hero-depth h1 {
+    display: block;
+    font-size: min(19vw, 14svh);
+    line-height: 0.93;
+  }
+
+  .hero-depth .title-row-two {
+    margin-top: 0.05em;
+  }
+
+  .hero-depth-print,
+  .hero-depth-print:nth-child(2) {
+    top: 55%;
+    bottom: 30%;
+    width: 43%;
+  }
+
+  .hero-depth-print {
+    --print-angle: -3deg;
+  }
+
+  .hero-depth-print:nth-child(2) {
+    --print-angle: 3deg;
+    top: 53%;
+  }
+
+  .hero-depth-print > span,
+  .hero-depth-credit {
+    padding: 5px 6px;
+  }
+
+  .hero-depth-credit {
+    bottom: 25.8%;
+  }
+}
+
+@media (max-width: 599px) {
+  .photography .collection-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 12px;
+  }
+
+  .photography .collection-meta {
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 9px 5px 0;
+  }
+
+  .photography .collection-meta h3 {
+    font-size: 15px;
+  }
+
+  .photography .collection-caption {
+    margin-inline: 5px;
+  }
+
+  .photography .collection-open {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+@media (max-width: 380px) {
+  .hero-depth .hero-intro p {
+    font-size: 13px;
+  }
+
+  .hero-depth .scroll-invitation {
+    max-width: 80px;
+  }
+}
