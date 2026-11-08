@@ -10,14 +10,17 @@ export default function SiteHeader({ home = false }: { home?: boolean }) {
     setOpen(false);
   };
   useEffect(() => {
-    const update = () =>
-      setScroll((current) => {
-        const compact = scrollY > 160,
-          scrolled = scrollY > 30;
-        return current.compact === compact && current.scrolled === scrolled
-          ? current
-          : { compact, scrolled };
-      });
+    let lastCompact = false;
+    let lastScrolled = false;
+    const update = () => {
+      const y = scrollY;
+      const compact = y > 160;
+      const scrolled = y > 30;
+      if (compact === lastCompact && scrolled === lastScrolled) return;
+      lastCompact = compact;
+      lastScrolled = scrolled;
+      setScroll({ compact, scrolled });
+    };
     update();
     const outside = (event: PointerEvent) => {
       if (!header.current?.contains(event.target as Node)) close();
@@ -56,6 +59,7 @@ export default function SiteHeader({ home = false }: { home?: boolean }) {
       ref={header}
       className={[
         "site-header",
+        home && "home-header",
         scroll.compact && "nav-compact",
         scroll.scrolled && "scrolled",
         expanded && "nav-expanded",

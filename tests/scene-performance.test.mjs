@@ -5,7 +5,7 @@ import { createSceneUpdater } from "../frontend/src/motion/scene-layout.ts";
 
 test("scroll updates finish all layout reads before writing styles and skip unchanged writes", () => {
   const dom = new JSDOM(
-    `<div class="reading-progress"></div><section id="home" class="hero"></section><section id="photography"><div class="section-heading"></div><div id="collection-grid"><button class="scroll-album"></button></div></section><section id="projects"><div class="section-heading"></div></section><section id="about"><div class="portrait"></div><div class="about-copy"></div></section><section id="contact"></section><b id="depth-value"></b><nav class="chapter-nav"><a href="#home"></a></nav><dialog></dialog>`,
+    `<div class="reading-progress"></div><section id="home" class="hero"></section><section id="photography"><div class="section-heading"></div><div id="collection-grid"><button class="scroll-album"></button></div></section><section id="projects"><div class="section-heading"><h2 id="project-heading"></h2></div></section><section id="about"><div class="portrait"></div><div class="about-copy"></div></section><section id="contact"></section><b id="depth-value"></b><nav class="chapter-nav"><a href="#home"></a></nav><dialog></dialog>`,
   );
   globalThis.document = dom.window.document;
   globalThis.innerHeight = 900;
@@ -52,7 +52,7 @@ test("scroll updates finish all layout reads before writing styles and skip unch
 
 test("scene refresh discovers new albums and the background can detect open overlays", () => {
   const dom = new JSDOM(
-    `<div class="reading-progress"></div><section id="home" class="hero"></section><section id="photography"><div class="section-heading"></div><div id="collection-grid"></div></section><section id="projects"><div class="section-heading"></div></section><section id="about"><div class="portrait"></div><div class="about-copy"></div></section><section id="contact"></section><b id="depth-value"></b><dialog></dialog>`,
+    `<div class="reading-progress"></div><section id="home" class="hero"></section><section id="photography"><div class="section-heading"></div><div id="collection-grid"></div></section><section id="projects"><div class="section-heading"><h2 id="project-heading"></h2></div></section><section id="about"><div class="portrait"></div><div class="about-copy"></div></section><section id="contact"></section><b id="depth-value"></b><dialog></dialog>`,
   );
   globalThis.document = dom.window.document;
   globalThis.innerHeight = 900;

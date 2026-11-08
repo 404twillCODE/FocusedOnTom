@@ -37,8 +37,24 @@ export function useHomeExperience() {
       { threshold: 0.1, rootMargin: "0px 0px 30px 0px" },
     );
     const seen = new WeakSet<Element>();
-    const detailSelector =
-      ".section-heading>div>*, .section-index>span, .filter-tabs button, .gallery-hint, .about-copy>p, .now-list>div, .about-copy>.text-link";
+    const detailSelector = [
+      "[data-reveal]",
+      "[data-workbench-reveal]",
+      ".section-heading > div > *",
+      ".section-index > span",
+      ".filter-tabs button",
+      ".gallery-hint",
+      ".section-end > *",
+      ".collection-pagination > *",
+      ".about-copy > p",
+      ".now-list > div",
+      ".about-copy > .text-link",
+      ".contact-topics > *",
+      ".contact-bottom > p",
+      ".social-links > a",
+      ".footer > *",
+    ].join(", ");
+    const revealSelector = detailSelector + ", .reveal";
     function observe(element: Element) {
       if (seen.has(element)) return;
       seen.add(element);
@@ -46,16 +62,14 @@ export function useHomeExperience() {
         element.classList.remove("reveal");
         element.classList.add("detail-reveal");
         detail.observe(element);
-      } else
-        (element.matches(".scroll-album, .workbench-reveal")
-          ? album
-          : reveal
-        ).observe(element);
+      } else {
+        (element.matches(".scroll-album") ? album : reveal).observe(element);
+      }
     }
     function scan(node: ParentNode) {
-      if (node instanceof Element && node.matches(detailSelector + ", .reveal"))
+      if (node instanceof Element && node.matches(revealSelector))
         observe(node);
-      node.querySelectorAll(detailSelector + ", .reveal").forEach(observe);
+      node.querySelectorAll(revealSelector).forEach(observe);
     }
     scan(document);
     // Text-counter changes do not introduce reveal elements. Only inspect added subtrees.

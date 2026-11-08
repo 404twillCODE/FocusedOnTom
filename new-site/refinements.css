@@ -31,7 +31,7 @@
 .workbench-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 20px;background:#0d151c;border-bottom:1px solid #a7dce917;font:7px monospace;letter-spacing:.8px;color:#597b90}
 .console-lights{color:#ff80548a;font-size:7px;letter-spacing:3px}.workbench-bar>span:last-child{color:var(--cyan)}
 .workbench-visual{height:330px;padding:28px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse at 50% 80%,#24414f55,transparent 70%),#0b1116;background-image:linear-gradient(#a7dce905 1px,transparent 1px),linear-gradient(90deg,#a7dce905 1px,transparent 1px);background-size:30px 30px}
-.workbench-visual>img{width:100%;height:100%;object-fit:contain;filter:none;box-shadow:0 20px 45px #0006;animation:workbench-arrive .65s var(--ease) both}
+.workbench-visual>img{width:100%;height:100%;object-fit:contain;filter:none;box-shadow:0 20px 45px #0006}
 .workbench-visual .pixel-world{animation:workbench-arrive .65s var(--ease) both}
 .workbench-copy{display:flex;justify-content:space-between;align-items:center;gap:24px;padding:27px 28px;border-top:1px solid #a7dce917;animation:workbench-arrive .45s var(--ease) both}
 .workbench-copy .small-note{font-size:6px;color:var(--orange)}.workbench-copy h3{font-size:27px;font-weight:500;letter-spacing:-1px;margin-top:11px;color:var(--ink)}

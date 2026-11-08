@@ -5,6 +5,7 @@ export function createSceneUpdater() {
     document.querySelector<HTMLElement>(selector)!;
   const hero = get(".hero"),
     code = get("#projects"),
+    codeHeading = get("#project-heading"),
     album = get("#collection-grid"),
     about = get("#about");
   const portrait = get(".portrait"),
@@ -14,10 +15,6 @@ export function createSceneUpdater() {
   const sections = ["home", "photography", "projects", "about", "contact"].map(
     (id) => get("#" + id),
   );
-  const headings = [
-    get("#photography .section-heading"),
-    get("#projects .section-heading"),
-  ];
   const links = [
     ...document.querySelectorAll<HTMLAnchorElement>(".chapter-nav a"),
   ];
@@ -45,16 +42,12 @@ export function createSceneUpdater() {
     const height = innerHeight;
     // One geometry phase lets the browser resolve layout at most once per update.
     const rects = sections.map((section) => section.getBoundingClientRect());
-    const heroHeight = hero.offsetHeight,
-      codeHeight = code.offsetHeight;
+    const heroHeight = hero.offsetHeight;
     const albumTop = album.getBoundingClientRect().top;
     const positions = cards.map((card) => ({
       card,
       center: albumTop + card.offsetTop + card.offsetHeight * 0.5,
     }));
-    const headingTops = headings.map(
-      (heading) => heading.getBoundingClientRect().top,
-    );
     const portraitTop = portrait.offsetTop + rects[3].top,
       copyTop = copy.offsetTop + rects[3].top;
     const total = root.scrollHeight - height,
@@ -67,13 +60,6 @@ export function createSceneUpdater() {
       "transform",
       `scaleX(${total > 0 ? Math.min(1, y / total) : 0})`,
     );
-    style(
-      code,
-      "--code-progress",
-      ease(
-        (height * 0.7 - rects[2].top) / (height * 0.7 + codeHeight * 0.45),
-      ).toFixed(5),
-    );
     for (const { card, center } of positions)
       style(
         card,
@@ -83,24 +69,6 @@ export function createSceneUpdater() {
           : clamp((height * 0.5 - center) / (height * 0.85), -1, 1)
         ).toFixed(5),
       );
-    for (const [index, section] of [sections[1], code].entries()) {
-      style(
-        section,
-        "--title-enter",
-        (reduced
-          ? 1
-          : ease((height * 0.95 - headingTops[index]) / (height * 0.65))
-        ).toFixed(5),
-      );
-      style(
-        section,
-        "--title-drift",
-        (reduced
-          ? 0
-          : clamp((height * 0.3 - headingTops[index]) / (height * 0.8))
-        ).toFixed(5),
-      );
-    }
     style(
       about,
       "--portrait-enter",
@@ -131,7 +99,13 @@ export function createSceneUpdater() {
     );
     const label = String(Math.round(progress * 999)).padStart(3, "0");
     if (depth.textContent !== label) depth.textContent = label;
-    for (let index = 1; index < sections.length; index++) {
+    // Match the About/Contact title motion on this small heading only.
+    style(
+      codeHeading,
+      "--workbench-title-enter",
+      (reduced ? 1 : ease((height - rects[2].top) / (height * 0.9))).toFixed(5),
+    );
+    for (const index of [1, 3, 4]) {
       const rect = rects[index],
         section = sections[index];
       style(

@@ -1,3 +1,4 @@
+import { animate } from "motion/mini";
 import {
   createContext,
   useContext,
@@ -5,8 +6,11 @@ import {
   useRef,
   useState,
   type ReactNode,
+  type MouseEvent,
+  type RefObject,
 } from "react";
 import { normalizeCatalog, safeUrl, type Collection } from "../lib/catalog";
+import { useMotion } from "../motion/MotionProvider";
 
 const PortfolioContext = createContext<{
   catalog: Collection[];
@@ -151,18 +155,103 @@ export function CollectionGrid() {
     list = catalog.filter(
       (collection) => filter === "all" || collection.category === filter,
     );
-  return <CollectionList key={filter} collections={list} />;
+  const { disabled } = useMotion();
+  const previousFilter = useRef(filter);
+  const grid = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const changed = previousFilter.current !== filter;
+    previousFilter.current = filter;
+    if (
+      !changed ||
+      disabled ||
+      typeof window.Animation !== "function" ||
+      !grid.current
+    )
+      return;
+
+    const transition = animate(
+      grid.current,
+      { opacity: [0.65, 1], transform: ["translateY(6px)", "none"] },
+      { duration: 0.3, ease: [0.22, 1, 0.36, 1] },
+    );
+    return () => transition.cancel();
+  }, [filter, disabled]);
+
+  return <CollectionList key={filter} collections={list} gridRef={grid} />;
 }
-function CollectionList({ collections }: { collections: Collection[] }) {
+function CollectionList({
+  collections,
+  gridRef,
+}: {
+  collections: Collection[];
+  gridRef: RefObject<HTMLDivElement | null>;
+}) {
   const [limit, setLimit] = useState(6);
   const visible = collections.slice(0, limit);
   const remaining = Math.max(0, collections.length - limit);
+  const { disabled } = useMotion();
+  const moreButton = useRef<HTMLButtonElement>(null);
+  const press = useRef<ReturnType<typeof animate> | null>(null);
+  const nextFocus = useRef<number | "button" | null>(null);
+
+  function changeLimit(event: MouseEvent<HTMLButtonElement>) {
+    if (press.current) return;
+    const update = () => {
+      nextFocus.current = remaining ? visible.length : "button";
+      setLimit(remaining ? Math.min(limit + 6, collections.length) : 6);
+    };
+    if (disabled || typeof window.Animation !== "function") {
+      update();
+      return;
+    }
+    const feedback = animate(
+      event.currentTarget,
+      { transform: ["none", "scale(0.93)", "none"] },
+      { duration: 0.19, ease: "easeInOut" },
+    );
+    press.current = feedback;
+    void feedback.then(() => {
+      if (press.current !== feedback) return;
+      press.current = null;
+      update();
+    });
+  }
+
+  useEffect(
+    () => () => {
+      press.current?.cancel();
+      press.current = null;
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const target = nextFocus.current;
+    if (target === null) return;
+    nextFocus.current = null;
+    const element =
+      target === "button"
+        ? moreButton.current
+        : gridRef.current?.children[target];
+    if (!(element instanceof HTMLElement)) return;
+    element.focus({ preventScroll: true });
+    element.scrollIntoView({
+      block: "nearest",
+      behavior: disabled || target === "button" ? "instant" : "smooth",
+    });
+  }, [limit, disabled, gridRef]);
   useEffect(() => {
     dispatchEvent(new Event("portfolio:collections"));
   }, [collections, limit]);
   return (
     <>
-      <div id="collection-grid" className="collection-grid" aria-live="polite">
+      <div
+        ref={gridRef}
+        id="collection-grid"
+        className="collection-grid"
+        aria-live="polite"
+      >
         {visible.map((collection, index) => (
           <button
             key={collection.id}
@@ -196,23 +285,39 @@ function CollectionList({ collections }: { collections: Collection[] }) {
           </button>
         ))}
         {!collections.length && (
-          <p className="catalog-status">No collections in this category yet.</p>
+          <p className="catalog-status" data-reveal>
+            No collections in this category yet.
+          </p>
         )}
       </div>
       {collections.length > 6 && (
         <div className="collection-pagination">
-          <span className="collection-page-count">
-            {visible.length} of {collections.length} collections
+          <span className="collection-page-count" role="status">
+            <span key={visible.length}>
+              {visible.length} of {collections.length} collections
+            </span>
           </span>
           <button
+            ref={moreButton}
             type="button"
             className="collection-more"
             aria-controls="collection-grid"
             aria-expanded={limit > 6}
-            onClick={() => setLimit(remaining ? Math.min(limit + 6, collections.length) : 6)}
+            data-collapse={!remaining || undefined}
+            onClick={changeLimit}
           >
             {remaining ? "Show more collections" : "Show fewer collections"}
-            <span aria-hidden="true">{remaining ? "⌄" : "⌃"}</span>
+            <span className="collection-more-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="m4 6 4 4 4-4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
           </button>
         </div>
       )}
@@ -222,7 +327,7 @@ function CollectionList({ collections }: { collections: Collection[] }) {
 export function CatalogStatus() {
   const { status } = usePortfolio();
   return (
-    <p id="catalog-status" className="catalog-status" role="status">
+    <p id="catalog-status" className="catalog-status" role="status" data-reveal>
       {status}
     </p>
   );

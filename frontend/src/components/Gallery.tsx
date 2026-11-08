@@ -121,7 +121,7 @@ export default function Gallery() {
       { root: element, threshold: 0.02, rootMargin: "0px 0px 60px 0px" },
     );
     element
-      .querySelectorAll(".album-photo")
+      .querySelectorAll(".album-photo, .album-section-heading, .album-signoff")
       .forEach((photo) => observer.observe(photo));
     return () => observer.disconnect();
   }, [collection, section]);

@@ -32,7 +32,6 @@ export default function HomePage() {
         <SiteHeader home={true} />
         <div className="liquid-environment" aria-hidden="true"></div>
         <canvas id="ambient-field" aria-hidden="true"></canvas>
-        <div className="screen-grain" aria-hidden="true"></div>
         <aside className="chapter-nav" aria-label="Page chapters">
           <a href="#home" aria-label="Introduction">
             <i></i>
@@ -55,7 +54,7 @@ export default function HomePage() {
             <span>{"CONNECT"}</span>
           </a>
         </aside>
-        <main id="main">
+        <main id="main" className="home-content">
           <section
             className="hero hero-depth scroll-scene"
             id="home"
@@ -199,11 +198,13 @@ export default function HomePage() {
                 <span>{"01 / OBSERVE_MODE"}</span>
                 <span>{"THE WORLD, THROUGH MY VIEWFINDER"}</span>
               </div>
-              <div className="section-heading reveal">
+              <div className="section-heading">
                 <h2 id="photo-heading">
-                  <span className="photo-title-line">{"CHASING"}</span>
+                  <span className="photo-title-line" data-reveal>
+                    {"CHASING"}
+                  </span>
                   <br />
-                  <span className="photo-title-line">
+                  <span className="photo-title-line" data-reveal>
                     {"THE "}
                     <em>{"FEELING."}</em>
                   </span>
@@ -251,11 +252,13 @@ export default function HomePage() {
                 <span>{"02 / BUILD_MODE"}</span>
                 <span>{"CURIOSITY, COMPILED."}</span>
               </div>
-              <div className="section-heading reveal">
+              <div className="section-heading">
                 <h2 id="project-heading">
-                  <span className="workbench-title-word">{"THE"}</span>
+                  <span className="workbench-title-word" data-reveal>
+                    {"THE"}
+                  </span>
                   <br />
-                  <em>{"WORKBENCH."}</em>
+                  <em data-reveal>{"WORKBENCH."}</em>
                 </h2>
                 <div>
                   <p>
@@ -274,27 +277,11 @@ export default function HomePage() {
                   </a>
                 </div>
               </div>
-              <div className="workbench-note reveal">
+              <div className="workbench-note" data-reveal>
                 {"built because I wanted it to exist."}
                 <span aria-hidden="true">{"↙"}</span>
               </div>
               <Workbench />
-              <div className="project-footnote">
-                <span>{"THE TOOLBOX"}</span>
-                <p>
-                  {"JavaScript "}
-                  <i>{"/"}</i>
-                  {" TypeScript "}
-                  <i>{"/"}</i>
-                  {" React "}
-                  <i>{"/"}</i>
-                  {" Node.js "}
-                  <i>{"/"}</i>
-                  {" Electron "}
-                  <i>{"/"}</i>
-                  {" A little persistence"}
-                </p>
-              </div>
             </div>
           </section>
           <section
@@ -315,11 +302,11 @@ export default function HomePage() {
                   alt="Tom standing beside his Chrysler 300 under a colorful evening sky"
                   loading="lazy"
                 />
-                <span className="portrait-label">
+                <span className="portrait-label" data-reveal>
                   {"THOMAS WILLIAMS "}
                   <span>{"THAT’S ME ↗"}</span>
                 </span>
-                <span className="portrait-sticker">
+                <span className="portrait-sticker" data-reveal>
                   {"OFFLINE"}
                   <br />
                   {"IS A GOOD"}
@@ -327,14 +314,20 @@ export default function HomePage() {
                   <em>{"PLACE TO BE."}</em>
                 </span>
               </div>
-              <div className="about-copy reveal">
-                <span className="small-note">{"HEY AGAIN. I’M TOM."}</span>
+              <div className="about-copy">
+                <span className="small-note" data-reveal>
+                  {"HEY AGAIN. I’M TOM."}
+                </span>
                 <h2 id="about-heading">
-                  <span className="about-title-line">{"A HUMAN."}</span>
+                  <span className="about-title-line" data-reveal>
+                    {"A HUMAN."}
+                  </span>
                   <br />
-                  <span className="about-title-line">{"NOT JUST"}</span>
+                  <span className="about-title-line" data-reveal>
+                    {"NOT JUST"}
+                  </span>
                   <br />
-                  <span className="about-title-line">
+                  <span className="about-title-line" data-reveal>
                     {"A "}
                     <em>{"HANDLE."}</em>
                   </span>
@@ -386,16 +379,16 @@ export default function HomePage() {
                 <span>{"LET’S SEE WHERE AN IDEA GOES"}</span>
               </div>
               <div className="contact-layout">
-                <div className="contact-intro reveal">
-                  <span className="contact-kicker">
+                <div className="contact-intro">
+                  <span className="contact-kicker" data-reveal>
                     {"YOUR NEXT IDEA. A LITTLE CURIOSITY."}
                   </span>
                   <h2 id="contact-heading">
-                    <span>{"LET’S MAKE"}</span>
+                    <span data-reveal>{"LET’S MAKE"}</span>
                     <br />
-                    <em>{"IT HAPPEN."}</em>
+                    <em data-reveal>{"IT HAPPEN."}</em>
                   </h2>
-                  <p>
+                  <p data-reveal>
                     {"A photo worth keeping. Something worth building."}
                     <br className="desktop-break" />
                     {" Or an idea we haven’t figured out yet."}
@@ -433,7 +426,7 @@ export default function HomePage() {
                 </div>
                 <ContactCard request={composeRequest} />
               </div>
-              <div className="contact-bottom reveal">
+              <div className="contact-bottom">
                 <p>
                   {"Code. Cameras. Good conversations."}
                   <span>{"UPSTATE NEW YORK / WHEREVER THE IDEA TAKES US"}</span>
@@ -460,7 +453,7 @@ export default function HomePage() {
             </div>
           </section>
         </main>
-        <footer className="wrap footer">
+        <footer className="wrap footer home-footer">
           <a className="brand" href="#home">
             <span className="brand-mark" aria-hidden="true">
               <img

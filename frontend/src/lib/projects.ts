@@ -5,6 +5,7 @@ export type Project = {
   image: string;
   description: string;
   tags: string[];
+  technologies: string[];
   links: string[][];
   color?: string;
   detail?: string;
@@ -21,6 +22,7 @@ export const projects: Project[] = [
     detail:
       "A Minecraft server manager that brings starting, stopping, monitoring, and configuring servers into one workspace. The idea is simple: spend less time managing the setup and more time enjoying what you host.",
     tags: ["Node.js", "Minecraft", "Server tools"],
+    technologies: ["TypeScript", "JavaScript", "React", "Node.js", "Electron"],
     notes: [
       "Start and stop servers from one place.",
       "Monitor server activity and manage configuration.",
@@ -38,6 +40,13 @@ export const projects: Project[] = [
     detail:
       "An interactive explorer for Delta Reservoir near Rome, New York. It brings observed water levels, seasonal drawdown, and the historical record into one place, with clear sources and context.",
     tags: ["NOAA / NWPS", "USGS", "Interactive charts"],
+    technologies: [
+      "JavaScript",
+      "React",
+      "Next.js",
+      "MapLibre GL",
+      "Apache ECharts",
+    ],
     notes: [
       "Explore recent NOAA observations and historical USGS records.",
       "Compare seasonal drawdown, refill signals, and water-level trends.",
@@ -57,6 +66,7 @@ export const projects: Project[] = [
     detail:
       "An offline-first photo and video browser for large libraries on internal and external drives. GalleryX indexes media where it lives, so your original files stay in place.",
     tags: ["Electron", "SQLite", "Local media"],
+    technologies: ["TypeScript", "React", "Electron", "SQLite"],
     notes: [
       "Indexes folders in place and builds a thumbnail cache.",
       "Photo and video galleries, favorites, timelines, and duplicate review.",
@@ -77,6 +87,7 @@ export const projects: Project[] = [
     detail:
       "A collection of Minecraft Java mods, from boat motors to rocket launchers. A place to experiment, learn, and build something just because it would be fun to use.",
     tags: ["Minecraft Java", "Game mechanics", "Modding"],
+    technologies: ["Java", "Fabric", "Forge", "NeoForge"],
     notes: [
       "Boat Motors: new ways to get around on the water.",
       "Rocket RPG: a new addition to the inventory.",
@@ -94,6 +105,7 @@ export const projects: Project[] = [
     image: "/assets/projects/afterhours-site.webp",
     description: "Your favorite people. One more game.",
     tags: ["Multiplayer games", "Watch parties", "Shared rooms"],
+    technologies: ["TypeScript", "React", "Node.js", "Express", "PostgreSQL"],
     links: [
       ["Open Afterhours", "https://afterhours-game-night-chi.vercel.app/"],
     ],
@@ -105,6 +117,7 @@ export const projects: Project[] = [
     image: "/assets/projects/tevisuals-site.webp",
     description: "Two perspectives. A place to share what we create.",
     tags: ["Photography", "Videography", "Client galleries"],
+    technologies: ["TypeScript", "React", "Next.js", "Supabase"],
     links: [["Open TE Visuals", "https://www.tevisuals.com/"]],
   },
 ];

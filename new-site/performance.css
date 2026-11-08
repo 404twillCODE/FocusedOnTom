@@ -4,3 +4,23 @@ html.overlay-open .hero-stage *,html.hero-out-of-view .hero-stage *{animation-pl
 html:not(.motion-off) .album-photo.is-visible{animation-fill-mode:backwards}
 .album-photo{contain:paint}
 .footer-tools{margin-left:18px;color:var(--cyan);white-space:nowrap}
+
+/* Keep the scrolling glass and photo layers free of backdrop and color filters. */
+.site-header.home-header {
+  background: linear-gradient(115deg, #1b2b36cc, #0b141cd4);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.collection-card .collection-number,
+.collection-card .collection-open {
+  background: #0d1922ed;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.collection-card.scroll-album .collection-image img,
+.collection-card.scroll-album:hover .collection-image img,
+.motion-ready .collection-card.scroll-album.reveal:not(.is-visible) {
+  filter: none;
+}
