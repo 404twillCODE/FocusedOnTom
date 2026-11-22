@@ -27,13 +27,14 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const controller = new AbortController();
     let refreshing = false;
-    function apply(data: Collection[]) {
-      if (
+    let hasLiveCatalog = false;
+    function apply(data: Collection[], initialLiveRefresh = false) {
+      if (!initialLiveRefresh && (
         document.querySelector("#gallery-dialog[open]") ||
         document
           .querySelector("#collection-grid")
           ?.contains(document.activeElement)
-      ) {
+      )) {
         pending.current = data;
         return;
       }
@@ -55,7 +56,10 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
         });
         if (response.ok) {
           const data = normalizeCatalog(await response.json());
-          apply(data);
+          // A direct album link can open from the bundled catalog before the
+          // first live response. Upgrade that album in place once.
+          apply(data, !hasLiveCatalog);
+          hasLiveCatalog = true;
           setStatus("");
         }
       } catch {
