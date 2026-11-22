@@ -28,7 +28,7 @@ export default memo(function AlbumGrid({
               <span className="album-section-index">
                 {String(groupIndex + 1).padStart(2, "0")} /
               </span>
-              <h3>{group.name || "More photographs"}</h3>
+              <h3>{group.name || "Overview"}</h3>
               <span className="album-section-count">
                 {group.photos.length} photograph
                 {group.photos.length === 1 ? "" : "s"}

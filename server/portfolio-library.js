@@ -1,4 +1,4 @@
-import {getLibrary,previewSource} from './photo-library.js';
+import {getLibrary,previewSource,normalizeStarRating} from './photo-library.js';
 
 const SOURCE='https://www.tevisuals.com';
 
@@ -11,7 +11,10 @@ export function publicPhotoSources(html){
     for(const match of payload.matchAll(/\{"id":"[^"}]+","src":"[^"}]+"[^{}]*\}/g)){
       let photo;try{photo=JSON.parse(match[0])}catch{continue}
       const source=previewSource({publicUrl:photo.src});
-      if(photo.attribution==='tom'&&source)sources.set(photo.id,{url:source,width:photo.width,height:photo.height});
+      if(photo.attribution==='tom'&&source)sources.set(photo.id,{
+        url: source, width: photo.width, height: photo.height,
+        ...(Object.hasOwn(photo,'starRating') ? {starRating:normalizeStarRating(photo.starRating)} : {}),
+      });
     }
   }
   return sources;
@@ -22,7 +25,12 @@ export function cleanPortfolioCatalog(catalog,sources){
     const photos=collection.photos.map(photo=>{
       const source=sources.get(photo.id);
       if(!source)throw Error('A photograph has no clean public source.');
-      return {...photo,url:source.url,thumbnailUrl:source.url,width:source.width||photo.width,height:source.height||photo.height,watermarkRequired:false};
+      return {
+        ...photo, url: source.url, thumbnailUrl: source.url,
+        width: source.width || photo.width, height: source.height || photo.height,
+        starRating: Object.hasOwn(source,'starRating') ? source.starRating : normalizeStarRating(photo.starRating),
+        watermarkRequired: false,
+      };
     });
     const cover=photos.find(photo=>photo.id===collection.coverId)||photos[0];
     return {...collection,photos,totalPhotos:photos.length,coverUrl:cover.url};

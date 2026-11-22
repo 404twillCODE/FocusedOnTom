@@ -23,3 +23,19 @@ test('new sections appear automatically and albums without sections remain one g
   assert.deepEqual(groupAlbumPhotos([{id:'a',section:'Hike'},{id:'b',section:'New adventures'}]).map(g=>g.name),['Hike','New adventures']);
   assert.deepEqual(groupAlbumPhotos([]),[]);
 });
+
+
+test('both rating orders preserve Overview and Drifting and keep unrated photos last', () => {
+  const photos = [
+    {id:'o2',displayOrder:0,starRating:2},
+    {id:'ou',displayOrder:1},
+    {id:'o5',displayOrder:2,starRating:5},
+    {id:'d2a',section:'Drifting',displayOrder:3,starRating:2},
+    {id:'d1',section:'Drifting',displayOrder:4,starRating:1},
+    {id:'d2b',section:'Drifting',displayOrder:5,starRating:2},
+    {id:'du',section:'Drifting',displayOrder:6,starRating:0},
+  ];
+  const grouped = order => groupAlbumPhotos(photos, order).map(group => [group.name,group.photos.map(photo => photo.id)]);
+  assert.deepEqual(grouped('highest'), [['',['o5','o2','ou']],['Drifting',['d2a','d2b','d1','du']]]);
+  assert.deepEqual(grouped('lowest'), [['',['o2','o5','ou']],['Drifting',['d1','d2a','d2b','du']]]);
+});

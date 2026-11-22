@@ -12,6 +12,17 @@ test('only Tom previews are public, with details and exact-photo purchase links'
  assert.match(p.url,/^\/api\/photo-preview/);assert.equal(JSON.stringify(catalog.public).includes('cdn.tevisuals.com'),false);
  assert.equal(previewSource({...row,publicUrl:'https://evil.test/image.jpg',proxyUrl:'http://127.0.0.1/secret'}),null);
 });
+test('a rating change updates the catalog without invalidating unchanged photo pixels', () => {
+ const getPhoto = starRating => makeCatalog([{...row, starRating}], 'now');
+ const original = getPhoto(2), updated = getPhoto(5);
+ const readRating = catalog => catalog.public.collections[0].photos[0].starRating;
+ assert.equal(readRating(original), 2);
+ assert.equal(readRating(updated), 5);
+ assert.equal(readRating(getPhoto(0)), 0);
+ assert.equal(readRating(getPhoto(9)), null);
+ assert.notEqual(original.public.version, updated.public.version);
+ assert.equal(original.records.get(row.photoId).revision, updated.records.get(row.photoId).revision);
+});
 test('all pages are fetched and cache refresh discovers uploads and removals',async()=>{
  let now=0,calls=0,updated=false;
  const get=createLibrary({clock:()=>now,getKey:()=> 'test-key',fetcher:async(url,options)=>{calls++;assert.equal(options.headers.Authorization,'Bearer test-key');if(updated)return page([{...row,photoId:'new-photo'}]);return url.searchParams.has('cursor')?page([{...row,photoId:'photo-2'}]):page([row],true,'second');}});

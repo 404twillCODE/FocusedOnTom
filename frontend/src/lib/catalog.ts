@@ -13,6 +13,7 @@ export type Photo = {
   lens?: string;
   settings?: string;
   techCaption?: string;
+  starRating?: number | null;
   buyUrl?: string;
   sourceUrl?: string;
 };
@@ -74,7 +75,13 @@ export function normalizeCatalog(value: unknown): Collection[] {
       a.name.localeCompare(b.name, "en", { numeric: true }) || a.id.localeCompare(b.id),
     );
 }
-export function groupAlbumPhotos(photos: Photo[]) {
+export type PhotoRatingOrder = "gallery" | "highest" | "lowest";
+
+export function isRated(rating?: number | null): rating is number {
+  return typeof rating === "number" && Number.isInteger(rating) && rating >= 1 && rating <= 5;
+}
+
+export function groupAlbumPhotos(photos: Photo[], ratingOrder: PhotoRatingOrder = "gallery") {
   const groups = new Map<string, Photo[]>();
   for (const photo of [...photos].sort(
     (a, b) =>
@@ -85,5 +92,15 @@ export function groupAlbumPhotos(photos: Photo[]) {
     if (!groups.has(name)) groups.set(name, []);
     groups.get(name)!.push(photo);
   }
-  return [...groups].map(([name, photos]) => ({ name, photos }));
+  return [...groups].map(([name, photos]) => {
+    if (ratingOrder !== "gallery") {
+      photos.sort((a, b) => {
+        const aRating = isRated(a.starRating) ? a.starRating : 0;
+        const bRating = isRated(b.starRating) ? b.starRating : 0;
+        if (!aRating || !bRating) return Number(Boolean(bRating)) - Number(Boolean(aRating));
+        return ratingOrder === "highest" ? bRating - aRating : aRating - bRating;
+      });
+    }
+    return { name, photos };
+  });
 }

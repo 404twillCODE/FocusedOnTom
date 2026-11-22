@@ -30,6 +30,29 @@
 .album-info p{font-size:16px;line-height:1.8;color:var(--gallery-muted);margin-bottom:15px}
 .album-info .text-link{font-size:13px;color:#a7dce9;min-height:44px;gap:18px}
 .album-filters{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-bottom:46px}
+.album-rating-sort {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-bottom: 24px;
+  color: #a6bdc9;
+  font-size: 12px;
+}
+.album-filters:not([hidden]):has(+ .album-rating-sort) { margin-bottom: 12px; }
+.album-rating-sort select {
+  min-height: 44px;
+  border: 1px solid #bfdce44a;
+  border-radius: 8px;
+  background: #111a20;
+  color: #f1ece4;
+  padding: 8px 12px;
+  font: inherit;
+  color-scheme: dark;
+}
+.album-rating-sort select:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+.viewer-star-rating { display: block; margin-top: 4px; color: var(--cyan); }
 .album-filter{display:flex;align-items:center;gap:14px;border:1px solid transparent;border-radius:26px;padding:12px 19px;min-height:46px;color:#a6bdc9;font-size:13px;transition:background .3s,color .3s,border-color .3s}
 .album-filter>span{font:11px ui-monospace,Consolas,monospace;color:#7b98aa}
 .album-filter[aria-pressed=true]{background:#d2edf00c;border-color:#bfdce42b;color:#f1ece4}

@@ -45,3 +45,12 @@ test('every image and album cover uses the unmodified source, with metadata pres
   assert.equal(result.collections[0].photos[0].watermarkRequired,false);
   assert.throws(()=>cleanPortfolioCatalog(catalog,new Map()),/no clean public source/);
 });
+
+
+test('the public source carries ratings and can clear a stale rating in the cached catalog', () => {
+  const photo = {id:'lake',src:'https://cdn.tevisuals.com/public/portfolio/nature/camping/lake.webp',attribution:'tom',starRating:0};
+  const payload = JSON.stringify([1,JSON.stringify([photo])]);
+  const sources = publicPhotoSources(`<script>self.__next_f.push(${payload})</script>`);
+  const updated = cleanPortfolioCatalog({collections:[{photos:[{id:'lake',starRating:4}]}]},sources);
+  assert.equal(updated.collections[0].photos[0].starRating,0);
+});

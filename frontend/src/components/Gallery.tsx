@@ -14,6 +14,8 @@ import AlbumGrid from "./AlbumGrid";
 import { clampPhotoScale, photoZoomPosition, wheelPhotoScale } from "../lib/photoZoom";
 import {
   groupAlbumPhotos,
+  isRated,
+  type PhotoRatingOrder,
   safeUrl,
   type Collection,
   type Photo,
@@ -62,10 +64,12 @@ export default function Gallery() {
   const [section, setSection] = useState(""),
     [compact, setCompact] = useState(false),
     [expanded, setExpanded] = useState(false);
+  const [ratingOrder, setRatingOrder] = useState<PhotoRatingOrder>("gallery");
   const groups = useMemo(
-    () => groupAlbumPhotos(collection?.photos || []),
-    [collection],
+    () => groupAlbumPhotos(collection?.photos || [], ratingOrder),
+    [collection, ratingOrder],
   );
+  const hasRatings = collection?.photos.some((photo) => isRated(photo.starRating));
   const visibleGroups = useMemo(
     () =>
       groups.filter(
@@ -97,6 +101,7 @@ export default function Gallery() {
       if (previousId.current !== collection.id) {
         element.scrollTop = 0;
         setSection("");
+        setRatingOrder("gallery");
         setCompact(false);
         setExpanded(false);
         previousId.current = collection.id;
@@ -242,7 +247,7 @@ export default function Gallery() {
               },
               ...groups.map((group) => ({
                 name: group.name || "__ungrouped",
-                label: group.name || "More photographs",
+                label: group.name || "Overview",
                 count: group.photos.length,
               })),
             ].map((option) => (
@@ -259,6 +264,16 @@ export default function Gallery() {
               </button>
             ))}
           </div>
+          {hasRatings && (
+            <label className="album-rating-sort">
+              <span>Sort by rating</span>
+              <select value={ratingOrder} onChange={(event) => setRatingOrder(event.currentTarget.value as PhotoRatingOrder)}>
+                <option value="gallery">Gallery order</option>
+                <option value="highest">Highest stars first</option>
+                <option value="lowest">Lowest stars first</option>
+              </select>
+            </label>
+          )}
           <AlbumGrid
             groups={visibleGroups}
             photos={visiblePhotos}
@@ -612,6 +627,12 @@ export function PhotoViewer({ collection, photos, index, onClose }: ViewerProps)
               [photo.camera, photo.lens, photo.settings]
                 .filter(Boolean)
                 .join(" · "))}
+          {isRated(photo?.starRating) && (
+            <span className="viewer-star-rating">
+              <span aria-hidden="true">{"★".repeat(photo.starRating)}{" · "}</span>
+              {photo.starRating} {photo.starRating === 1 ? "star" : "stars"} in Lightroom
+            </span>
+          )}
         </p>
         <div>
           <button

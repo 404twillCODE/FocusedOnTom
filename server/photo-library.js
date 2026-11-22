@@ -7,6 +7,8 @@ export class LibraryError extends Error {
 }
 const text = value => typeof value === 'string' ? value.trim() : '';
 const safeId = value => /^[a-zA-Z0-9_-]{1,100}$/.test(text(value));
+export const normalizeStarRating = value =>
+  Number.isInteger(value) && value >= 0 && value <= 5 ? value : null;
 
 // Only the source's preview locations are accepted. Never accept arbitrary URLs
 // from a visitor, or use original/download object keys as a fallback.
@@ -42,6 +44,7 @@ export function makeCatalog(rows, generatedAt) {
       available: true, width: row.width, height: row.height,
       camera: parts[0] || '', lens: parts[1] || '', settings: parts.slice(2).join(' · '), techCaption: caption,
       capturedAt: row.capturedAt || null,
+      starRating: normalizeStarRating(row.starRating),
       date: Number.isFinite(timestamp) ? new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric',timeZone:'UTC'}).format(timestamp) : '',
       section: text(row.sectionTitle), displayOrder: Number(row.displayOrder)||0,
       watermarkRequired: true, sourceUrl: photoUrl.href, buyUrl: buyUrl.href, commercialUrl: commercialUrl.href,
